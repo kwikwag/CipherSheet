@@ -89,8 +89,25 @@
     .btn-secondary { background: #fff; color: #1a73e8; border: 1px solid #1a73e8; }
     .btn-secondary:hover { background: #f0f6ff; }
     
-    .btn-primary { background: #1a73e8; color: #fff; }
-    .btn-primary:hover { background: #1557b0; }
+    .btn-primary {
+      background: #1a73e8; color: #fff;
+      border: 1px solid transparent;
+      box-shadow: none; outline: none;
+    }
+    .btn-primary:hover:not(:disabled) {
+      background: #1557b0;
+      color: #fff;
+      border: 1px solid transparent;
+      box-shadow: none;
+      text-decoration: none;
+    }
+    .btn-primary:focus {
+      color: #fff;
+      border: 1px solid transparent;
+      box-shadow: none;
+      outline: none;
+      text-decoration: none;
+    }
     .btn-primary:disabled { background: #dadce0; cursor: not-allowed; }
     
     .btn:disabled { opacity: 0.5; pointer-events: none; }
@@ -110,7 +127,7 @@
         To start, generate a new encryption key by clicking <strong>Generate new key</strong> in the sidebar. This will instantly download a key file to your computer.
       </div>
       <div class="slide-img-placeholder">
-        <img src="<?!= include('imgs-encoded/step1-generate-key'); ?>" alt="Generate Key">
+        <img src="<?!= include('imgs-encoded/step1-generate-key'); ?>" alt="Using the &quot;Generate new key&quot; button">
       </div>
     </div>
 
@@ -123,7 +140,7 @@
         and click <strong>Protect</strong>. <br><br>The cell in the spreadsheet will be replaced with unintelligible ciphertext.
       </div>
       <div class="slide-img-placeholder">
-        <img src="<?!= include('imgs-encoded/step2-protect-cell'); ?>" alt="Protect Cell">
+        <img src="<?!= include('imgs-encoded/step2-protect-cell'); ?>" alt="Clicking the &quot;Protect&quot; button">
       </div>
     </div>
 
@@ -137,7 +154,7 @@
         <em>Note:</em> Unprotecting a cell will permanently write the plaintext to the sheet's history. To simply clear the cell, you can select "Clear cell" without revealing the contents.
       </div>
       <div class="slide-img-placeholder">
-        <img src="<?!= include('imgs-encoded/step3-unprotect-cell'); ?>" alt="Unprotect Cell">
+        <img src="<?!= include('imgs-encoded/step3-unprotect-cell'); ?>" alt="Clicking the &quot;Unprotect&quot; button">
       </div>
     </div>
 
@@ -147,10 +164,10 @@
       <div class="slide-text">
         Because CipherSheet uses zero-knowledge encryption, <b>if you lose your key file, your data cannot be recovered!</b><br><br>
         Never upload your key file to public places. Instead, share it directly and securely with your trusted collaborators.
-        The Key never leaves your local browser — it is never sent to any servers - not Google nor any other servers.
+        The key never leaves your local browser — it is never sent to any servers - not Google nor any other servers.
       </div>
       <div class="slide-img-placeholder">
-        <img src="<?!= include('imgs-encoded/step4-key-loaded'); ?>" alt="Key Loaded View">
+        <img src="<?!= include('imgs-encoded/step4-key-loaded'); ?>" alt="The key file gets downloaded upon generating">
       </div>
     </div>
   </div>
