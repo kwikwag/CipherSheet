@@ -2,13 +2,34 @@
 // ║  CipherSheet — Server-side Apps Script  (Code.gs)            ║
 // ╚══════════════════════════════════════════════════════════════╝
 
-// ── Menu ─────────────────────────────────────────────────────────
+// ── Add-on Lifecycle & Menu ────────────────────────────────────────
 
-function onOpen() {
-  SpreadsheetApp.getUi()
-    .createMenu('🔐 CipherSheet')
-    .addItem('Open Vault', 'showSidebar')
-    .addToUi();
+function onInstall(e) {
+  onOpen(e);
+}
+
+function onOpen(e) {
+  const ui = SpreadsheetApp.getUi();
+  const menu = ui.createAddonMenu();
+  
+  if (e && e.authMode == ScriptApp.AuthMode.NONE) {
+    // The add-on is installed but not yet enabled for this document.
+    // The user must click this to trigger the authorization flow.
+    menu.addItem('Start CipherSheet', 'showSidebar');
+  } else {
+    // The add-on is enabled and authorized.
+    menu.addItem('Open Vault', 'showSidebar')
+        .addSeparator()
+        .addItem('How to use', 'showOnboarding');
+  }
+  menu.addToUi();
+}
+
+function showOnboarding() {
+  const html = HtmlService.createHtmlOutputFromFile('onboarding')
+    .setWidth(600)
+    .setHeight(520);
+  SpreadsheetApp.getUi().showModalDialog(html, 'Welcome to CipherSheet');
 }
 
 function showSidebar() {

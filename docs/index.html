@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CipherSheet | Client-Side Encryption for Google Sheets</title>
+  <style>
+    :root {
+      --primary: #1a73e8;
+      --primary-hover: #1557b0;
+      --bg-color: #f8f9fa;
+      --text-main: #202124;
+      --text-light: #5f6368;
+      --border-color: #dadce0;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+      color: var(--text-main);
+      background-color: var(--bg-color);
+    }
+    
+    header {
+      background: #fff; border-bottom: 1px solid var(--border-color);
+      padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center;
+      position: sticky; top: 0; z-index: 100;
+    }
+    
+    .logo { font-size: 1.5rem; font-weight: bold; color: var(--primary); display: flex; align-items: center; gap: 8px;}
+    .nav-links { display: flex; gap: 1.5rem; }
+    .nav-links a { color: var(--text-light); text-decoration: none; font-size: 0.95rem; font-weight: 500;}
+    .nav-links a:hover { color: var(--primary); }
+
+    .hero {
+      text-align: center; padding: 5rem 2rem; background: #fff;
+    }
+    
+    .hero h1 { font-size: 3rem; margin-bottom: 1rem; color: var(--text-main); }
+    .hero p { font-size: 1.25rem; color: var(--text-light); max-width: 600px; margin: 0 auto 2.5rem; }
+    
+    .install-btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      background: var(--primary); color: #fff; text-decoration: none;
+      padding: 0.8rem 2rem; font-size: 1.1rem; font-weight: 600;
+      border-radius: 6px; transition: background 0.2s;
+    }
+    .install-btn:hover { background: var(--primary-hover); }
+
+    .container {
+      max-width: 1000px; margin: 0 auto; padding: 4rem 2rem;
+    }
+    
+    h2 { font-size: 2rem; margin-bottom: 1.5rem; color: var(--primary); text-align: center; }
+    
+    /* ── Slideshow (CSS-only approximation or flex-grid) ── */
+    .features-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 2rem; margin-top: 3rem;
+    }
+    
+    .feature-card {
+      background: #fff; padding: 2rem; border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 1px solid var(--border-color);
+    }
+    .feature-card h3 { font-size: 1.25rem; margin-bottom: 1rem; color: var(--text-main); }
+    .feature-card p { color: var(--text-light); font-size: 0.95rem; }
+    
+    /* ── Security & Permissions ── */
+    .info-section {
+      background: #fff; padding: 3rem; margin-bottom: 3rem;
+      border-radius: 8px; border: 1px solid var(--border-color);
+    }
+    .info-section h3 { font-size: 1.5rem; margin-bottom: 1rem; color: var(--text-main); }
+    .info-section p, .info-section ul { color: var(--text-light); margin-bottom: 1rem; }
+    .info-section ul { padding-left: 2rem; }
+    
+    footer {
+      text-align: center; padding: 3rem 2rem; background: #fff;
+      border-top: 1px solid var(--border-color); color: var(--text-light); font-size: 0.9rem;
+    }
+    footer a { color: var(--primary); text-decoration: none; margin: 0 0.5rem; }
+    footer a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo">🔐 CipherSheet</div>
+    <div class="nav-links">
+      <a href="#how-it-works">How it works</a>
+      <a href="#security">Security</a>
+      <a href="#permissions">Permissions</a>
+      <a href="mailto:support@ciphersheet.example.com">Contact</a>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <h1>True End-to-End Encryption for Google Sheets</h1>
+      <p>Secure specific cells with military-grade AES-256-GCM encryption. The key never leaves your browser, and the cloud only sees ciphertext.</p>
+      <a href="#" class="install-btn">Install from Google Workspace Marketplace</a>
+      <p style="margin-top: 1rem; font-size: 0.85rem; color: var(--text-light);">Placeholder Link — Currently in Development</p>
+    </section>
+
+    <div class="container">
+      <h2 id="how-it-works">How to Use CipherSheet</h2>
+      <div class="features-grid">
+        <div class="feature-card">
+          <h3>1. Generate a Key</h3>
+          <p>Click "Generate new key" in the add-on sidebar. A <code>.vaultkey</code> file containing your 256-bit encryption key will instantly download to your machine. <strong>Do not lose this file.</strong></p>
+        </div>
+        <div class="feature-card">
+          <h3>2. Load & Protect</h3>
+          <p>Select any cell, type your sensitive data into the CipherSheet text field, and click <strong>Protect</strong>. The cell is instantly replaced with ciphertext directly in the spreadsheet.</p>
+        </div>
+        <div class="feature-card">
+          <h3>3. Decrypt on Demand</h3>
+          <p>Collaborators who load the correct <code>.vaultkey</code> file into their sidebar will instantly see the decrypted contents of selected cells within the sidebar view.</p>
+        </div>
+        <div class="feature-card">
+          <h3>4. Revealing & Clearing</h3>
+          <p>Need to revert? You can opt to "Reveal" the plaintext back into the sheet, or safely "Clear" the cell to remove the ciphertext securely without exposing the history.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="container">
+      <div class="info-section" id="security">
+        <h3>Honest Security Guarantee</h3>
+        <p>CipherSheet operates on a strict <strong>Zero-Knowledge Architecture</strong>. This means:</p>
+        <ul>
+          <li><strong>Client-side encryption:</strong> All encryption and decryption occurs locally in your browser using the <a href="https://developer.mozilla.org/en-US/docs/Web/API/Web_Crypto_API" target="_blank" rel="noopener">Web Crypto API</a>.</li>
+          <li><strong>Keys stay with you:</strong> Your <code>.vaultkey</code> is never transmitted to us or to Google servers. The add-on only sends the resulting, unintelligible ciphertext to the cloud.</li>
+          <li><strong>Data loss warning:</strong> Because we have no access to your keys, we have no way to recover your data if you lose your key file. Keep it in a secure password manager or physical drive!</li>
+        </ul>
+      </div>
+
+      <div class="info-section" id="permissions">
+        <h3>Why We Need Permissions</h3>
+        <p>When you install CipherSheet, Google will ask you to authorize specific permissions to your account. We only ask for what is strictly necessary:</p>
+        <ul>
+          <li><strong>Read & Write to Spreadsheets (<code>https://www.googleapis.com/auth/spreadsheets.currentonly</code>):</strong> We strictly ask for access to the <em>current spreadsheet only</em>. We require this to read the selected cell's value and inject the AES-256 ciphertext back into the sheet when you click "Protect" or "Unprotect".</li>
+          <li><strong>Display internal add-on UI:</strong> required to create the custom Add-on Sidebar and Menu you see.</li>
+        </ul>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <p>&copy; 2026 CipherSheet. All rights reserved.</p>
+    <div style="margin-top: 1rem;">
+      <a href="#">Terms of Service</a> | 
+      <a href="#">Privacy Policy</a> | 
+      <a href="mailto:support@ciphersheet.example.com">Contact Us</a>
+    </div>
+  </footer>
+
+</body>
+</html>

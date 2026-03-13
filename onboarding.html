@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Welcome to CipherSheet</title>
+  <link rel="stylesheet" href="https://ssl.gstatic.com/docs/script/css/add-ons1.css">
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 0;
+      font-family: Arial, sans-serif;
+      overflow: hidden; /* handled by the carousel */
+      color: #202124; background: #fff;
+    }
+    
+    .carousel-container {
+      position: relative;
+      width: 100%;
+      height: 520px;
+      display: flex; flex-direction: column;
+    }
+    
+    .slides-wrapper {
+      flex: 1; position: relative;
+      overflow: hidden;
+    }
+    
+    .slide {
+      position: absolute; top: 0; left: 0;
+      width: 100%; height: 100%;
+      padding: 30px 40px;
+      opacity: 0; transition: opacity 0.3s ease;
+      display: flex; flex-direction: column;
+      pointer-events: none;
+    }
+    
+    .slide.active {
+      opacity: 1; pointer-events: auto;
+    }
+    
+    .slide-title {
+      font-size: 20px; font-weight: bold; color: #1a73e8; margin-bottom: 15px;
+    }
+    
+    .slide-text {
+      font-size: 14px; line-height: 1.6; color: #3c4043; margin-bottom: 20px;
+    }
+    
+    .slide-img-placeholder {
+      flex: 1;
+      background: #f1f3f4;
+      border: 2px dashed #dadce0;
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      color: #80868b; font-size: 14px; font-style: italic;
+      overflow: hidden;
+    }
+    
+    .slide-img-placeholder img {
+      max-width: 100%; max-height: 100%;
+      object-fit: contain;
+    }
+    
+    .controls {
+      height: 60px;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 40px; border-top: 1px solid #e0e0e0;
+      background: #f8f9fa;
+    }
+    
+    .dots {
+      display: flex; gap: 8px;
+    }
+    
+    .dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #dadce0; transition: background 0.2s;
+    }
+    
+    .dot.active { background: #1a73e8; }
+    
+    .btn {
+      height: 36px; padding: 0 24px;
+      font-size: 14px; font-weight: 500; border-radius: 4px;
+      cursor: pointer; font-family: Arial, sans-serif;
+      border: none;
+    }
+    
+    .btn-secondary { background: #fff; color: #1a73e8; border: 1px solid #1a73e8; }
+    .btn-secondary:hover { background: #f0f6ff; }
+    
+    .btn-primary { background: #1a73e8; color: #fff; }
+    .btn-primary:hover { background: #1557b0; }
+    .btn-primary:disabled { background: #dadce0; cursor: not-allowed; }
+    
+    .btn:disabled { opacity: 0.5; pointer-events: none; }
+  </style>
+</head>
+<body>
+
+<div class="carousel-container">
+  <div class="slides-wrapper">
+    <!-- Slide 1 -->
+    <div class="slide active" id="slide-0">
+      <div class="slide-title">Welcome to CipherSheet</div>
+      <div class="slide-text">
+        CipherSheet allows you to encrypt individual cells in Google Sheets. Only people
+        with the correct <code>.vaultkey</code> file can read or update the cell.
+        <br><br>
+        To start, generate a new encryption key by clicking <strong>Generate new key</strong> in the sidebar. This will instantly download a key file to your computer.
+      </div>
+      <div class="slide-img-placeholder">
+        <!-- ADD SCREENSHOT HERE -->
+        <!-- Replace this comment with: <img src="https://your-domain.com/assets/step1-generate-key.png" alt="Generate Key"> -->
+        Placeholder: step1-generate-key.png
+      </div>
+    </div>
+
+    <!-- Slide 2 -->
+    <div class="slide" id="slide-1">
+      <div class="slide-title">Protecting a Cell</div>
+      <div class="slide-text">
+        With the key loaded into the Add-on, select any empty cell in your sheet.
+        Type the secret text you want to securely save into the CipherSheet text box,
+        and click <strong>Protect</strong>. <br><br>The cell in the spreadsheet will be replaced with unintelligible ciphertext.
+      </div>
+      <div class="slide-img-placeholder">
+        <!-- ADD SCREENSHOT HERE -->
+        <!-- Replace this comment with: <img src="https://your-domain.com/assets/step2-protect-cell.png" alt="Protect Cell"> -->
+        Placeholder: step2-protect-cell.png
+      </div>
+    </div>
+
+    <!-- Slide 3 -->
+    <div class="slide" id="slide-2">
+      <div class="slide-title">Unprotecting a Cell</div>
+      <div class="slide-text">
+        Select an encrypted cell, and the sidebar will show <strong>Unprotect</strong>.
+        Click it to reveal the plaintext.
+        <br>
+        <em>Note:</em> Unprotecting a cell will permanently write the plaintext to the sheet's history. To simply clear the cell, you can select "Clear cell" without revealing the contents.
+      </div>
+      <div class="slide-img-placeholder">
+        <!-- ADD SCREENSHOT HERE -->
+        <!-- Replace this comment with: <img src="https://your-domain.com/assets/step3-unprotect-cell.png" alt="Unprotect Cell"> -->
+        Placeholder: step3-unprotect-cell.png
+      </div>
+    </div>
+
+    <!-- Slide 4 -->
+    <div class="slide" id="slide-3">
+      <div class="slide-title">Keep Your Key Safe</div>
+      <div class="slide-text">
+        Because CipherSheet uses zero-knowledge encryption, <b>if you lose your key file, your data cannot be recovered!</b><br><br>
+        Never upload your key file to public places. Instead, share it directly and securely with your trusted collaborators.
+        The Key never leaves your local browser — it is never sent to our servers.
+      </div>
+      <div class="slide-img-placeholder">
+        <!-- ADD SCREENSHOT HERE -->
+        <!-- Replace this comment with: <img src="https://your-domain.com/assets/step4-key-loaded.png" alt="Key Loaded View"> -->
+        Placeholder: step4-key-loaded.png
+      </div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="btn btn-secondary" id="btn-prev" onclick="changeSlide(-1)" disabled>Previous</button>
+    <div class="dots" id="dots-container">
+      <div class="dot active"></div>
+      <div class="dot"></div>
+      <div class="dot"></div>
+      <div class="dot"></div>
+    </div>
+    <button class="btn btn-primary" id="btn-next" onclick="changeSlide(1)">Next</button>
+  </div>
+</div>
+
+<script>
+  let currentSlide = 0;
+  const totalSlides = 4;
+
+  function changeSlide(direction) {
+    document.getElementById(`slide-${currentSlide}`).classList.remove('active');
+    document.getElementById('dots-container').children[currentSlide].classList.remove('active');
+    
+    currentSlide += direction;
+    
+    document.getElementById(`slide-${currentSlide}`).classList.add('active');
+    document.getElementById('dots-container').children[currentSlide].classList.add('active');
+    
+    // Update buttons
+    document.getElementById('btn-prev').disabled = currentSlide === 0;
+    
+    const nextBtn = document.getElementById('btn-next');
+    if (currentSlide === totalSlides - 1) {
+      nextBtn.textContent = 'Finish';
+      nextBtn.onclick = () => google.script.host.close();
+    } else {
+      nextBtn.textContent = 'Next';
+      nextBtn.onclick = () => changeSlide(1);
+    }
+  }
+</script>
+</body>
+</html>
