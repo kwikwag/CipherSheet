@@ -502,6 +502,9 @@ function updateButtons() {
   // Protect label: 'Protect' on plaintext, 'Update' once already encrypted + key loaded
   document.getElementById('btnUpdate').textContent =
     (cellIsEncrypted && cryptoKey) ? 'Update' : 'Protect';
+
+  // Hide file input capture when a key is loaded (to allow clicking the textarea)
+  document.getElementById('keyFileInput').style.display = cryptoKey ? 'none' : '';
 }
 
 // ── Unprotect flow (modal + UserCache heartbeat polling) ────────
