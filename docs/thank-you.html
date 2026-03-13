@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Thank You | CipherSheet</title>
+  <style>
+    :root {
+      --primary: #1a73e8;
+      --text: #202124;
+      --muted: #5f6368;
+      --bg: #f8f9fa;
+      --card: #ffffff;
+      --border: #dadce0;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .card {
+      width: 100%;
+      max-width: 640px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 28px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 2rem;
+      color: var(--primary);
+      margin-bottom: 12px;
+    }
+
+    p {
+      font-size: 1rem;
+      line-height: 1.6;
+      color: var(--muted);
+      margin-bottom: 14px;
+    }
+
+    .actions {
+      margin-top: 18px;
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .link {
+      text-decoration: none;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-size: 0.95rem;
+      color: var(--text);
+      background: #fff;
+    }
+
+    .link:hover { border-color: var(--primary); color: var(--primary); }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>Thank You for Your Donation</h1>
+    <p>Your support helps keep CipherSheet open-source, free, and actively maintained.</p>
+    <p>It directly supports development, bug fixes, and documentation.</p>
+
+    <div class="actions">
+      <a class="link" href="index.html">Back to Home</a>
+      <a class="link" href="donate.html">Donate Again</a>
+    </div>
+  </main>
+</body>
+</html>
