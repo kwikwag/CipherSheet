@@ -360,7 +360,7 @@ function showSettings() {
   const html = HtmlService.createTemplateFromFile('settings').evaluate()
     .setWidth(460)
     .setHeight(380);
-  SpreadsheetApp.getUi().showModalDialog(html, '⚙ Settings');
+  SpreadsheetApp.getUi().showModalDialog(html, '🔐 CipherSheet Settings');
 }
 
 // ── Include ──────────────────────────────────────────────────────

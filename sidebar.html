@@ -716,7 +716,7 @@ async function encryptAndSave() {
       google.script.run
         .withSuccessHandler(res).withFailureHandler(rej)
         .showSheetConfirm(
-          'Wait! This text was already saved in this spreadsheet.',
+          '🔏 Wait! This text was already saved in this spreadsheet.',
           'Google Sheets permanently records all edits in its Version History. ' +
           'Even though we will replace the cell with ciphertext now, anyone with edit access ' +
           'can look back at the history to see the original unencrypted text.\n\n' +
