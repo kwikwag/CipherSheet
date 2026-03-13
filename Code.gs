@@ -1,19 +1,19 @@
 // ╔══════════════════════════════════════════════════════════════╗
-// ║  SheetVault — Server-side Apps Script  (Code.gs)            ║
+// ║  CipherSheet — Server-side Apps Script  (Code.gs)            ║
 // ╚══════════════════════════════════════════════════════════════╝
 
 // ── Menu ─────────────────────────────────────────────────────────
 
 function onOpen() {
   SpreadsheetApp.getUi()
-    .createMenu('🔐 SheetVault')
+    .createMenu('🔐 CipherSheet')
     .addItem('Open Vault', 'showSidebar')
     .addToUi();
 }
 
 function showSidebar() {
   const html = HtmlService.createHtmlOutputFromFile('sidebar')
-    .setTitle('🔐 SheetVault')
+    .setTitle('🔐 CipherSheet')
     .setWidth(300);
   SpreadsheetApp.getUi().showSidebar(html);
 }
@@ -40,9 +40,9 @@ function onEdit(e) {
 
   try {
     SpreadsheetApp.getUi().alert(
-      '🔐 SheetVault',
+      '🔐 CipherSheet',
       'This cell contains encrypted data and cannot be edited directly.\n\n' +
-      'Use the SheetVault sidebar (🔐 SheetVault → Open Vault) to update its value.',
+      'Use the CipherSheet sidebar (🔐 CipherSheet → Open Vault) to update its value.',
       SpreadsheetApp.getUi().ButtonSet.OK
     );
   } catch(_) { /* UI unavailable in some trigger contexts */ }
@@ -82,9 +82,9 @@ function setEncryptedCellValue(ciphertext, cellRef, sheetName) {
 
   // Stamp a note so onEdit can also identify vault cells
   const note = range.getNote() || '';
-  if (!note.includes('[SheetVault]')) {
+  if (!note.includes('[CipherSheet]')) {
     range.setNote((note ? note + '\n' : '') +
-      '[SheetVault] Encrypted — edit via the SheetVault sidebar only.');
+      '[CipherSheet] Encrypted — edit via the CipherSheet sidebar only.');
   }
 
   // Apply warning-only protection so even the owner sees a warning
@@ -96,9 +96,9 @@ function setEncryptedCellValue(ciphertext, cellRef, sheetName) {
 }
 
 function _applyWarningProtection(sheet, range) {
-  // Remove any existing SheetVault protection on this range first
+  // Remove any existing CipherSheet protection on this range first
   sheet.getProtections(SpreadsheetApp.ProtectionType.RANGE)
-    .filter(p => p.getDescription().startsWith('SheetVault:'))
+    .filter(p => p.getDescription().startsWith('CipherSheet:'))
     .forEach(p => {
       try {
         const a1 = p.getRange().getA1Notation();
@@ -107,7 +107,7 @@ function _applyWarningProtection(sheet, range) {
     });
 
   const protection = range.protect();
-  protection.setDescription('SheetVault:' + range.getA1Notation());
+  protection.setDescription('CipherSheet:' + range.getA1Notation());
   protection.setWarningOnly(true);
 }
 
@@ -237,15 +237,15 @@ function clearVaultCell(cellRef, sheetName) {
 
 function _removeVaultNote(range) {
   const note = range.getNote() || '';
-  if (note.includes('[SheetVault]')) {
-    range.setNote(note.replace(/\n?\[SheetVault\][^\n]*/g, '').trim() || '');
+  if (note.includes('[CipherSheet]')) {
+    range.setNote(note.replace(/\n?\[CipherSheet\][^\n]*/g, '').trim() || '');
   }
 }
 
 function _removeWarningProtection(sheet, range) {
   const a1 = range.getA1Notation();
   sheet.getProtections(SpreadsheetApp.ProtectionType.RANGE)
-    .filter(p => p.getDescription() === 'SheetVault:' + a1)
+    .filter(p => p.getDescription() === 'CipherSheet:' + a1)
     .forEach(p => { try { p.remove(); } catch(_) {} });
 }
 
@@ -257,9 +257,9 @@ function showSheetAlert(title, message) {
 
 function appendAuditLog(operation, cellRef, sheetName) {
   const ss  = SpreadsheetApp.getActiveSpreadsheet();
-  let   log = ss.getSheetByName('SheetVault_AuditLog');
+  let   log = ss.getSheetByName('CipherSheet_AuditLog');
   if (!log) {
-    log = ss.insertSheet('SheetVault_AuditLog');
+    log = ss.insertSheet('CipherSheet_AuditLog');
     log.hideSheet();
     log.appendRow(['Timestamp (UTC)', 'Operation', 'Cell', 'Sheet', 'User']);
     log.getRange(1, 1, 1, 5).setFontWeight('bold');

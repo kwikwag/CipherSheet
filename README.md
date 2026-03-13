@@ -1,4 +1,4 @@
-# 🔐 SheetVault — Encrypted Cell Manager for Google Sheets
+# 🔐 CipherSheet — Encrypted Cell Manager for Google Sheets
 
 A zero-knowledge, client-side encrypted cell manager. Store secrets in a shared Google Sheet without exposing raw values — your encryption key **never leaves your browser**.
 
@@ -12,7 +12,7 @@ A zero-knowledge, client-side encrypted cell manager. Store secrets in a shared 
 4. Click **+ New File → HTML** and name it `sidebar` (no extension)
 5. Replace its content with the contents of `sidebar.html`
 6. **Save** (Ctrl+S / ⌘S)
-7. Reload your Google Sheet — a **🔐 SheetVault** menu will appear
+7. Reload your Google Sheet — a **🔐 CipherSheet** menu will appear
 
 ---
 
@@ -30,7 +30,7 @@ A zero-knowledge, client-side encrypted cell manager. Store secrets in a shared 
 
 ### Encrypting a Cell
 1. Select a cell in the sheet
-2. Open the sidebar (**🔐 SheetVault → Open Vault Sidebar**)
+2. Open the sidebar (**🔐 CipherSheet → Open Vault Sidebar**)
 3. Load your key
 4. Click **↻** to load the selected cell
 5. Type the secret value in the plaintext area
@@ -58,7 +58,7 @@ A zero-knowledge, client-side encrypted cell manager. Store secrets in a shared 
 | Key scope | Passphrase-derived keys are scoped to the spreadsheet ID |
 | Ciphertext format | `🔐` + base64(salt[16] \|\| iv[12] \|\| ciphertext+tag) |
 | Key storage | In-memory JavaScript only — never sent to any server |
-| Audit log | Hidden sheet `SheetVault_AuditLog` logs operations (not values) |
+| Audit log | Hidden sheet `CipherSheet_AuditLog` logs operations (not values) |
 | Key fingerprint | SHA-256 of key stored server-side for version checking |
 
 ---
