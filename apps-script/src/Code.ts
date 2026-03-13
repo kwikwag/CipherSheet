@@ -6,38 +6,110 @@
 // ║  CipherSheet — Server-side Apps Script  (Code.gs)            ║
 // ╚══════════════════════════════════════════════════════════════╝
 
+// ── Shared types/constants ───────────────────────────────────────
+
+type DecryptIntent = 'reveal' | 'clear' | 'cancel';
+
+type DecryptIntentPollResult =
+  | { intent: DecryptIntent }
+  | { closed: true }
+  | null;
+
+interface AddonOpenEvent {
+  authMode?: GoogleAppsScript.Script.AuthMode;
+}
+
+interface OnEditEvent {
+  oldValue?: unknown;
+  range: GoogleAppsScript.Spreadsheet.Range;
+}
+
+interface CellRef {
+  cellRef: string;
+  sheetName: string;
+}
+
+interface SelectedCellValue extends CellRef {
+  value: string;
+}
+
+interface OkResponse {
+  ok: true;
+}
+
+interface SetEncryptedCellValueResponse extends OkResponse {
+  cellRef: string;
+}
+
+interface DocumentSettings {
+  auditLogEnabled: boolean;
+  editWarningEnabled: boolean;
+  noteEnabled: boolean;
+  onEditEnabled: boolean;
+}
+
+interface DecryptConfirmTemplate extends GoogleAppsScript.HTML.HtmlTemplate {
+  cellRef: string;
+  sheetName: string;
+  keyLoaded: string;
+}
+
+const VAULT_PFX_TRIGGER = '\uD83D\uDD10'; // 🔐
+const PROTECTION_DESC_PREFIX = 'CipherSheet:';
+const SETTINGS_KEY = 'CIPHERSHEET_SETTINGS';
+const AUDIT_LOG_SHEET = 'CipherSheet_AuditLog';
+
+const CACHE_TTL = 60; // intent key TTL (seconds)
+const HEARTBEAT_TTL = 4; // alive key TTL — must be > heartbeat interval (2s)
+
+const DEFAULT_SETTINGS: DocumentSettings = {
+  auditLogEnabled: false,
+  editWarningEnabled: true,
+  noteEnabled: true,
+  onEditEnabled: true
+};
+
+const VALID_DECRYPT_INTENTS: ReadonlySet<DecryptIntent> = new Set([
+  'reveal',
+  'clear',
+  'cancel'
+]);
+
 // ── Add-on Lifecycle & Menu ────────────────────────────────────────
 
-function onInstall(e) {
+function onInstall(e: AddonOpenEvent): void {
   onOpen(e);
 }
 
-function onOpen(e) {
+function onOpen(e?: AddonOpenEvent): void {
   const ui = SpreadsheetApp.getUi();
   const menu = ui.createAddonMenu();
-  
-  if (e && e.authMode == ScriptApp.AuthMode.NONE) {
+
+  if (e?.authMode === ScriptApp.AuthMode.NONE) {
     // The add-on is installed but not yet enabled for this document.
     // The user must click this to trigger the authorization flow.
     menu.addItem('Start CipherSheet', 'showSidebar');
   } else {
     // The add-on is enabled and authorized.
-    menu.addItem('Open Vault', 'showSidebar')
-        .addSeparator()
-        .addItem('How to use', 'showOnboarding');
+    menu
+      .addItem('Open Vault', 'showSidebar')
+      .addSeparator()
+      .addItem('How to use', 'showOnboarding');
   }
   menu.addToUi();
 }
 
-function showOnboarding() {
-  const html = HtmlService.createTemplateFromFile('onboarding').evaluate()
+function showOnboarding(): void {
+  const html = HtmlService.createTemplateFromFile('onboarding')
+    .evaluate()
     .setWidth(600)
     .setHeight(520);
   SpreadsheetApp.getUi().showModalDialog(html, '🔐 Welcome to CipherSheet');
 }
 
-function showSidebar() {
-  const html = HtmlService.createTemplateFromFile('sidebar').evaluate()
+function showSidebar(): void {
+  const html = HtmlService.createTemplateFromFile('sidebar')
+    .evaluate()
     .setTitle('🔐 CipherSheet')
     .setWidth(300);
   SpreadsheetApp.getUi().showSidebar(html);
@@ -54,11 +126,9 @@ function showSidebar() {
 //   Apps Script editor → Triggers → Add trigger
 //   → Function: onEdit, Event: From spreadsheet → On edit
 
-const VAULT_PFX_TRIGGER = '\uD83D\uDD10'; // 🔐
-
-function onEdit(e) {
+function onEdit(e?: OnEditEvent): void {
   if (!e) return;
-  
+
   const settings = getDocumentSettings();
   if (!settings.onEditEnabled) return;
 
@@ -71,41 +141,46 @@ function onEdit(e) {
     SpreadsheetApp.getUi().alert(
       '🔐 CipherSheet',
       'This cell contains encrypted data and cannot be edited directly.\n\n' +
-      'Use the CipherSheet sidebar (🔐 CipherSheet → Open Vault) to update its value.',
+        'Use the CipherSheet sidebar (🔐 CipherSheet → Open Vault) to update its value.',
       SpreadsheetApp.getUi().ButtonSet.OK
     );
-  } catch(_) { /* UI unavailable in some trigger contexts */ }
+  } catch (_) {
+    // UI unavailable in some trigger contexts
+  }
 }
 
 // ── Navigate to a cell ────────────────────────────────────────────
 
-function navigateToCell(cellRef, sheetName) {
-  const ss    = SpreadsheetApp.getActiveSpreadsheet();
+function navigateToCell(cellRef: string, sheetName: string): void {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(sheetName);
   if (!sheet) return;
+
   ss.setActiveSheet(sheet);
   sheet.getRange(cellRef).activate();
 }
 
 // ── Read selected cell ────────────────────────────────────────────
 
-function getSelectedCellValue() {
+function getSelectedCellValue(): SelectedCellValue {
   const sheet = SpreadsheetApp.getActiveSheet();
-  const cell  = sheet.getActiveRange().getCell(1, 1);
+  const cell = sheet.getActiveRange().getCell(1, 1);
+
   return {
-    value:     String(cell.getValue()),
-    cellRef:   cell.getA1Notation(),
+    value: String(cell.getValue()),
+    cellRef: cell.getA1Notation(),
     sheetName: sheet.getName()
   };
 }
 
 // ── Write encrypted value ─────────────────────────────────────────
 
-function setEncryptedCellValue(ciphertext, cellRef, sheetName) {
-  const ss    = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName(sheetName);
-  if (!sheet) throw new Error('Sheet not found: ' + sheetName);
-
+function setEncryptedCellValue(
+  ciphertext: string,
+  cellRef: string,
+  sheetName: string
+): SetEncryptedCellValueResponse {
+  const sheet = getSheetOrThrow(sheetName);
   const range = sheet.getRange(cellRef);
   range.setValue(ciphertext);
 
@@ -115,8 +190,10 @@ function setEncryptedCellValue(ciphertext, cellRef, sheetName) {
   if (settings.noteEnabled) {
     const note = range.getNote() || '';
     if (!note.includes('[CipherSheet]')) {
-      range.setNote((note ? note + '\n' : '') +
-        '[CipherSheet] Encrypted — edit via the CipherSheet sidebar only.');
+      range.setNote(
+        (note ? note + '\n' : '') +
+          '[CipherSheet] Encrypted — edit via the CipherSheet sidebar only.'
+      );
     }
   }
 
@@ -130,19 +207,25 @@ function setEncryptedCellValue(ciphertext, cellRef, sheetName) {
   return { ok: true, cellRef };
 }
 
-function _applyWarningProtection(sheet, range) {
+function _applyWarningProtection(
+  sheet: GoogleAppsScript.Spreadsheet.Sheet,
+  range: GoogleAppsScript.Spreadsheet.Range
+): void {
   // Remove any existing CipherSheet protection on this range first
-  sheet.getProtections(SpreadsheetApp.ProtectionType.RANGE)
-    .filter(p => p.getDescription().startsWith('CipherSheet:'))
-    .forEach(p => {
+  sheet
+    .getProtections(SpreadsheetApp.ProtectionType.RANGE)
+    .filter((p) => p.getDescription().startsWith(PROTECTION_DESC_PREFIX))
+    .forEach((p) => {
       try {
         const a1 = p.getRange().getA1Notation();
         if (a1 === range.getA1Notation()) p.remove();
-      } catch(_) {}
+      } catch (_) {
+        // Ignore orphaned or inaccessible protections.
+      }
     });
 
   const protection = range.protect();
-  protection.setDescription('CipherSheet:' + range.getA1Notation());
+  protection.setDescription(PROTECTION_DESC_PREFIX + range.getA1Notation());
   protection.setWarningOnly(true);
 }
 
@@ -152,13 +235,21 @@ function _applyWarningProtection(sheet, range) {
 // Passes ONLY cellRef and sheetName — no plaintext, no key.
 // The plaintext never leaves the sidebar's JS context.
 
-function openDecryptConfirm(cellRef, sheetName, keyLoaded) {
-  const tpl = HtmlService.createTemplateFromFile('decrypt-confirm');
-  tpl.cellRef   = cellRef;
+function openDecryptConfirm(
+  cellRef: string,
+  sheetName: string,
+  keyLoaded: boolean
+): void {
+  const tpl = HtmlService.createTemplateFromFile(
+    'decrypt-confirm'
+  ) as DecryptConfirmTemplate;
+
+  tpl.cellRef = cellRef;
   tpl.sheetName = sheetName;
   tpl.keyLoaded = keyLoaded ? 'true' : 'false';
 
-  const html = tpl.evaluate()
+  const html = tpl
+    .evaluate()
     .setWidth(480)
     .setHeight(keyLoaded ? 430 : 320); // shorter when only Clear is available
 
@@ -176,21 +267,25 @@ function openDecryptConfirm(cellRef, sheetName, keyLoaded) {
 // key appearing, the modal was closed via the X button → treat as cancel.
 // This avoids any need for a manual "cancel" UI element in the sidebar.
 
-const CACHE_TTL       = 60; // intent key TTL (seconds)
-const HEARTBEAT_TTL   = 4;  // alive key TTL — must be > heartbeat interval (2s)
-
-function _intentKey(cellRef, sheetName) {
-  return 'VAULT_INTENT:' + sheetName + ':' + cellRef;
+function _intentKey(cellRef: string, sheetName: string): string {
+  return _cacheKey('INTENT', cellRef, sheetName);
 }
-function _aliveKey(cellRef, sheetName) {
-  return 'VAULT_ALIVE:' + sheetName + ':' + cellRef;
+
+function _aliveKey(cellRef: string, sheetName: string): string {
+  return _cacheKey('ALIVE', cellRef, sheetName);
+}
+
+function _cacheKey(
+  kind: 'INTENT' | 'ALIVE',
+  cellRef: string,
+  sheetName: string
+): string {
+  return `VAULT_${kind}:${sheetName}:${cellRef}`;
 }
 
 /** Modal calls this on load and every 2 s to signal it is still open. */
-function heartbeatModalAlive(cellRef, sheetName) {
-  CacheService.getUserCache().put(
-    _aliveKey(cellRef, sheetName), '1', HEARTBEAT_TTL
-  );
+function heartbeatModalAlive(cellRef: string, sheetName: string): OkResponse {
+  CacheService.getUserCache().put(_aliveKey(cellRef, sheetName), '1', HEARTBEAT_TTL);
   return { ok: true };
 }
 
@@ -199,7 +294,15 @@ function heartbeatModalAlive(cellRef, sheetName) {
  * intent: 'reveal' | 'clear' | 'cancel'
  * Also removes the alive key so the sidebar stops seeing a heartbeat.
  */
-function recordDecryptIntent(cellRef, sheetName, intent) {
+function recordDecryptIntent(
+  cellRef: string,
+  sheetName: string,
+  intent: string
+): OkResponse {
+  if (!isDecryptIntent(intent)) {
+    throw new Error(`Invalid intent: ${intent}`);
+  }
+
   const cache = CacheService.getUserCache();
   cache.put(_intentKey(cellRef, sheetName), intent, CACHE_TTL);
   cache.remove(_aliveKey(cellRef, sheetName));
@@ -211,14 +314,20 @@ function recordDecryptIntent(cellRef, sheetName, intent) {
  * Returns: { intent: string } | { closed: true } | null (still open, no decision)
  * Removes the intent key after reading so it fires exactly once.
  */
-function pollDecryptIntent(cellRef, sheetName) {
-  const cache      = CacheService.getUserCache();
-  const intentKey  = _intentKey(cellRef, sheetName);
-  const intentVal  = cache.get(intentKey);
+function pollDecryptIntent(
+  cellRef: string,
+  sheetName: string
+): DecryptIntentPollResult {
+  const cache = CacheService.getUserCache();
+  const intentKey = _intentKey(cellRef, sheetName);
+  const intentVal = cache.get(intentKey);
 
   if (intentVal !== null) {
     cache.remove(intentKey);
-    return { intent: intentVal };
+    if (isDecryptIntent(intentVal)) {
+      return { intent: intentVal };
+    }
+    return { closed: true };
   }
 
   // No intent yet — check if the modal is still alive
@@ -238,12 +347,10 @@ function pollDecryptIntent(cellRef, sheetName) {
 // which is unavoidable since writing to a cell requires server-side
 // execution. It is never logged.
 
-function revealCell(plaintext, cellRef, sheetName) {
-  const ss    = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName(sheetName);
-  if (!sheet) throw new Error('Sheet not found: ' + sheetName);
-
+function revealCell(plaintext: string, cellRef: string, sheetName: string): OkResponse {
+  const sheet = getSheetOrThrow(sheetName);
   const range = sheet.getRange(cellRef);
+
   _removeWarningProtection(sheet, range);
   range.setValue(plaintext);
   _removeVaultNote(range);
@@ -254,12 +361,10 @@ function revealCell(plaintext, cellRef, sheetName) {
 
 // ── Clear vault cell without revealing ───────────────────────────
 
-function clearVaultCell(cellRef, sheetName) {
-  const ss    = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName(sheetName);
-  if (!sheet) throw new Error('Sheet not found: ' + sheetName);
-
+function clearVaultCell(cellRef: string, sheetName: string): OkResponse {
+  const sheet = getSheetOrThrow(sheetName);
   const range = sheet.getRange(cellRef);
+
   _removeWarningProtection(sheet, range);
   range.clearContent();
   _removeVaultNote(range);
@@ -270,44 +375,65 @@ function clearVaultCell(cellRef, sheetName) {
 
 // ── Internal helpers ──────────────────────────────────────────────
 
-function _removeVaultNote(range) {
+function _removeVaultNote(range: GoogleAppsScript.Spreadsheet.Range): void {
   const note = range.getNote() || '';
   if (note.includes('[CipherSheet]')) {
     range.setNote(note.replace(/\n?\[CipherSheet\][^\n]*/g, '').trim() || '');
   }
 }
 
-function _removeWarningProtection(sheet, range) {
+function _removeWarningProtection(
+  sheet: GoogleAppsScript.Spreadsheet.Sheet,
+  range: GoogleAppsScript.Spreadsheet.Range
+): void {
   const a1 = range.getA1Notation();
-  sheet.getProtections(SpreadsheetApp.ProtectionType.RANGE)
-    .filter(p => p.getDescription() === 'CipherSheet:' + a1)
-    .forEach(p => { try { p.remove(); } catch(_) {} });
+  sheet
+    .getProtections(SpreadsheetApp.ProtectionType.RANGE)
+    .filter((p) => p.getDescription() === PROTECTION_DESC_PREFIX + a1)
+    .forEach((p) => {
+      try {
+        p.remove();
+      } catch (_) {
+        // Ignore protection removal failures.
+      }
+    });
 }
 
-function showSheetAlert(title, message) {
+function getSheetOrThrow(sheetName: string): GoogleAppsScript.Spreadsheet.Sheet {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(sheetName);
+  if (!sheet) {
+    throw new Error('Sheet not found: ' + sheetName);
+  }
+  return sheet;
+}
+
+function showSheetAlert(title: string, message: string): void {
   SpreadsheetApp.getUi().alert(title, message, SpreadsheetApp.getUi().ButtonSet.OK);
 }
 
-function showSheetConfirm(title, message) {
+function showSheetConfirm(title: string, message: string): boolean {
   const ui = SpreadsheetApp.getUi();
   return ui.alert(title, message, ui.ButtonSet.YES_NO) === ui.Button.YES;
 }
 
 // ── Audit log ─────────────────────────────────────────────────────
 
-function appendAuditLog(operation, cellRef, sheetName) {
+function appendAuditLog(operation: string, cellRef: string, sheetName: string): void {
   const settings = getDocumentSettings();
   if (!settings.auditLogEnabled) return;
 
-  const ss  = SpreadsheetApp.getActiveSpreadsheet();
-  let   log = ss.getSheetByName('CipherSheet_AuditLog');
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let log = ss.getSheetByName(AUDIT_LOG_SHEET);
+
   if (!log) {
-    log = ss.insertSheet('CipherSheet_AuditLog');
+    log = ss.insertSheet(AUDIT_LOG_SHEET);
     log.hideSheet();
     log.appendRow(['Timestamp (UTC)', 'Operation', 'Cell', 'Sheet', 'User']);
     log.getRange(1, 1, 1, 5).setFontWeight('bold');
     log.setFrozenRows(1);
   }
+
   log.appendRow([
     new Date().toISOString(),
     operation,
@@ -319,38 +445,56 @@ function appendAuditLog(operation, cellRef, sheetName) {
 
 // ── Settings ──────────────────────────────────────────────────────
 
-function getDocumentSettings() {
+function getDocumentSettings(): DocumentSettings {
   const props = PropertiesService.getDocumentProperties();
-  const raw = props.getProperty('CIPHERSHEET_SETTINGS');
+  const raw = props.getProperty(SETTINGS_KEY);
+
   if (raw) {
     try {
-      return JSON.parse(raw);
-    } catch(e) {}
+      const parsed = JSON.parse(raw) as Partial<DocumentSettings>;
+      return normalizeDocumentSettings(parsed);
+    } catch (_e) {
+      // Fall through to defaults when settings are malformed.
+    }
   }
-  // Defaults
-  return {
-    auditLogEnabled: false,
-    editWarningEnabled: true,
-    noteEnabled: true,
-    onEditEnabled: true
-  };
+
+  return { ...DEFAULT_SETTINGS };
 }
 
-function setDocumentSettings(settings) {
+function setDocumentSettings(settings: Partial<DocumentSettings>): OkResponse {
+  const normalized = normalizeDocumentSettings(settings);
   PropertiesService.getDocumentProperties().setProperty(
-    'CIPHERSHEET_SETTINGS', JSON.stringify(settings)
+    SETTINGS_KEY,
+    JSON.stringify(normalized)
   );
   return { ok: true };
 }
 
-function showSettings() {
-  const html = HtmlService.createTemplateFromFile('settings').evaluate()
+function normalizeDocumentSettings(
+  settings: Partial<DocumentSettings> | null | undefined
+): DocumentSettings {
+  return {
+    auditLogEnabled: settings?.auditLogEnabled ?? DEFAULT_SETTINGS.auditLogEnabled,
+    editWarningEnabled:
+      settings?.editWarningEnabled ?? DEFAULT_SETTINGS.editWarningEnabled,
+    noteEnabled: settings?.noteEnabled ?? DEFAULT_SETTINGS.noteEnabled,
+    onEditEnabled: settings?.onEditEnabled ?? DEFAULT_SETTINGS.onEditEnabled
+  };
+}
+
+function isDecryptIntent(value: unknown): value is DecryptIntent {
+  return typeof value === 'string' && VALID_DECRYPT_INTENTS.has(value as DecryptIntent);
+}
+
+function showSettings(): void {
+  const html = HtmlService.createTemplateFromFile('settings')
+    .evaluate()
     .setWidth(460)
     .setHeight(380);
   SpreadsheetApp.getUi().showModalDialog(html, '🔐 CipherSheet Settings');
 }
 
 // ── Include ──────────────────────────────────────────────────────
-function include(filename) {
+function include(filename: string): string {
   return HtmlService.createHtmlOutputFromFile(filename).getContent();
 }
