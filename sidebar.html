@@ -417,7 +417,6 @@ async function activateKey(keyBytes, meta) {
   document.getElementById('key-unloaded').style.display = 'none';
   document.getElementById('key-loaded').style.display   = 'block';
   document.getElementById('btnUpdate').disabled          = false;
-  google.script.run.storeKeyFingerprint(fp);
   await autoDecrypt();
 }
 

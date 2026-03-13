@@ -1,6 +1,6 @@
 # 🔐 CipherSheet — Encrypted Cell Manager for Google Sheets
 
-A zero-knowledge, client-side encrypted cell manager. Store secrets in a shared Google Sheet without exposing raw values — your encryption key **never leaves your browser**.
+A client-side encrypted cell manager with a zero-knowledge architecture. Store secrets in a shared Google Sheet without exposing raw values — your encryption key material stays in your browser.
 
 ---
 
@@ -59,7 +59,6 @@ A zero-knowledge, client-side encrypted cell manager. Store secrets in a shared 
 | Ciphertext format | `🔐` + base64(salt[16] \|\| iv[12] \|\| ciphertext+tag) |
 | Key storage | In-memory JavaScript only — never sent to any server |
 | Audit log | Hidden sheet `CipherSheet_AuditLog` logs operations (not values) |
-| Key fingerprint | SHA-256 of key stored server-side for version checking |
 
 ---
 
@@ -69,6 +68,7 @@ A zero-knowledge, client-side encrypted cell manager. Store secrets in a shared 
 - **Key sharing**: Share keys only through secure channels. If a key is compromised, re-encrypt all cells with a new key.
 - **Cell protection**: The "warning only" protection model is the maximum available to Apps Script without making the owner the sole editor. It warns users but doesn't cryptographically prevent edits.
 - **Backup**: Always keep a backup of your key. If lost, encrypted values are unrecoverable.
+- **Reveal behavior**: If you choose "Reveal", plaintext is written back to the spreadsheet via Apps Script so it can appear in the cell.
 - **Browser requirement**: Requires a modern browser with Web Crypto API support (all modern browsers qualify).
 
 ---

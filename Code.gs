@@ -317,19 +317,6 @@ function appendAuditLog(operation, cellRef, sheetName) {
   ]);
 }
 
-// ── Key fingerprint storage ───────────────────────────────────────
-
-function storeKeyFingerprint(fingerprint) {
-  PropertiesService.getDocumentProperties()
-    .setProperty('VAULT_KEY_FINGERPRINT', fingerprint);
-  return { ok: true };
-}
-
-function getKeyFingerprint() {
-  return PropertiesService.getDocumentProperties()
-    .getProperty('VAULT_KEY_FINGERPRINT') || null;
-}
-
 // ── Settings ──────────────────────────────────────────────────────
 
 function getDocumentSettings() {

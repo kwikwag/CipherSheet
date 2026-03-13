@@ -15,14 +15,15 @@
   <h1>Privacy Policy</h1>
   <p>Last updated: March 2026</p>
   
-  <p>CipherSheet is committed to protecting your privacy. This Privacy Policy details the information we collect, how it is used, and the zero-knowledge nature of our architecture.</p>
+  <p>CipherSheet is committed to protecting your privacy. This Privacy Policy details the information we collect, how it is used, and our zero-knowledge architecture for key handling.</p>
 
   <h2>Information We Collect</h2>
   <p><strong>We do not collect, transmit, or store any of your personal data, spreadsheet content, or encryption keys on our servers.</strong></p>
   <p>The CipherSheet Add-on operates entirely within your browser and communicates directly with Google's servers to read and write to your Google Sheets. No data ever passes through any third-party or CipherSheet-owned servers.</p>
 
   <h2>Zero-Knowledge Architecture & Cryptography Limitations</h2>
-  <p>The encryption key (<code>.vaultkey</code>) you generate is created locally in your browser using the <a href="https://developer.mozilla.org/en-US/docs/Web/API/Web_Crypto_API">Web Crypto API</a>. It is downloaded to your device and never uploaded anywhere. Because we have zero access to your key or your data, we cannot decrypt your information, read your secrets, or recover your data if your key is lost.</p>
+  <p>The encryption key (<code>.vaultkey</code>) you generate is created locally in your browser using the <a href="https://developer.mozilla.org/en-US/docs/Web/API/Web_Crypto_API">Web Crypto API</a>. It is downloaded to your device and never uploaded anywhere. Because we have zero access to your key material, we cannot decrypt encrypted cell values or recover data if your key is lost.</p>
+  <p>If you explicitly choose the "Reveal" action, the decrypted plaintext is sent to Google Apps Script so it can be written back into the sheet cell. Outside of that action, the add-on stores and processes ciphertext in the spreadsheet.</p>
   <p>Please note that the security of your encrypted data is only as robust as the browser-provided Web Crypto API and the AES-256-GCM algorithm itself. Security is never absolute; new mathematical discoveries, future technological advancements (such as quantum computing), or undiscovered flaws in the underlying technology could theoretically weaken or break these protections. CipherSheet does not imply or provide any warranty regarding the absolute impregnability of its cryptography implementation.</p>
 
   <h2>Google Permissions</h2>
