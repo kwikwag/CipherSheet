@@ -8,7 +8,7 @@ name: Deploy Google Sheets Add-on
 
 on:
   push:
-    branches: [main]
+    branches: [dist]
     paths:
       - 'apps-script/**'
       - 'scripts/build-apps-script.mjs'

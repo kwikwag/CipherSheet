@@ -16,7 +16,7 @@
     .carousel-container {
       position: relative;
       width: 100%;
-      height: 520px;
+      height: 574px;
       display: flex; flex-direction: column;
     }
     
@@ -111,6 +111,39 @@
     .btn-primary:disabled { background: #dadce0; cursor: not-allowed; }
     
     .btn:disabled { opacity: 0.5; pointer-events: none; }
+
+    .dialog-footer {
+      height: 54px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      border-top: 1px solid #e8eaed;
+      background: #fff;
+    }
+    .footer-links {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .link-btn {
+      border: none;
+      background: none;
+      padding: 0;
+      margin: 0;
+      font-size: 10px;
+      line-height: 1.2;
+      color: #1a73e8;
+      cursor: pointer;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+      font-family: Arial, sans-serif;
+    }
+    .link-btn:hover { color: #1557b0; }
+    .footer-note {
+      font-size: 10px;
+      color: #80868b;
+    }
   </style>
 </head>
 <body>
@@ -182,11 +215,29 @@
     </div>
     <button class="btn btn-primary" id="btn-next" onclick="changeSlide(1)">Next</button>
   </div>
+
+  <div class="dialog-footer">
+    <div class="footer-links">
+      <button class="link-btn" onclick="openFeedback()">Feedback</button>
+      <button class="link-btn" onclick="openDonate()">Donate</button>
+    </div>
+    <div class="footer-note">This is an independent open-source project · v<?= appVersion ?></div>
+  </div>
 </div>
 
 <script>
+  const FEEDBACK_URL = '<?= feedbackUrl ?>';
+  const DONATE_URL = '<?= githubDonateUrl ?>';
   let currentSlide = 0;
   const totalSlides = 4;
+
+  function openFeedback() {
+    window.open(FEEDBACK_URL, '_blank', 'noopener');
+  }
+
+  function openDonate() {
+    window.open(DONATE_URL, '_blank', 'noopener');
+  }
 
   function changeSlide(direction) {
     document.getElementById(`slide-${currentSlide}`).classList.remove('active');

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Support CipherSheet</title>
+  <style>
+    :root {
+      --primary: #1a73e8;
+      --primary-hover: #1557b0;
+      --danger: #d93025;
+      --bg: #f8f9fa;
+      --text: #202124;
+      --muted: #5f6368;
+      --border: #dadce0;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: Arial, sans-serif;
+      color: var(--text);
+      background: var(--bg);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .card {
+      width: 100%;
+      max-width: 640px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 28px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      color: var(--primary);
+      margin-bottom: 12px;
+    }
+
+    p {
+      line-height: 1.6;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+
+    .cta {
+      margin-top: 16px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      height: 40px;
+      padding: 0 18px;
+      border-radius: 6px;
+      border: 1px solid var(--danger);
+      color: #fff;
+      background: var(--danger);
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+
+    .cta:hover { background: #b3261e; border-color: #b3261e; }
+
+    .back {
+      display: inline-block;
+      margin-top: 16px;
+      color: var(--primary);
+      text-decoration: none;
+      font-size: 0.9rem;
+    }
+
+    .back:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>Support CipherSheet</h1>
+    <p>CipherSheet is an independent open-source project and is free to use.</p>
+    <p>If it helps you protect sensitive spreadsheet data, donations are welcome and help keep development and maintenance sustainable.</p>
+
+    <a
+      class="cta"
+      href="https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=NGMFYPEJBRGXE&source=url"
+      target="_blank"
+      rel="noopener"
+    >Donate via PayPal</a>
+
+    <br>
+    <a class="back" href="index.html">&larr; Back to Home</a>
+  </main>
+</body>
+</html>

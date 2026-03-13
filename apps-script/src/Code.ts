@@ -48,7 +48,27 @@ interface DocumentSettings {
   onEditEnabled: boolean;
 }
 
-interface DecryptConfirmTemplate extends GoogleAppsScript.HTML.HtmlTemplate {
+interface CommonTemplateVars {
+  appVersion: string;
+  feedbackUrl: string;
+  githubDonateUrl: string;
+}
+
+interface SidebarTemplate
+  extends GoogleAppsScript.HTML.HtmlTemplate,
+    CommonTemplateVars {}
+
+interface OnboardingTemplate
+  extends GoogleAppsScript.HTML.HtmlTemplate,
+    CommonTemplateVars {}
+
+interface SettingsTemplate
+  extends GoogleAppsScript.HTML.HtmlTemplate,
+    CommonTemplateVars {}
+
+interface DecryptConfirmTemplate
+  extends GoogleAppsScript.HTML.HtmlTemplate,
+    CommonTemplateVars {
   cellRef: string;
   sheetName: string;
   keyLoaded: string;
@@ -58,6 +78,11 @@ const VAULT_PFX_TRIGGER = '\uD83D\uDD10'; // 🔐
 const PROTECTION_DESC_PREFIX = 'CipherSheet:';
 const SETTINGS_KEY = 'CIPHERSHEET_SETTINGS';
 const AUDIT_LOG_SHEET = 'CipherSheet_AuditLog';
+const APP_VERSION = '1.0.0';
+const FEEDBACK_URL =
+  'https://docs.google.com/forms/d/e/1FAIpQLScRT2LRVGqDcpENJ2fYaqIOr0fE9XUsEk9tJLZUtSa4i4dleQ/viewform?usp=publish-editor';
+const GITHUB_DONATE_URL =
+  'https://kwikwag.github.io/CipherSheet/donate';
 
 const CACHE_TTL = 60; // intent key TTL (seconds)
 const HEARTBEAT_TTL = 4; // alive key TTL — must be > heartbeat interval (2s)
@@ -77,15 +102,32 @@ const VALID_DECRYPT_INTENTS: ReadonlySet<DecryptIntent> = new Set([
 
 // ── Add-on Lifecycle & Menu ────────────────────────────────────────
 
-function onInstall(e: AddonOpenEvent): void {
-  onOpen(e);
+function onInstall(e?: AddonOpenEvent): void {
+  safeSetupAddonMenu(e);
 }
 
 function onOpen(e?: AddonOpenEvent): void {
+  safeSetupAddonMenu(e);
+}
+
+function safeSetupAddonMenu(e?: AddonOpenEvent): void {
+  // Keep trigger entrypoints resilient: menu setup must succeed even when
+  // the add-on is installed but not yet authorized.
+  try {
+    buildAddonMenu(e);
+  } catch (err) {
+    // Last-resort fallback so the user still gets a menu entry to authorize.
+    const ui = SpreadsheetApp.getUi();
+    ui.createAddonMenu().addItem('Start CipherSheet', 'showSidebar').addToUi();
+    console.error('Failed to build full CipherSheet menu:', err);
+  }
+}
+
+function buildAddonMenu(e?: AddonOpenEvent): void {
   const ui = SpreadsheetApp.getUi();
   const menu = ui.createAddonMenu();
 
-  if (e?.authMode === ScriptApp.AuthMode.NONE) {
+  if (isAuthModeNone(e)) {
     // The add-on is installed but not yet enabled for this document.
     // The user must click this to trigger the authorization flow.
     menu.addItem('Start CipherSheet', 'showSidebar');
@@ -99,16 +141,26 @@ function onOpen(e?: AddonOpenEvent): void {
   menu.addToUi();
 }
 
+function isAuthModeNone(e?: AddonOpenEvent): boolean {
+  return e?.authMode === ScriptApp.AuthMode.NONE;
+}
+
 function showOnboarding(): void {
-  const html = HtmlService.createTemplateFromFile('onboarding')
+  const tpl = HtmlService.createTemplateFromFile('onboarding') as OnboardingTemplate;
+  applyCommonTemplateVars(tpl);
+
+  const html = tpl
     .evaluate()
     .setWidth(600)
-    .setHeight(520);
+    .setHeight(575);
   SpreadsheetApp.getUi().showModalDialog(html, '🔐 Welcome to CipherSheet');
 }
 
 function showSidebar(): void {
-  const html = HtmlService.createTemplateFromFile('sidebar')
+  const tpl = HtmlService.createTemplateFromFile('sidebar') as SidebarTemplate;
+  applyCommonTemplateVars(tpl);
+
+  const html = tpl
     .evaluate()
     .setTitle('🔐 CipherSheet')
     .setWidth(300);
@@ -243,6 +295,7 @@ function openDecryptConfirm(
   const tpl = HtmlService.createTemplateFromFile(
     'decrypt-confirm'
   ) as DecryptConfirmTemplate;
+  applyCommonTemplateVars(tpl);
 
   tpl.cellRef = cellRef;
   tpl.sheetName = sheetName;
@@ -251,7 +304,7 @@ function openDecryptConfirm(
   const html = tpl
     .evaluate()
     .setWidth(480)
-    .setHeight(keyLoaded ? 430 : 320); // shorter when only Clear is available
+    .setHeight(keyLoaded ? 490 : 380); // includes donate footer
 
   SpreadsheetApp.getUi().showModalDialog(html, '🔓 Unprotect Cell — ' + cellRef);
 }
@@ -487,14 +540,23 @@ function isDecryptIntent(value: unknown): value is DecryptIntent {
 }
 
 function showSettings(): void {
-  const html = HtmlService.createTemplateFromFile('settings')
+  const tpl = HtmlService.createTemplateFromFile('settings') as SettingsTemplate;
+  applyCommonTemplateVars(tpl);
+
+  const html = tpl
     .evaluate()
     .setWidth(460)
-    .setHeight(380);
+    .setHeight(450);
   SpreadsheetApp.getUi().showModalDialog(html, '🔐 CipherSheet Settings');
 }
 
 // ── Include ──────────────────────────────────────────────────────
 function include(filename: string): string {
   return HtmlService.createHtmlOutputFromFile(filename).getContent();
+}
+
+function applyCommonTemplateVars<T extends CommonTemplateVars>(tpl: T): void {
+  tpl.appVersion = APP_VERSION;
+  tpl.feedbackUrl = FEEDBACK_URL;
+  tpl.githubDonateUrl = GITHUB_DONATE_URL;
 }

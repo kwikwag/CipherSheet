@@ -61,6 +61,37 @@
       animation: spin 1s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
+
+    .dialog-footer {
+      margin-top: 12px;
+      border-top: 1px solid #e8eaed;
+      padding-top: 8px;
+    }
+    .footer-links {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 6px;
+      align-items: center;
+    }
+    .link-btn {
+      border: none;
+      background: none;
+      padding: 0;
+      margin: 0;
+      font-size: 10px;
+      line-height: 1.2;
+      color: #1a73e8;
+      cursor: pointer;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+      font-family: Arial, sans-serif;
+    }
+    .link-btn:hover { color: #1557b0; }
+    .footer-note {
+      font-size: 10px;
+      color: #80868b;
+      line-height: 1.4;
+    }
   </style>
 </head>
 <body>
@@ -118,7 +149,28 @@
     <button class="btn btn-save" onclick="saveSettings()">Save Preferences</button>
   </div>
 
+  <div class="dialog-footer">
+    <div class="footer-links">
+      <button class="link-btn" onclick="openFeedback()">Feedback</button>
+      <button class="link-btn" onclick="openDonate()">Donate</button>
+    </div>
+    <div class="footer-note">
+      This is an independent open-source project · v<?= appVersion ?>
+    </div>
+  </div>
+
   <script>
+    const FEEDBACK_URL = '<?= feedbackUrl ?>';
+    const DONATE_URL = '<?= githubDonateUrl ?>';
+
+    function openFeedback() {
+      window.open(FEEDBACK_URL, '_blank', 'noopener');
+    }
+
+    function openDonate() {
+      window.open(DONATE_URL, '_blank', 'noopener');
+    }
+
     window.addEventListener('load', () => {
       google.script.run
         .withSuccessHandler(settings => {

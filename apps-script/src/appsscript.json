@@ -15,13 +15,9 @@
       "layoutProperties": {
         "primaryColor": "#1a73e8",
         "secondaryColor": "#1557b0"
-      }
+      },
+      "useLocaleFromApp": true
     },
-    "sheets": {
-      "homepageTrigger": {
-        "runFunction": "onOpen",
-        "enabled": true
-      }
-    }
+    "sheets": {}
   }
 }

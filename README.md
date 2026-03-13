@@ -111,3 +111,11 @@ scripts/init-clasp.sh
 CI workflows:
 - `.github/workflows/deploy-pages.yml` deploys `docs/` to GitHub Pages.
 - `.github/workflows/deploy-addon.yml` builds and deploys Apps Script via `clasp` using repository secrets.
+
+---
+
+## License
+
+This project is licensed under **GNU Affero General Public License v3.0 or later** (`AGPL-3.0-or-later`).
+
+Important: AGPL requires source disclosure for network/server use of modified versions, but it does **not** prohibit commercial use by itself. If you want commercial server-side use to require consent, use a separate commercial license in addition to AGPL (dual licensing).
