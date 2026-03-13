@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Unprotect Cell</title>
+<link rel="stylesheet" href="https://ssl.gstatic.com/docs/script/css/add-ons1.css">
+<style>
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    padding: 20px 20px 16px;
+    font-family: Arial, sans-serif;
+    font-size: 13px;
+    color: #202124;
+    background: #fff;
+  }
+
+  /* ── Warning banner (key-loaded only) ── */
+  .warn-banner {
+    display: flex; gap: 10px;
+    background: #fef7e0; border: 1px solid #f9ab00;
+    border-radius: 4px; padding: 10px 12px; margin-bottom: 16px;
+  }
+  .warn-icon  { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+  .warn-title { font-weight: 700; font-size: 13px; color: #b45309; margin-bottom: 4px; }
+  .warn-text  { font-size: 12px; color: #5f4b04; line-height: 1.55; }
+
+  /* ── Running-text intro (matches sidebar cell-info style) ── */
+  .cell-info {
+    font-size: 13px; color: #202124;
+    line-height: 1.6; margin-bottom: 14px;
+  }
+  .cell-chip {
+    display: inline-block; background: #f1f3f4; border-radius: 4px;
+    padding: 1px 7px; font-size: 12px; font-weight: 700; color: #1a73e8;
+    font-family: 'SF Mono', 'Roboto Mono', 'Consolas', monospace;
+  }
+
+  /* ── Confirm input ── */
+  .confirm-label {
+    font-size: 12px; color: #5f6368; margin-bottom: 6px; line-height: 1.5;
+  }
+  .confirm-label strong { color: #202124; }
+  .confirm-input {
+    width: 100%; height: 34px; padding: 0 10px;
+    font-size: 13px;
+    font-family: 'SF Mono', 'Roboto Mono', 'Consolas', monospace;
+    font-weight: 600; color: #202124;
+    background: #fff; border: 1px solid #dadce0; border-radius: 4px;
+    outline: none; transition: border-color 0.15s;
+    letter-spacing: 0.04em; text-transform: uppercase;
+  }
+  .confirm-input:focus   { border-color: #1a73e8; box-shadow: 0 0 0 1px #1a73e8; }
+  .confirm-input.valid   { border-color: #34a853; box-shadow: 0 0 0 1px #34a853; }
+  .confirm-input.invalid { border-color: #d93025; }
+  .match-hint {
+    font-size: 11px; margin-top: 4px; height: 16px;
+    color: transparent; transition: color 0.15s;
+  }
+  .match-hint.ok  { color: #188038; }
+  .match-hint.bad { color: #d93025; }
+
+  /* ── Reveal button — sits right below the validation hint ── */
+  .btn-reveal {
+    width: 100%; height: 32px; margin-top: 10px;
+    background: #d93025; color: #fff; border: none;
+    font-size: 13px; font-weight: 500; border-radius: 4px;
+    cursor: pointer; font-family: Arial, sans-serif;
+    transition: background 0.15s;
+    /* Explicitly prevent any layout shift on hover */
+    box-shadow: none; outline: none;
+    padding: 0; line-height: 32px;
+    display: block; box-sizing: border-box;
+  }
+  .btn-reveal:hover:not(:disabled) { background: #b3261e; box-shadow: none; }
+  .btn-reveal:focus { outline: none; box-shadow: none; }
+  .btn-reveal:disabled { opacity: 0.45; cursor: not-allowed; }
+
+  /* ── Or divider ── */
+  .or-row {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 11px; color: #80868b; margin: 14px 0 12px;
+  }
+  .or-row::before, .or-row::after { content: ''; flex: 1; height: 1px; background: #e0e0e0; }
+
+  /* ── Clear section ── */
+  .clear-section {
+    background: #f8f9fa; border: 1px solid #e0e0e0;
+    border-radius: 4px; padding: 10px 12px; margin-bottom: 16px;
+  }
+  .clear-title { font-size: 12px; font-weight: 600; color: #202124; margin-bottom: 3px; }
+  .clear-desc  { font-size: 11px; color: #5f6368; line-height: 1.5; margin-bottom: 8px; }
+  .btn-clear-cell {
+    background: #fff; color: #d93025; border: 1px solid #d93025;
+    height: 32px; padding: 0 16px; font-size: 13px; font-weight: 500;
+    border-radius: 4px; cursor: pointer; font-family: Arial, sans-serif;
+    transition: background 0.12s;
+  }
+  .btn-clear-cell:hover:not(:disabled) { background: #fce8e6; }
+  .btn-clear-cell:disabled { opacity: 0.45; cursor: not-allowed; }
+
+  /* ── Footer ── */
+  .btn-row { display: flex; justify-content: flex-end; }
+  .btn-cancel {
+    height: 32px; padding: 0 16px;
+    background: #fff; color: #5f6368; border: 1px solid #dadce0;
+    font-size: 13px; font-weight: 500; border-radius: 4px;
+    cursor: pointer; font-family: Arial, sans-serif;
+    transition: background 0.12s;
+  }
+  .btn-cancel:hover:not(:disabled) { background: #f1f3f4; color: #202124; }
+  .btn-cancel:disabled { opacity: 0.45; cursor: not-allowed; }
+
+  .spin {
+    display: inline-block; width: 11px; height: 11px;
+    border: 2px solid rgba(255,255,255,0.4); border-top-color: #fff;
+    border-radius: 50%; animation: spin .5s linear infinite;
+    vertical-align: middle; margin-right: 4px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<!-- KEY LOADED: exposure warning -->
+<div id="warnBanner" class="warn-banner">
+  <div class="warn-icon">⚠️</div>
+  <div>
+    <div class="warn-title">This action may permanently expose a secret</div>
+    <div class="warn-text">
+      Revealing the plaintext writes it directly into the spreadsheet.
+      It will appear in the sheet's <strong>edit history</strong>, which is
+      visible to any editor — even if you delete the value afterwards.
+    </div>
+  </div>
+</div>
+
+<!-- Shared intro line (both states; wording set by JS) -->
+<div class="cell-info" id="cellInfo"></div>
+
+<!-- KEY LOADED: typed confirmation + Reveal button -->
+<div id="revealSection">
+  <div class="confirm-label">
+    To reveal the plaintext, type the cell address
+    (<strong id="cellRefLabel">—</strong>) to confirm:
+  </div>
+  <input class="confirm-input" id="confirmInput" type="text"
+         autocomplete="off" spellcheck="false" placeholder="e.g. D4"
+         oninput="onConfirmInput()">
+  <div class="match-hint" id="matchHint"></div>
+  <button class="btn-reveal" id="btnReveal" onclick="doReveal()" disabled>Reveal plaintext</button>
+</div>
+
+<!-- "or" divider (key-loaded only) -->
+<div class="or-row" id="orRow">or</div>
+
+<!-- Clear section (both states; title/desc set by JS) -->
+<div class="clear-section">
+  <div class="clear-title" id="clearTitle"></div>
+  <div class="clear-desc"  id="clearDesc"></div>
+  <button class="btn-clear-cell" id="btnClear" onclick="doClear()">Clear cell</button>
+</div>
+
+<!-- Footer: Cancel always present -->
+<div class="btn-row">
+  <button class="btn-cancel" id="btnCancel" onclick="doCancel()">Cancel</button>
+</div>
+
+<script>
+  const CELL_REF   = '<?= cellRef ?>';
+  const SHEET_NAME = '<?= sheetName ?>';
+  const KEY_LOADED = '<?= keyLoaded ?>' === 'true';
+  const TARGET     = CELL_REF.trim().toUpperCase();
+
+  if (KEY_LOADED) {
+    // ── Key present: full options ──────────────────────────────
+    document.getElementById('cellInfo').innerHTML =
+      'You are about to unprotect cell ' +
+      '<span class="cell-chip">' + CELL_REF + '</span> ' +
+      'on sheet <strong>' + SHEET_NAME + '</strong>.';
+    document.getElementById('cellRefLabel').textContent = CELL_REF;
+    document.getElementById('clearTitle').textContent   = 'Clear cell instead';
+    document.getElementById('clearDesc').textContent    =
+      'Removes the encrypted value without revealing the plaintext. ' +
+      'The secret is permanently deleted — not exposed. No confirmation required.';
+  } else {
+    // ── No key: clear only ────────────────────────────────────
+    document.getElementById('warnBanner').style.display    = 'none';
+    document.getElementById('revealSection').style.display = 'none';
+    document.getElementById('orRow').style.display         = 'none';
+    document.getElementById('cellInfo').innerHTML =
+      'Cell <span class="cell-chip">' + CELL_REF + '</span> on sheet ' +
+      '<strong>' + SHEET_NAME + '</strong> contains encrypted data ' +
+      'that cannot be deciphered without the correct key. ' +
+      'Press <strong>Cancel</strong> and load the key via the sidebar ' +
+      'to unlock the full options.';
+    document.getElementById('clearTitle').textContent = 'Clear cell';
+    document.getElementById('clearDesc').textContent  =
+      'Permanently removes the encrypted value from the cell. This cannot be undone.';
+  }
+
+  // ── Typed confirmation ────────────────────────────────────────
+  function onConfirmInput() {
+    const input = document.getElementById('confirmInput');
+    const hint  = document.getElementById('matchHint');
+    const btnR  = document.getElementById('btnReveal');
+    const typed = input.value.trim().toUpperCase();
+
+    if (!typed) {
+      input.className = 'confirm-input';
+      hint.textContent = ''; hint.className = 'match-hint';
+      btnR.disabled = true; return;
+    }
+    if (typed === TARGET) {
+      input.className  = 'confirm-input valid';
+      hint.textContent = '✓ Confirmed'; hint.className = 'match-hint ok';
+      btnR.disabled = false;
+    } else {
+      input.className  = 'confirm-input invalid';
+      hint.textContent = 'Expected ' + CELL_REF; hint.className = 'match-hint bad';
+      btnR.disabled = true;
+    }
+  }
+
+  // ── Lock UI during async op ────────────────────────────────────
+  function lockUI(revealLabel) {
+    ['btnReveal', 'btnClear', 'btnCancel'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.disabled = true;
+    });
+    if (revealLabel) {
+      document.getElementById('btnReveal').innerHTML =
+        '<span class="spin"></span>' + revealLabel;
+    }
+  }
+
+  // ── Heartbeat ──────────────────────────────────────────────────
+  // Writes an alive ping to UserCache every 2 s (TTL 4 s on server).
+  // The sidebar polls for this key; if it disappears without an intent
+  // being written, the sidebar knows the modal was closed via X.
+  // Any explicit action (reveal / clear / cancel) calls stopHeartbeat()
+  // before writing the intent, so the sidebar sees the intent first.
+  let _hbTimer = null;
+
+  function startHeartbeat() {
+    function ping() {
+      google.script.run.heartbeatModalAlive(CELL_REF, SHEET_NAME);
+    }
+    ping(); // immediate first ping
+    _hbTimer = setInterval(ping, 2000);
+  }
+
+  function stopHeartbeat() {
+    if (_hbTimer) { clearInterval(_hbTimer); _hbTimer = null; }
+  }
+
+  // Start as soon as the page is ready
+  window.addEventListener('load', startHeartbeat);
+
+  // ── Actions ────────────────────────────────────────────────────
+  function doReveal() {
+    stopHeartbeat();
+    lockUI('Confirming…');
+    google.script.run
+      .withSuccessHandler(() => google.script.host.close())
+      .withFailureHandler(e  => { alert('Error: ' + e.message); google.script.host.close(); })
+      .recordDecryptIntent(CELL_REF, SHEET_NAME, 'reveal');
+  }
+
+  function doClear() {
+    stopHeartbeat();
+    lockUI(null);
+    google.script.run
+      .withSuccessHandler(() => google.script.host.close())
+      .withFailureHandler(e  => { alert('Error: ' + e.message); google.script.host.close(); })
+      .recordDecryptIntent(CELL_REF, SHEET_NAME, 'clear');
+  }
+
+  function doCancel() {
+    stopHeartbeat();
+    google.script.run
+      .withSuccessHandler(() => google.script.host.close())
+      .withFailureHandler(()  => google.script.host.close())
+      .recordDecryptIntent(CELL_REF, SHEET_NAME, 'cancel');
+  }
+</script>
+</body>
+</html>
