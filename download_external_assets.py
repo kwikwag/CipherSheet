@@ -14,6 +14,8 @@ def main():
         with open(sources_path, 'r') as f:
             try:
                 sources = json.load(f)
+                if not isinstance(sources, dict):
+                    sources = {}
             except json.JSONDecodeError:
                 pass
 
