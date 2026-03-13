@@ -530,9 +530,9 @@ function startPolling() {
   const cellRef   = currentCell.cellRef;
   const sheetName = currentCell.sheetName;
 
-  // Give the modal ~3 s to write its first heartbeat before we start
+  // Give the modal ~12 s to write its first heartbeat before we start
   // checking for liveness (avoids false "closed" detection on slow load)
-  let graceRemaining = 4; // polls to skip liveness check
+  let graceRemaining = 15; // polls to skip liveness check
 
   pollTimer = setInterval(() => {
     attempts++;
@@ -540,8 +540,8 @@ function startPolling() {
 
     google.script.run
       .withSuccessHandler(result => {
-        if (result === null) {
-          // Still open, no decision yet
+        if (result === null || (result && result.closed && graceRemaining > 0)) {
+          // Still open, no decision yet OR still in grace period before first heartbeat
           if (graceRemaining > 0) graceRemaining--;
           return;
         }
