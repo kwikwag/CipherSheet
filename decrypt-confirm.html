@@ -180,6 +180,7 @@
       '<span class="cell-chip">' + CELL_REF + '</span> ' +
       'on sheet <strong>' + SHEET_NAME + '</strong>.';
     document.getElementById('cellRefLabel').textContent = CELL_REF;
+    document.getElementById('confirmInput').placeholder = CELL_REF;
     document.getElementById('clearTitle').textContent   = 'Clear cell instead';
     document.getElementById('clearDesc').textContent    =
       'Removes the encrypted value without revealing the plaintext. ' +
@@ -218,7 +219,7 @@
       btnR.disabled = false;
     } else {
       input.className  = 'confirm-input invalid';
-      hint.textContent = 'Expected ' + CELL_REF; hint.className = 'match-hint bad';
+      hint.textContent = `Type ${CELL_REF} to confirm`; hint.className = 'match-hint bad';
       btnR.disabled = true;
     }
   }
