@@ -4,9 +4,9 @@ import glob
 
 def main():
     os.makedirs('imgs', exist_ok=True)
-    os.makedirs('imgs-encoded', exist_ok=True)
+    os.makedirs('apps-script/src/imgs-encoded', exist_ok=True)
 
-    # Encode all images in imgs/ to base64 Data URIs in imgs-encoded/
+    # Encode all images in imgs/ to base64 Data URIs in apps-script/src/imgs-encoded/
     image_paths = glob.glob('imgs/*.png') + glob.glob('imgs/*.jpg') + glob.glob('imgs/*.jpeg') + glob.glob('imgs/*.gif')
     for filepath in image_paths:
         filename = os.path.basename(filepath)
@@ -26,7 +26,7 @@ def main():
             
         data_uri = f"data:{mime};base64,{encoded_string}"
         
-        out_filepath = os.path.join('imgs-encoded', f"{name}.html")
+        out_filepath = os.path.join('apps-script/src/imgs-encoded', f"{name}.html")
         with open(out_filepath, "w") as out_file:
             out_file.write(data_uri)
         print(f"Encoded {filename} to {out_filepath}")

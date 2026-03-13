@@ -7,12 +7,11 @@ A client-side encrypted cell manager with a zero-knowledge architecture. Store s
 ## Setup
 
 1. Open your Google Sheet
-2. Go to **Extensions → Apps Script**
-3. Replace the default `Code.gs` content with the contents of `Code.gs`
-4. Click **+ New File → HTML** and name it `sidebar` (no extension)
-5. Replace its content with the contents of `sidebar.html`
-6. **Save** (Ctrl+S / ⌘S)
-7. Reload your Google Sheet — a **🔐 CipherSheet** menu will appear
+2. Initialize local tooling: `scripts/init-clasp.sh`
+3. Edit `.clasp.json` and set your Apps Script `scriptId`
+4. Login with `clasp`: `npx clasp login`
+5. Build and push: `npm run clasp:push`
+6. Reload your Google Sheet — a **🔐 CipherSheet** menu will appear
 
 ---
 
@@ -75,5 +74,40 @@ A client-side encrypted cell manager with a zero-knowledge architecture. Store s
 
 ## Files
 
-- `Code.gs` — Server-side Apps Script (menu, cell read/write, protection management, audit log)
-- `sidebar.html` — Client-side HTML/CSS/JS with all cryptography (AES-256-GCM via SubtleCrypto)
+- `apps-script/src/Code.ts` — Server-side Apps Script source in TypeScript (menu, cell read/write, protection management, audit log)
+- `apps-script/src/sidebar.html` — Client-side HTML/CSS/JS with all cryptography
+
+---
+
+## Project Structure
+
+- `docs/` — Static website content served by GitHub Pages.
+- `apps-script/src/Code.ts` — TypeScript source for Apps Script server code.
+- `apps-script/src/` — Apps Script HTML/manifest assets.
+- `apps-script/dist/` — Generated `clasp` push directory.
+
+---
+
+## Build and Deploy Tooling
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Build Apps Script bundle:
+
+```bash
+npm run build:apps-script
+```
+
+Initialize local `clasp` setup (uses Node at `/home/yuval/.nvm/versions/node/v22.15.0/bin/node` by default):
+
+```bash
+scripts/init-clasp.sh
+```
+
+CI workflows:
+- `.github/workflows/deploy-pages.yml` deploys `docs/` to GitHub Pages.
+- `.github/workflows/deploy-addon.yml` builds and deploys Apps Script via `clasp` using repository secrets.

@@ -6,7 +6,7 @@ import urllib.request
 from urllib.parse import urlparse
 
 def main():
-    os.makedirs('downloaded', exist_ok=True)
+    os.makedirs('apps-script/src/downloaded', exist_ok=True)
 
     sources_path = 'sources.json'
     sources = {}
@@ -22,10 +22,9 @@ def main():
     # Regex to find https:// URLs in href="..." or src="..."
     url_pattern = re.compile(r'(?:href|src)=["\'](https://[^"\']+)["\']')
 
-    html_files = glob.glob('*.html')
+    html_files = glob.glob('apps-script/src/*.html')
     
     for filepath in html_files:
-        # Skip files in imgs-encoded, though the glob above only checks the current dir
         if 'imgs-encoded' in filepath or 'downloaded' in filepath:
             continue
 
@@ -53,7 +52,7 @@ def main():
             out_filename_with_ext = filename
             out_filename_base = name
             
-            downloaded_path = os.path.join('downloaded', out_filename_with_ext)
+            downloaded_path = os.path.join('apps-script/src/downloaded', out_filename_with_ext)
             
             # If we don't have it downloaded, fetch it
             if not os.path.exists(downloaded_path):
@@ -73,7 +72,7 @@ def main():
                     print(f"Failed to download {url}: {e}")
                     continue
             
-            sources[f"downloaded/{out_filename_with_ext}"] = url
+            sources[f"apps-script/src/downloaded/{out_filename_with_ext}"] = url
             
             # Replace in HTML
             # Careful not to replace inside <a> tags casually if they are just links, but they said all URLs.

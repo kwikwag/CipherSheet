@@ -1,0 +1,90 @@
+name: Deploy Google Sheets Add-on
+# Required repository secrets (placeholders):
+# - CLASP_CLIENT_ID
+# - CLASP_CLIENT_SECRET
+# - CLASP_REFRESH_TOKEN
+# - CLASP_SCRIPT_ID
+# - CLASP_DEPLOYMENT_ID
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps-script/**'
+      - 'scripts/build-apps-script.mjs'
+      - 'tsconfig.apps-script.json'
+      - 'package.json'
+      - '.github/workflows/deploy-addon.yml'
+  workflow_dispatch:
+    inputs:
+      description:
+        description: 'Deployment description'
+        required: false
+        default: 'CI deployment'
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Configure clasp auth
+        env:
+          CLASP_CLIENT_ID: ${{ secrets.CLASP_CLIENT_ID }}
+          CLASP_CLIENT_SECRET: ${{ secrets.CLASP_CLIENT_SECRET }}
+          CLASP_REFRESH_TOKEN: ${{ secrets.CLASP_REFRESH_TOKEN }}
+        run: |
+          mkdir -p "$HOME"
+          cat > "$HOME/.clasprc.json" <<JSON
+          {
+            "token": {
+              "access_token": "PLACEHOLDER_SET_BY_REFRESH_TOKEN",
+              "scope": "https://www.googleapis.com/auth/script.projects https://www.googleapis.com/auth/script.deployments https://www.googleapis.com/auth/drive.metadata.readonly https://www.googleapis.com/auth/service.management https://www.googleapis.com/auth/logging.read https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/cloud-platform",
+              "token_type": "Bearer",
+              "expiry_date": 0,
+              "refresh_token": "${CLASP_REFRESH_TOKEN}"
+            },
+            "oauth2ClientSettings": {
+              "clientId": "${CLASP_CLIENT_ID}",
+              "clientSecret": "${CLASP_CLIENT_SECRET}",
+              "redirectUri": "http://localhost"
+            },
+            "isLocalCreds": false
+          }
+          JSON
+
+      - name: Write .clasp.json
+        env:
+          CLASP_SCRIPT_ID: ${{ secrets.CLASP_SCRIPT_ID }}
+        run: |
+          cat > .clasp.json <<JSON
+          {
+            "scriptId": "${CLASP_SCRIPT_ID}",
+            "rootDir": "apps-script/dist"
+          }
+          JSON
+
+      - name: Build Apps Script bundle
+        run: npm run build:apps-script
+
+      - name: Push source to Apps Script project
+        run: npx clasp push --force
+
+      - name: Deploy Add-on version
+        env:
+          CLASP_DEPLOYMENT_ID: ${{ secrets.CLASP_DEPLOYMENT_ID }}
+          DEPLOY_DESC: ${{ github.event.inputs.description || 'CI deployment from GitHub Actions' }}
+        run: npx clasp deploy --deploymentId "$CLASP_DEPLOYMENT_ID" --description "$DEPLOY_DESC"

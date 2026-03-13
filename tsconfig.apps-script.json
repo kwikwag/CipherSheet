@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "none",
+    "lib": ["ES2020"],
+    "strict": false,
+    "skipLibCheck": true,
+    "types": ["google-apps-script"],
+    "outDir": "apps-script/dist"
+  },
+  "include": ["apps-script/src/**/*.ts"]
+}
