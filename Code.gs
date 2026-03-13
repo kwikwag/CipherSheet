@@ -33,7 +33,7 @@ function showOnboarding() {
   const html = HtmlService.createTemplateFromFile('onboarding').evaluate()
     .setWidth(600)
     .setHeight(520);
-  SpreadsheetApp.getUi().showModalDialog(html, 'Welcome to CipherSheet');
+  SpreadsheetApp.getUi().showModalDialog(html, '🔐 Welcome to CipherSheet');
 }
 
 function showSidebar() {
