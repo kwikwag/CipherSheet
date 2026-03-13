@@ -80,7 +80,7 @@ const SETTINGS_KEY = 'CIPHERSHEET_SETTINGS';
 const AUDIT_LOG_SHEET = 'CipherSheet_AuditLog';
 const APP_VERSION = '1.0.0';
 const FEEDBACK_URL =
-  'https://docs.google.com/forms/d/e/1FAIpQLScRT2LRVGqDcpENJ2fYaqIOr0fE9XUsEk9tJLZUtSa4i4dleQ/viewform?usp=publish-editor';
+  'https://docs.google.com/forms/d/e/1FAIpQLScRT2LRVGqDcpENJ2fYaqIOr0fE9XUsEk9tJLZUtSa4i4dleQ/viewform';
 const GITHUB_DONATE_URL =
   'https://kwikwag.github.io/CipherSheet/donate';
 

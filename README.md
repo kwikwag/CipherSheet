@@ -2,6 +2,8 @@
 
 A client-side encrypted cell manager with a zero-knowledge architecture. Store secrets in a shared Google Sheet without exposing raw values — your encryption key material stays in your browser.
 
+Website: https://kwikwag.github.io/CipherSheet/
+
 ---
 
 ## Setup
@@ -116,6 +118,4 @@ CI workflows:
 
 ## License
 
-This project is licensed under **GNU Affero General Public License v3.0 or later** (`AGPL-3.0-or-later`).
-
-Important: AGPL requires source disclosure for network/server use of modified versions, but it does **not** prohibit commercial use by itself. If you want commercial server-side use to require consent, use a separate commercial license in addition to AGPL (dual licensing).
+This project is licensed under **GNU Affero General Public License v3.0** (`AGPL-3.0-only`).
