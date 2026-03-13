@@ -278,6 +278,11 @@ function showSheetAlert(title, message) {
   SpreadsheetApp.getUi().alert(title, message, SpreadsheetApp.getUi().ButtonSet.OK);
 }
 
+function showSheetConfirm(title, message) {
+  const ui = SpreadsheetApp.getUi();
+  return ui.alert(title, message, ui.ButtonSet.YES_NO) === ui.Button.YES;
+}
+
 // ── Audit log ─────────────────────────────────────────────────────
 
 function appendAuditLog(operation, cellRef, sheetName) {

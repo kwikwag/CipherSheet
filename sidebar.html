@@ -702,6 +702,22 @@ async function encryptAndSave() {
   const plaintext = document.getElementById('valueField').value;
   if (!plaintext)   { toast('Value is empty', 'warn'); return; }
 
+  // Restrict saving pre-existing plaintext without warning since it is already in the sheet history
+  if (!cellIsEncrypted && currentCell.value && currentCell.value === plaintext) {
+    const proceed = await new Promise((res, rej) => {
+      google.script.run
+        .withSuccessHandler(res).withFailureHandler(rej)
+        .showSheetConfirm(
+          'Wait! This text was already saved in this spreadsheet.',
+          'Google Sheets permanently records all edits in its Version History. ' +
+          'Even though we will replace the cell with ciphertext now, anyone with edit access ' +
+          'can look back at the history to see the original unencrypted text.\n\n' +
+          'Are you sure you want to proceed?'
+        );
+    });
+    if (!proceed) return;
+  }
+
   setLoading(true);
   try {
     const ct = await encrypt(plaintext);
