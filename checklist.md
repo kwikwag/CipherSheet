@@ -11,8 +11,9 @@ You'll need a set of 4 clear screenshots of the add-on sidebar to include in you
 4. **`step4-key-loaded.png`**: A snapshot highlighting the bottom area showing `KEY ACTIVE`, `AES-256-GCM`, and the fingerprint hash.
 
 ## 2. Incorporate images into the Add-on
-In `onboarding.html`, I left HTML comments indicating where to replace the text with `<img>` tags pointing to your hosted image URLs.
-(e.g., `<!-- Replace this comment with: <img src="https://your-domain.com/assets/step1-generate-key.png" alt="Generate Key"> -->`).
+Place those 4 screenshot files exactly named as above inside the `imgs/` folder.
+Then, simply run `python3 update_images.py` from your terminal. 
+This script will encode the images into base-64 HTML files residing in `imgs-encoded/` and will automatically patch your `onboarding.html` and `stylesheet.html` to instantly display these local images without fetching from any external web servers!
 
 ## 3. Host the Website Directory
 I've created a `/docs` directory inside your CipherSheet project folder containing an `index.html` file designed explicitly for GitHub Pages.

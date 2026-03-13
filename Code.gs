@@ -1,3 +1,7 @@
+/**
+ * @OnlyCurrentDoc
+ */
+
 // ╔══════════════════════════════════════════════════════════════╗
 // ║  CipherSheet — Server-side Apps Script  (Code.gs)            ║
 // ╚══════════════════════════════════════════════════════════════╝
@@ -26,14 +30,14 @@ function onOpen(e) {
 }
 
 function showOnboarding() {
-  const html = HtmlService.createHtmlOutputFromFile('onboarding')
+  const html = HtmlService.createTemplateFromFile('onboarding').evaluate()
     .setWidth(600)
     .setHeight(520);
   SpreadsheetApp.getUi().showModalDialog(html, 'Welcome to CipherSheet');
 }
 
 function showSidebar() {
-  const html = HtmlService.createHtmlOutputFromFile('sidebar')
+  const html = HtmlService.createTemplateFromFile('sidebar').evaluate()
     .setTitle('🔐 CipherSheet')
     .setWidth(300);
   SpreadsheetApp.getUi().showSidebar(html);
@@ -306,4 +310,9 @@ function storeKeyFingerprint(fingerprint) {
 function getKeyFingerprint() {
   return PropertiesService.getDocumentProperties()
     .getProperty('VAULT_KEY_FINGERPRINT') || null;
+}
+
+// ── Include ──────────────────────────────────────────────────────
+function include(filename) {
+  return HtmlService.createHtmlOutputFromFile(filename).getContent();
 }

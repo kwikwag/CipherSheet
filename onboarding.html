@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>Welcome to CipherSheet</title>
-  <link rel="stylesheet" href="https://ssl.gstatic.com/docs/script/css/add-ons1.css">
+  <?!= include('downloaded/stylesheet'); ?>
   <style>
     * { box-sizing: border-box; }
     body {
@@ -110,9 +110,7 @@
         To start, generate a new encryption key by clicking <strong>Generate new key</strong> in the sidebar. This will instantly download a key file to your computer.
       </div>
       <div class="slide-img-placeholder">
-        <!-- ADD SCREENSHOT HERE -->
-        <!-- Replace this comment with: <img src="https://your-domain.com/assets/step1-generate-key.png" alt="Generate Key"> -->
-        Placeholder: step1-generate-key.png
+        <img src="<?!= include('imgs-encoded/step1-generate-key'); ?>" alt="Generate Key">
       </div>
     </div>
 
@@ -125,9 +123,7 @@
         and click <strong>Protect</strong>. <br><br>The cell in the spreadsheet will be replaced with unintelligible ciphertext.
       </div>
       <div class="slide-img-placeholder">
-        <!-- ADD SCREENSHOT HERE -->
-        <!-- Replace this comment with: <img src="https://your-domain.com/assets/step2-protect-cell.png" alt="Protect Cell"> -->
-        Placeholder: step2-protect-cell.png
+        <img src="<?!= include('imgs-encoded/step2-protect-cell'); ?>" alt="Protect Cell">
       </div>
     </div>
 
@@ -141,9 +137,7 @@
         <em>Note:</em> Unprotecting a cell will permanently write the plaintext to the sheet's history. To simply clear the cell, you can select "Clear cell" without revealing the contents.
       </div>
       <div class="slide-img-placeholder">
-        <!-- ADD SCREENSHOT HERE -->
-        <!-- Replace this comment with: <img src="https://your-domain.com/assets/step3-unprotect-cell.png" alt="Unprotect Cell"> -->
-        Placeholder: step3-unprotect-cell.png
+        <img src="<?!= include('imgs-encoded/step3-unprotect-cell'); ?>" alt="Unprotect Cell">
       </div>
     </div>
 
@@ -153,12 +147,10 @@
       <div class="slide-text">
         Because CipherSheet uses zero-knowledge encryption, <b>if you lose your key file, your data cannot be recovered!</b><br><br>
         Never upload your key file to public places. Instead, share it directly and securely with your trusted collaborators.
-        The Key never leaves your local browser — it is never sent to our servers.
+        The Key never leaves your local browser — it is never sent to any servers - not Google nor any other servers.
       </div>
       <div class="slide-img-placeholder">
-        <!-- ADD SCREENSHOT HERE -->
-        <!-- Replace this comment with: <img src="https://your-domain.com/assets/step4-key-loaded.png" alt="Key Loaded View"> -->
-        Placeholder: step4-key-loaded.png
+        <img src="<?!= include('imgs-encoded/step4-key-loaded'); ?>" alt="Key Loaded View">
       </div>
     </div>
   </div>
