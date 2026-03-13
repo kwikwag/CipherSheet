@@ -336,6 +336,7 @@
 <div class="addon-footer">
   <div class="utility-row">
     <button class="link-btn" onclick="google.script.run.showOnboarding()">How to use</button>
+    <!-- <button class="link-btn" onclick="openPrivacy()">Privacy</button> -->
     <button class="link-btn" onclick="openFeedback()">Feedback</button>
     <button class="link-btn" onclick="openDonate()">Donate</button>
   </div>
@@ -369,6 +370,7 @@ const POLL_MS   = 800;  // sidebar poll interval
 const POLL_MAX  = 75;   // ~60 s max wait
 const FEEDBACK_URL = '<?= feedbackUrl ?>';
 const DONATE_URL = '<?= githubDonateUrl ?>';
+// const PRIVACY_URL = '<?= privacyUrl ?>';
 
 // ── Encoding ───────────────────────────────────────────────────
 const buf2b64 = b => btoa(String.fromCharCode(...new Uint8Array(b)));
@@ -397,6 +399,10 @@ function openFeedback() {
 function openDonate() {
   window.open(DONATE_URL, '_blank', 'noopener');
 }
+
+// function openPrivacy() {
+//   window.open(PRIVACY_URL, '_blank', 'noopener');
+// }
 
 // ── Loading overlay ────────────────────────────────────────────
 // Shown on init, on every refresh, and during save operations.

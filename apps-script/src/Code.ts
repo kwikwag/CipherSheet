@@ -83,6 +83,8 @@ const FEEDBACK_URL =
   'https://docs.google.com/forms/d/e/1FAIpQLScRT2LRVGqDcpENJ2fYaqIOr0fE9XUsEk9tJLZUtSa4i4dleQ/viewform';
 const GITHUB_DONATE_URL =
   'https://kwikwag.github.io/CipherSheet/donate';
+// const PRIVACY_URL =
+//   'https://kwikwag.github.io/CipherSheet/privacy';
 
 const CACHE_TTL = 60; // intent key TTL (seconds)
 const HEARTBEAT_TTL = 4; // alive key TTL — must be > heartbeat interval (2s)
