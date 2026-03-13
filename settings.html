@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Settings</title>
+  <?!= include('downloaded/stylesheet'); ?>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 16px 20px;
+      margin: 0;
+      color: #202124;
+      font-size: 13px;
+    }
+    .section-title {
+      font-size: 12px; font-weight: bold; color: #5f6368;
+      text-transform: uppercase; margin-top: 16px; margin-bottom: 8px;
+    }
+    .setting-row {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #f1f3f4; gap: 12px;
+    }
+    .setting-text { flex: 1; }
+    .setting-title { font-weight: 600; margin-bottom: 2px; }
+    .setting-desc { font-size: 11px; color: #5f6368; line-height: 1.4; }
+    
+    /* Toggle switch CSS */
+    .switch {
+      position: relative; display: inline-block; width: 34px; height: 20px; flex-shrink: 0;
+    }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #dadce0; transition: .2s; border-radius: 20px;
+    }
+    .slider:before {
+      position: absolute; content: ""; height: 16px; width: 16px; left: 2px; bottom: 2px;
+      background-color: white; transition: .2s; border-radius: 50%;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+    }
+    input:checked + .slider { background-color: #1a73e8; }
+    input:checked + .slider:before { transform: translateX(14px); }
+    input:disabled + .slider { opacity: 0.5; cursor: not-allowed; }
+
+    .btn-row { display: flex; justify-content: flex-end; gap: 8px; margin-top: 24px; padding-top: 16px; }
+    .btn { height: 32px; padding: 0 16px; font-size: 13px; font-weight: 500; border-radius: 4px; cursor: pointer; transition: background 0.12s; }
+    .btn-cancel { background: #fff; color: #5f6368; border: 1px solid #dadce0; }
+    .btn-cancel:hover { background: #f1f3f4; color: #202124; }
+    .btn-save { background: #1a73e8; color: #fff; border: 1px solid transparent; }
+    .btn-save:hover { background: #1557b0; color: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+    
+    .loading-overlay {
+      position: absolute; inset: 0; background: rgba(255,255,255,0.7);
+      backdrop-filter: blur(1px); display: flex; align-items: center; justify-content: center;
+      z-index: 10; opacity: 0; pointer-events: none; transition: opacity 0.2s;
+    }
+    .loading-overlay.visible { opacity: 1; pointer-events: auto; }
+    .spinner {
+      width: 24px; height: 24px; border: 3px solid rgba(26,115,232,0.2);
+      border-top-color: #1a73e8; border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  
+  <div class="loading-overlay visible" id="loader"><div class="spinner"></div></div>
+
+  <div class="section-title">Security Settings</div>
+  <div class="setting-row">
+    <div class="setting-text">
+      <div class="setting-title">Enable Audit Log</div>
+      <div class="setting-desc">Record a log of all encrypt/decrypt/clear operations in a separate (hidden by default) sheet.</div>
+    </div>
+    <label class="switch">
+      <input type="checkbox" id="cb-auditLog">
+      <span class="slider"></span>
+    </label>
+  </div>
+
+  <div class="section-title">Cell Protection Behaviors</div>
+  <div class="setting-row">
+    <div class="setting-text">
+      <div class="setting-title">Edit Warning</div>
+      <div class="setting-desc">Apply a "Warning Only" sheet protection to encrypted cells to warn users before editing.</div>
+    </div>
+    <label class="switch">
+      <input type="checkbox" id="cb-editWarning">
+      <span class="slider"></span>
+    </label>
+  </div>
+
+  <div class="setting-row">
+    <div class="setting-text">
+      <div class="setting-title">Cell Note</div>
+      <div class="setting-desc">Add a descriptive note to the cell indicating it is encrypted.</div>
+    </div>
+    <label class="switch">
+      <input type="checkbox" id="cb-note">
+      <span class="slider"></span>
+    </label>
+  </div>
+
+  <div class="setting-row" style="border-bottom:none">
+    <div class="setting-text">
+      <div class="setting-title">Strict Reversion (onEdit)</div>
+      <div class="setting-desc">Automatically undo any manual edits made directly to the encrypted cell.</div>
+    </div>
+    <label class="switch">
+      <input type="checkbox" id="cb-onEdit">
+      <span class="slider"></span>
+    </label>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn btn-cancel" onclick="google.script.host.close()">Cancel</button>
+    <button class="btn btn-save" onclick="saveSettings()">Save Preferences</button>
+  </div>
+
+  <script>
+    window.addEventListener('load', () => {
+      google.script.run
+        .withSuccessHandler(settings => {
+          document.getElementById('cb-auditLog').checked = settings.auditLogEnabled;
+          document.getElementById('cb-editWarning').checked = settings.editWarningEnabled;
+          document.getElementById('cb-note').checked = settings.noteEnabled;
+          document.getElementById('cb-onEdit').checked = settings.onEditEnabled;
+          document.getElementById('loader').classList.remove('visible');
+        })
+        .withFailureHandler(e => {
+          alert("Error loading settings: " + e.message);
+          google.script.host.close();
+        })
+        .getDocumentSettings();
+    });
+
+    function saveSettings() {
+      document.getElementById('loader').classList.add('visible');
+      const settings = {
+        auditLogEnabled: document.getElementById('cb-auditLog').checked,
+        editWarningEnabled: document.getElementById('cb-editWarning').checked,
+        noteEnabled: document.getElementById('cb-note').checked,
+        onEditEnabled: document.getElementById('cb-onEdit').checked
+      };
+      google.script.run
+        .withSuccessHandler(() => google.script.host.close())
+        .withFailureHandler(e => {
+          alert('Error: ' + e.message);
+          document.getElementById('loader').classList.remove('visible');
+        })
+        .setDocumentSettings(settings);
+    }
+  </script>
+</body>
+</html>

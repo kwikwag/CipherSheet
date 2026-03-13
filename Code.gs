@@ -58,6 +58,10 @@ const VAULT_PFX_TRIGGER = '\uD83D\uDD10'; // 🔐
 
 function onEdit(e) {
   if (!e) return;
+  
+  const settings = getDocumentSettings();
+  if (!settings.onEditEnabled) return;
+
   const oldVal = e.oldValue !== undefined ? String(e.oldValue) : '';
   if (!oldVal.startsWith(VAULT_PFX_TRIGGER)) return;
 
@@ -105,17 +109,23 @@ function setEncryptedCellValue(ciphertext, cellRef, sheetName) {
   const range = sheet.getRange(cellRef);
   range.setValue(ciphertext);
 
+  const settings = getDocumentSettings();
+
   // Stamp a note so onEdit can also identify vault cells
-  const note = range.getNote() || '';
-  if (!note.includes('[CipherSheet]')) {
-    range.setNote((note ? note + '\n' : '') +
-      '[CipherSheet] Encrypted — edit via the CipherSheet sidebar only.');
+  if (settings.noteEnabled) {
+    const note = range.getNote() || '';
+    if (!note.includes('[CipherSheet]')) {
+      range.setNote((note ? note + '\n' : '') +
+        '[CipherSheet] Encrypted — edit via the CipherSheet sidebar only.');
+    }
   }
 
   // Apply warning-only protection so even the owner sees a warning
   // before manually editing. Warning-only is the only mode that works
   // reliably for the owner; the onEdit trigger provides the hard revert.
-  _applyWarningProtection(sheet, range);
+  if (settings.editWarningEnabled) {
+    _applyWarningProtection(sheet, range);
+  }
 
   return { ok: true, cellRef };
 }
@@ -286,6 +296,9 @@ function showSheetConfirm(title, message) {
 // ── Audit log ─────────────────────────────────────────────────────
 
 function appendAuditLog(operation, cellRef, sheetName) {
+  const settings = getDocumentSettings();
+  if (!settings.auditLogEnabled) return;
+
   const ss  = SpreadsheetApp.getActiveSpreadsheet();
   let   log = ss.getSheetByName('CipherSheet_AuditLog');
   if (!log) {
@@ -315,6 +328,39 @@ function storeKeyFingerprint(fingerprint) {
 function getKeyFingerprint() {
   return PropertiesService.getDocumentProperties()
     .getProperty('VAULT_KEY_FINGERPRINT') || null;
+}
+
+// ── Settings ──────────────────────────────────────────────────────
+
+function getDocumentSettings() {
+  const props = PropertiesService.getDocumentProperties();
+  const raw = props.getProperty('CIPHERSHEET_SETTINGS');
+  if (raw) {
+    try {
+      return JSON.parse(raw);
+    } catch(e) {}
+  }
+  // Defaults
+  return {
+    auditLogEnabled: false,
+    editWarningEnabled: true,
+    noteEnabled: true,
+    onEditEnabled: true
+  };
+}
+
+function setDocumentSettings(settings) {
+  PropertiesService.getDocumentProperties().setProperty(
+    'CIPHERSHEET_SETTINGS', JSON.stringify(settings)
+  );
+  return { ok: true };
+}
+
+function showSettings() {
+  const html = HtmlService.createTemplateFromFile('settings').evaluate()
+    .setWidth(460)
+    .setHeight(380);
+  SpreadsheetApp.getUi().showModalDialog(html, '⚙ Settings');
 }
 
 // ── Include ──────────────────────────────────────────────────────
