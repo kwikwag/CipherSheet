@@ -15,66 +15,81 @@
 </head>
 <body>
   <h1>CipherSheet Privacy Policy</h1>
-  <p><strong>Last updated:</strong> March 13, 2026</p>
+  <p><strong>Last updated:</strong> March 20, 2026</p>
 
   <p>This Privacy Policy applies to the CipherSheet Google Sheets add-on and the CipherSheet website. It explains how CipherSheet accesses, uses, stores, and shares Google user data.</p>
 
   <h2>Who We Are</h2>
   <p>CipherSheet is an independent open-source project. Project homepage: <a href="https://kwikwag.github.io/CipherSheet/" target="_blank" rel="noopener">https://kwikwag.github.io/CipherSheet/</a>.</p>
 
-  <h2>Google User Data We Access</h2>
-  <p>CipherSheet uses the minimum Google Workspace scopes needed for its features.</p>
+  <h2>Plain-Language Terms</h2>
   <ul>
-    <li><strong><code>https://www.googleapis.com/auth/spreadsheets.currentonly</code>:</strong> Access to the current spreadsheet to read and write selected cell values, apply/remove warning protections, and write/remove cell notes used by CipherSheet.</li>
-    <li><strong><code>https://www.googleapis.com/auth/script.container.ui</code>:</strong> Needed to show the CipherSheet sidebar and dialogs in Google Sheets.</li>
-    <li><strong><code>https://www.googleapis.com/auth/userinfo.email</code>:</strong> Used only when optional audit logging is enabled, to record the acting user email in the hidden audit log sheet.</li>
+    <li><strong>Google user data:</strong> data obtained through Google APIs used by CipherSheet.</li>
+    <li><strong>Process:</strong> access, read, write, or otherwise handle data to provide app features.</li>
+    <li><strong>Share or disclose:</strong> make data available to another party outside normal operation of Google services used by the app.</li>
+    <li><strong>Retain:</strong> keep data until it is changed, deleted, or automatically expires.</li>
+  </ul>
+
+  <h2>Google User Data We Access</h2>
+  <p>CipherSheet requests the minimum Google OAuth scopes needed for user-facing features.</p>
+  <ul>
+    <li><strong><code>auth/spreadsheets.currentonly</code>:</strong> Read and write selected cell values in the current spreadsheet, and manage CipherSheet notes and cell editing protection.</li>
+    <li><strong><code>auth/script.container.ui</code>:</strong> Show CipherSheet sidebar and dialogs in Google Sheets.</li>
+    <li><strong><code>auth/userinfo.email</code>:</strong> When audit logging is enabled, record the acting user email in the audit log sheet.</li>
   </ul>
 
   <h2>How We Use Google User Data</h2>
+  <p>CipherSheet only uses Google user data to perform the functionality provided by the add-on.</p>
   <ul>
-    <li>Encrypt plaintext entered by the user and write ciphertext into the selected sheet cell.</li>
+    <li>Encrypt plaintext entered by the user and write ciphertext to selected cells.</li>
     <li>Decrypt ciphertext locally in the browser when a valid key is loaded.</li>
     <li>If you choose <strong>Reveal</strong>, send plaintext to Apps Script only to write it back to the selected cell.</li>
     <li>Optionally maintain an in-spreadsheet audit log when enabled by the sheet owner.</li>
-    <li>Store add-on settings (for example, audit log enabled/disabled) in Google Apps Script document properties.</li>
+    <li>Store add-on settings in Apps Script document properties.</li>
   </ul>
 
   <h2>What We Do Not Do With Google User Data</h2>
   <ul>
+    <li>We do not transfer Google user data outside Google Sheets.</li>
     <li>We do not sell Google user data.</li>
-    <li>We do not use Google user data for advertising (including targeted, interest-based, or retargeted ads).</li>
+    <li>We do not use Google user data for advertising (including targeted or interest-based advertising).</li>
     <li>We do not transfer Google user data to data brokers, information resellers, or for credit or lending purposes.</li>
     <li>We do not use Google user data to train generalized AI/ML models.</li>
   </ul>
 
   <h2>Sharing and Disclosure</h2>
-  <p>CipherSheet does not run a backend that receives your sheet data. Data is processed in your browser and Google Apps Script within your Google account context.</p>
+  <p>CipherSheet does not run its own backend service. CipherSheet does not store your spreadsheet content or keys.</p>
   <ul>
-    <li><strong>No sale or unrelated sharing:</strong> we do not disclose Google user data to third parties for unrelated purposes.</li>
-    <li><strong>Google infrastructure:</strong> data needed for add-on functionality is handled through Google Sheets and Google Apps Script services.</li>
-    <li><strong>Collaborators:</strong> spreadsheet content (including encrypted values, notes, and optional audit log rows) may be visible to people you share the spreadsheet with according to your Google Sheets sharing settings.</li>
+    <li>We do not disclose Google user data to third parties for unrelated purposes.</li>
+    <li>Data needed for add-on functionality is processed through Google Sheets and Google Apps Script.</li>
+    <li>Spreadsheet collaborators can view spreadsheet content according to your Google Sheets sharing settings.</li>
+    <li>Unless explicitly approved by the user, plaintext data is kept on the client (user browser) and not communicated to Google Sheets.</li>
   </ul>
 
   <h2>Storage, Retention, and Deletion</h2>
   <ul>
-    <li><strong>No CipherSheet servers:</strong> CipherSheet does not store spreadsheet content, encryption keys, or Google user data on CipherSheet-owned servers.</li>
-    <li><strong>Encryption keys:</strong> keys are generated/downloaded locally and remain under your control.</li>
-    <li><strong>Spreadsheet content:</strong> ciphertext/plaintext stored in your sheet remains until you or collaborators edit/delete it.</li>
-    <li><strong>Document settings:</strong> stored in Apps Script document properties and retained until changed or removed.</li>
-    <li><strong>Temporary cache:</strong> short-lived consent/heartbeat cache entries are retained for seconds (for example, approximately 4-60 seconds) and then expire automatically.</li>
-    <li><strong>Audit logs:</strong> if enabled, audit rows are retained in the hidden <code>CipherSheet_AuditLog</code> sheet until you disable logging and/or delete that sheet/workbook.</li>
+    <li>CipherSheet does not store spreadsheet content or Google user data on CipherSheet-owned servers.</li>
+    <li>Encryption keys are generated and stored locally by the user's browser. They are not communicated with Google Sheets nor the CipherSheet add-on.</li>
+    <li>Document settings and optional audit logs remain until changed or deleted by users with spreadsheet access.</li>
+    <li>Temporary cache entries used for confirmation flow are short-lived and expire automatically.</li>
   </ul>
-  <p>You can delete your data by clearing relevant cells, deleting audit log sheets, removing document properties, uninstalling the add-on, or deleting the spreadsheet file in Google Drive.</p>
+  <p>You can delete data by clearing relevant cells, deleting the audit log sheet, removing document properties, or deleting the spreadsheet file. Uninstalling the add-on does not automatically delete existing spreadsheet data.</p>
 
   <h2>Security Protections</h2>
   <ul>
     <li>Client-side encryption/decryption uses the browser Web Crypto API and AES-256-GCM.</li>
     <li>The key file is not uploaded by CipherSheet and is not recoverable by CipherSheet if lost.</li>
-    <li>Data access follows least privilege scopes required for user-facing functionality.</li>
+    <li>OAuth scopes are limited to what is required for user-facing functionality.</li>
   </ul>
 
   <h2>Policy Changes</h2>
-  <p>We may update this policy when functionality or data handling changes. We will revise the "Last updated" date and publish the updated policy at this URL.</p>
+  <p>We may update this policy when functionality or data handling changes. We will update the "Last updated" date on this page.</p>
+
+  <p>Summary of changes compared to the previous version (March 13, 2026):</p>
+  <ul>
+    <li>Simplified and clarified some wordings.</li>
+    <li>Added the 'Plain-Language Terms' section.</li>
+  </ul>
 
   <h2>Contact Us</h2>
   <p>If you have any questions about this Privacy Policy, please <a href="https://docs.google.com/forms/d/e/1FAIpQLScRT2LRVGqDcpENJ2fYaqIOr0fE9XUsEk9tJLZUtSa4i4dleQ/viewform" target="_blank" rel="noopener">contact us</a>.</p>
