@@ -1,23 +1,10 @@
 {
-  "timeZone": "America/New_York",
+  "timeZone": "Asia/Jerusalem",
   "dependencies": {},
   "exceptionLogging": "STACKDRIVER",
   "oauthScopes": [
     "https://www.googleapis.com/auth/spreadsheets.currentonly",
-    "https://www.googleapis.com/auth/script.container.ui",
-    "https://www.googleapis.com/auth/userinfo.email"
+    "https://www.googleapis.com/auth/script.container.ui"
   ],
-  "runtimeVersion": "V8",
-  "addOns": {
-    "common": {
-      "name": "CipherSheet",
-      "logoUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/02/Noto_Emoji_v2.034_1f510.svg/960px-Noto_Emoji_v2.034_1f510.svg.png",
-      "layoutProperties": {
-        "primaryColor": "#1a73e8",
-        "secondaryColor": "#1557b0"
-      },
-      "useLocaleFromApp": true
-    },
-    "sheets": {}
-  }
+  "runtimeVersion": "V8"
 }

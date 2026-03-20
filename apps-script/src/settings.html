@@ -127,10 +127,10 @@
   <div class="setting-row" style="border-bottom:none">
     <div class="setting-text">
       <div class="setting-title">Reversion</div>
-      <div class="setting-desc">Undo direct edits to encrypted cells while add-on is active.</div>
+      <div class="setting-desc">Undo direct edits to encrypted cells while add-on is active. This is an experimental feature that might malfunction intermittently due to usage limits.</div>
     </div>
     <label class="switch">
-      <input type="checkbox" id="cb-onEdit">
+      <input type="checkbox" id="cb-revertOnEdit">
       <span class="slider"></span>
     </label>
   </div>
@@ -164,7 +164,7 @@
           console.log("[events] LOAD -> SUCCESS");
           document.getElementById('cb-editWarning').checked = settings.editWarningEnabled;
           document.getElementById('cb-note').checked = settings.noteEnabled;
-          document.getElementById('cb-onEdit').checked = settings.onEditEnabled;
+          document.getElementById('cb-revertOnEdit').checked = settings.revertOnEditEnabled;
           document.getElementById('loader').classList.remove('visible');
           document.getElementById('loader').offsetHeight; // force repaint — backdrop-filter compositing layer doesn't flush in iframes otherwise
         })
@@ -182,7 +182,7 @@
       const settings = {
         editWarningEnabled: document.getElementById('cb-editWarning').checked,
         noteEnabled: document.getElementById('cb-note').checked,
-        onEditEnabled: document.getElementById('cb-onEdit').checked
+        revertOnEditEnabled: document.getElementById('cb-revertOnEdit').checked
       };
       google.script.run
         .withSuccessHandler(() => google.script.host.close())

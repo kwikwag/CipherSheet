@@ -44,7 +44,7 @@ interface SetEncryptedCellValueResponse extends OkResponse {
 interface DocumentSettings {
   editWarningEnabled: boolean;
   noteEnabled: boolean;
-  onEditEnabled: boolean;
+  revertOnEditEnabled: boolean;
 }
 
 interface CommonTemplateVars {
@@ -91,7 +91,7 @@ const HEARTBEAT_TTL = 4; // alive key TTL — must be > heartbeat interval (2s)
 const DEFAULT_SETTINGS: DocumentSettings = {
   editWarningEnabled: true,
   noteEnabled: true,
-  onEditEnabled: true
+  revertOnEditEnabled: false,
 };
 
 const VALID_DECRYPT_INTENTS: ReadonlySet<DecryptIntent> = new Set([
@@ -182,7 +182,7 @@ function onEdit(e?: OnEditEvent): void {
   if (!e) return;
 
   const settings = getDocumentSettings();
-  if (!settings.onEditEnabled) return;
+  if (!settings.revertOnEditEnabled) return;
 
   const oldVal = e.oldValue !== undefined ? String(e.oldValue) : '';
   if (!oldVal.startsWith(VAULT_PFX_TRIGGER)) return;
@@ -503,7 +503,7 @@ function normalizeDocumentSettings(
     editWarningEnabled:
       settings?.editWarningEnabled ?? DEFAULT_SETTINGS.editWarningEnabled,
     noteEnabled: settings?.noteEnabled ?? DEFAULT_SETTINGS.noteEnabled,
-    onEditEnabled: settings?.onEditEnabled ?? DEFAULT_SETTINGS.onEditEnabled
+    revertOnEditEnabled: settings?.revertOnEditEnabled ?? DEFAULT_SETTINGS.revertOnEditEnabled
   };
 }
 
@@ -534,7 +534,7 @@ function applyCommonTemplateVars<T extends CommonTemplateVars>(tpl: T): void {
   tpl.privacyUrl = PRIVACY_URL;
 }
 
-function invalidateAuth_() {
+function invalidateAuth() {
   ScriptApp.invalidateAuth();
 }
 
