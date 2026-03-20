@@ -112,35 +112,17 @@
   .btn-cancel:hover:not(:disabled) { background: #f1f3f4; color: #202124; }
   .btn-cancel:disabled { opacity: 0.45; cursor: not-allowed; }
 
-  .dialog-footer {
-    margin-top: 10px;
-    border-top: 1px solid #e8eaed;
-    padding-top: 8px;
-  }
-  .footer-links {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 6px;
+  .footer {
+    margin-top: 12px;
+    font-size: 10px;
     align-items: center;
-  }
-  .link-btn {
-    border: none;
-    background: none;
-    padding: 0;
-    margin: 0;
-    font-size: 10px;
-    line-height: 1.2;
-    color: #1a73e8;
-    cursor: pointer;
-    text-decoration: underline;
-    text-underline-offset: 2px;
-    font-family: Arial, sans-serif;
-  }
-  .link-btn:hover { color: #1557b0; }
-  .footer-note {
-    font-size: 10px;
+    display: flex;
+    gap: 8px;
     color: #80868b;
-    line-height: 1.4;
+  }
+
+  .footer-link {
+    color: #1a73e8;
   }
 
   .spin {
@@ -198,12 +180,20 @@
   <button class="btn-cancel" id="btnCancel" onclick="doCancel()">Cancel</button>
 </div>
 
-<div class="dialog-footer">
-  <div class="footer-links">
-    <button class="link-btn" onclick="openFeedback()">Feedback</button>
-    <button class="link-btn" onclick="openDonate()">Donate</button>
-  </div>
-  <div class="footer-note">This is an independent open-source project · v<?= appVersion ?></div>
+<div class="footer">
+    <div class="footer-note">Open-sourced by an independent developer</div>
+    &bull;
+    <div class="footer-version">v<?= appVersion ?></div>
+    &bull;
+    <div class="footer-links">
+      <a class="footer-link" onclick="google.script.run.showOnboarding(); return false;" href="#">How to use</a>
+      &bull;
+      <a class="footer-link" target="_blank" href="<?= h_(feedbackUrl) ?>">Feedback</a>
+      &bull;
+      <a class="footer-link" target="_blank" href="<?= h_(donateUrl) ?>">Donate</a>
+      &bull;
+      <a class="footer-link" target="_blank" href="<?= h_(privacyUrl) ?>">Privacy</a>
+    </div>
 </div>
 
 <script>
@@ -211,7 +201,7 @@
   const SHEET_NAME = '<?= sheetName ?>';
   const KEY_LOADED = '<?= keyLoaded ?>' === 'true';
   const FEEDBACK_URL = '<?= feedbackUrl ?>';
-  const DONATE_URL = '<?= githubDonateUrl ?>';
+  const DONATE_URL = '<?= donateUrl ?>';
   const TARGET     = CELL_REF.trim().toUpperCase();
 
   function openFeedback() {

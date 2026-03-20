@@ -10,11 +10,10 @@
 
   body {
     margin: 0;
-    padding: 0 16px 8px;
+    padding: 0 0 8px;
     font-family: Arial, sans-serif;
     font-size: 13px;
     color: #202124;
-    background: #fff;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
@@ -201,36 +200,17 @@
   }
   .btn-clear:hover { background: #f1f3f4; color: #202124; }
 
-  .addon-footer {
-    margin-top: auto;
-    border-top: 1px solid #e8eaed;
-    padding-top: 8px;
-    padding-bottom: 2px;
-  }
-  .utility-row {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 6px;
+  .footer {
+    margin-top: 12px;
+    font-size: 10px;
     align-items: center;
-  }
-  .link-btn {
-    border: none;
-    background: none;
-    padding: 0;
-    margin: 0;
-    font-size: 10px;
-    line-height: 1.2;
-    color: #1a73e8;
-    cursor: pointer;
-    text-decoration: underline;
-    text-underline-offset: 2px;
-    font-family: Arial, sans-serif;
-  }
-  .link-btn:hover { color: #1557b0; }
-  .indie-note {
-    font-size: 10px;
+    display: flex;
+    gap: 8px;
     color: #80868b;
-    line-height: 1.3;
+  }
+
+  .footer-link {
+    color: #1a73e8;
   }
 
   /* ── Toast ── */
@@ -333,17 +313,22 @@
 
 </div>
 
-<div class="addon-footer">
-  <div class="utility-row">
-    <button class="link-btn" onclick="google.script.run.showOnboarding()">How to use</button>
-    <!-- <button class="link-btn" onclick="openPrivacy()">Privacy</button> -->
-    <button class="link-btn" onclick="openFeedback()">Feedback</button>
-    <button class="link-btn" onclick="openDonate()">Donate</button>
-  </div>
-  <div class="indie-note">
-    This is an independent open-source project · v<?= appVersion ?>
-  </div>
+<div class="footer">
+    <div class="footer-note">Open-sourced by an independent developer</div>
+    &bull;
+    <div class="footer-version">v<?= appVersion ?></div>
+    &bull;
+    <div class="footer-links">
+      <a class="footer-link" onclick="google.script.run.showOnboarding(); return false;" href="#">How to use</a>
+      &bull;
+      <a class="footer-link" target="_blank" href="<?= h_(feedbackUrl) ?>">Feedback</a>
+      &bull;
+      <a class="footer-link" target="_blank" href="<?= h_(donateUrl) ?>">Donate</a>
+      &bull;
+      <a class="footer-link" target="_blank" href="<?= h_(privacyUrl) ?>">Privacy</a>
+    </div>
 </div>
+
 
 <div id="status-bar">
   <span id="toast-msg"></span>
@@ -369,8 +354,8 @@ const VAULT_PFX = '\uD83D\uDD10'; // 🔐
 const POLL_MS   = 800;  // sidebar poll interval
 const POLL_MAX  = 75;   // ~60 s max wait
 const FEEDBACK_URL = '<?= feedbackUrl ?>';
-const DONATE_URL = '<?= githubDonateUrl ?>';
-// const PRIVACY_URL = '<?= privacyUrl ?>';
+const DONATE_URL = '<?= donateUrl ?>';
+// const PRIVACY_URL = ...privacyUrl...;
 
 // ── Encoding ───────────────────────────────────────────────────
 const buf2b64 = b => btoa(String.fromCharCode(...new Uint8Array(b)));
@@ -408,7 +393,9 @@ function openDonate() {
 // Shown on init, on every refresh, and during save operations.
 // Also blocks pointer events so nothing is clickable while active.
 function setLoading(on) {
-  document.getElementById('loadingOverlay').classList.toggle('visible', on);
+  const overlay = document.getElementById('loadingOverlay');
+  overlay.classList.toggle('visible', on);
+  if (!on) overlay.offsetHeight; // force repaint — backdrop-filter compositing layer doesn't flush in iframes otherwise
   document.getElementById('progressWrap').classList.toggle('visible', on);
   document.getElementById('btnUpdate').disabled    = on || !cryptoKey;
   document.getElementById('btnDecrypt').disabled   = on;
@@ -799,7 +786,6 @@ async function encryptAndSave() {
     cellIsEncrypted   = true;
     document.getElementById('cellRef').textContent = currentCell.cellRef;
     google.script.run.navigateToCell(currentCell.cellRef, currentCell.sheetName);
-    google.script.run.appendAuditLog('ENCRYPT', currentCell.cellRef, currentCell.sheetName);
     updateButtons();
     toast('Protected', 'ok');
   } catch(e) {

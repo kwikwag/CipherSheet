@@ -42,7 +42,6 @@ interface SetEncryptedCellValueResponse extends OkResponse {
 }
 
 interface DocumentSettings {
-  auditLogEnabled: boolean;
   editWarningEnabled: boolean;
   noteEnabled: boolean;
   onEditEnabled: boolean;
@@ -51,7 +50,8 @@ interface DocumentSettings {
 interface CommonTemplateVars {
   appVersion: string;
   feedbackUrl: string;
-  githubDonateUrl: string;
+  donateUrl: string;
+  privacyUrl: string;
 }
 
 interface SidebarTemplate
@@ -77,20 +77,18 @@ interface DecryptConfirmTemplate
 const VAULT_PFX_TRIGGER = '\uD83D\uDD10'; // 🔐
 const PROTECTION_DESC_PREFIX = 'CipherSheet:';
 const SETTINGS_KEY = 'CIPHERSHEET_SETTINGS';
-const AUDIT_LOG_SHEET = 'CipherSheet_AuditLog';
 const APP_VERSION = '1.0.0';
 const FEEDBACK_URL =
   'https://docs.google.com/forms/d/e/1FAIpQLScRT2LRVGqDcpENJ2fYaqIOr0fE9XUsEk9tJLZUtSa4i4dleQ/viewform';
-const GITHUB_DONATE_URL =
+const DONATE_URL =
   'https://kwikwag.github.io/CipherSheet/donate';
-// const PRIVACY_URL =
-//   'https://kwikwag.github.io/CipherSheet/privacy';
+const PRIVACY_URL =
+  'https://kwikwag.github.io/CipherSheet/privacy';
 
 const CACHE_TTL = 60; // intent key TTL (seconds)
 const HEARTBEAT_TTL = 4; // alive key TTL — must be > heartbeat interval (2s)
 
 const DEFAULT_SETTINGS: DocumentSettings = {
-  auditLogEnabled: false,
   editWarningEnabled: true,
   noteEnabled: true,
   onEditEnabled: true
@@ -255,13 +253,13 @@ function setEncryptedCellValue(
   // before manually editing. Warning-only is the only mode that works
   // reliably for the owner; the onEdit trigger provides the hard revert.
   if (settings.editWarningEnabled) {
-    _applyWarningProtection(sheet, range);
+    applyWarningProtection_(sheet, range);
   }
 
   return { ok: true, cellRef };
 }
 
-function _applyWarningProtection(
+function applyWarningProtection_(
   sheet: GoogleAppsScript.Spreadsheet.Sheet,
   range: GoogleAppsScript.Spreadsheet.Range
 ): void {
@@ -322,15 +320,15 @@ function openDecryptConfirm(
 // key appearing, the modal was closed via the X button → treat as cancel.
 // This avoids any need for a manual "cancel" UI element in the sidebar.
 
-function _intentKey(cellRef: string, sheetName: string): string {
-  return _cacheKey('INTENT', cellRef, sheetName);
+function intentKey_(cellRef: string, sheetName: string): string {
+  return cacheKey_('INTENT', cellRef, sheetName);
 }
 
-function _aliveKey(cellRef: string, sheetName: string): string {
-  return _cacheKey('ALIVE', cellRef, sheetName);
+function aliveKey_(cellRef: string, sheetName: string): string {
+  return cacheKey_('ALIVE', cellRef, sheetName);
 }
 
-function _cacheKey(
+function cacheKey_(
   kind: 'INTENT' | 'ALIVE',
   cellRef: string,
   sheetName: string
@@ -340,7 +338,7 @@ function _cacheKey(
 
 /** Modal calls this on load and every 2 s to signal it is still open. */
 function heartbeatModalAlive(cellRef: string, sheetName: string): OkResponse {
-  CacheService.getUserCache().put(_aliveKey(cellRef, sheetName), '1', HEARTBEAT_TTL);
+  CacheService.getUserCache().put(aliveKey_(cellRef, sheetName), '1', HEARTBEAT_TTL);
   return { ok: true };
 }
 
@@ -359,8 +357,8 @@ function recordDecryptIntent(
   }
 
   const cache = CacheService.getUserCache();
-  cache.put(_intentKey(cellRef, sheetName), intent, CACHE_TTL);
-  cache.remove(_aliveKey(cellRef, sheetName));
+  cache.put(intentKey_(cellRef, sheetName), intent, CACHE_TTL);
+  cache.remove(aliveKey_(cellRef, sheetName));
   return { ok: true };
 }
 
@@ -374,7 +372,7 @@ function pollDecryptIntent(
   sheetName: string
 ): DecryptIntentPollResult {
   const cache = CacheService.getUserCache();
-  const intentKey = _intentKey(cellRef, sheetName);
+  const intentKey = intentKey_(cellRef, sheetName);
   const intentVal = cache.get(intentKey);
 
   if (intentVal !== null) {
@@ -386,7 +384,7 @@ function pollDecryptIntent(
   }
 
   // No intent yet — check if the modal is still alive
-  const alive = cache.get(_aliveKey(cellRef, sheetName));
+  const alive = cache.get(aliveKey_(cellRef, sheetName));
   if (alive === null) {
     // Heartbeat gone without an intent = X button was used
     return { closed: true };
@@ -406,11 +404,10 @@ function revealCell(plaintext: string, cellRef: string, sheetName: string): OkRe
   const sheet = getSheetOrThrow(sheetName);
   const range = sheet.getRange(cellRef);
 
-  _removeWarningProtection(sheet, range);
+  removeWarningProtection_(sheet, range);
   range.setValue(plaintext);
-  _removeVaultNote(range);
+  removeVaultNote_(range);
 
-  appendAuditLog('DECRYPT_REVEAL', cellRef, sheetName);
   return { ok: true };
 }
 
@@ -420,24 +417,23 @@ function clearVaultCell(cellRef: string, sheetName: string): OkResponse {
   const sheet = getSheetOrThrow(sheetName);
   const range = sheet.getRange(cellRef);
 
-  _removeWarningProtection(sheet, range);
+  removeWarningProtection_(sheet, range);
   range.clearContent();
-  _removeVaultNote(range);
+  removeVaultNote_(range);
 
-  appendAuditLog('DECRYPT_CLEAR', cellRef, sheetName);
   return { ok: true };
 }
 
 // ── Internal helpers ──────────────────────────────────────────────
 
-function _removeVaultNote(range: GoogleAppsScript.Spreadsheet.Range): void {
+function removeVaultNote_(range: GoogleAppsScript.Spreadsheet.Range): void {
   const note = range.getNote() || '';
   if (note.includes('[CipherSheet]')) {
     range.setNote(note.replace(/\n?\[CipherSheet\][^\n]*/g, '').trim() || '');
   }
 }
 
-function _removeWarningProtection(
+function removeWarningProtection_(
   sheet: GoogleAppsScript.Spreadsheet.Sheet,
   range: GoogleAppsScript.Spreadsheet.Range
 ): void {
@@ -472,31 +468,6 @@ function showSheetConfirm(title: string, message: string): boolean {
   return ui.alert(title, message, ui.ButtonSet.YES_NO) === ui.Button.YES;
 }
 
-// ── Audit log ─────────────────────────────────────────────────────
-
-function appendAuditLog(operation: string, cellRef: string, sheetName: string): void {
-  const settings = getDocumentSettings();
-  if (!settings.auditLogEnabled) return;
-
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  let log = ss.getSheetByName(AUDIT_LOG_SHEET);
-
-  if (!log) {
-    log = ss.insertSheet(AUDIT_LOG_SHEET);
-    log.hideSheet();
-    log.appendRow(['Timestamp (UTC)', 'Operation', 'Cell', 'Sheet', 'User']);
-    log.getRange(1, 1, 1, 5).setFontWeight('bold');
-    log.setFrozenRows(1);
-  }
-
-  log.appendRow([
-    new Date().toISOString(),
-    operation,
-    cellRef,
-    sheetName,
-    Session.getActiveUser().getEmail() || 'unknown'
-  ]);
-}
 
 // ── Settings ──────────────────────────────────────────────────────
 
@@ -529,7 +500,6 @@ function normalizeDocumentSettings(
   settings: Partial<DocumentSettings> | null | undefined
 ): DocumentSettings {
   return {
-    auditLogEnabled: settings?.auditLogEnabled ?? DEFAULT_SETTINGS.auditLogEnabled,
     editWarningEnabled:
       settings?.editWarningEnabled ?? DEFAULT_SETTINGS.editWarningEnabled,
     noteEnabled: settings?.noteEnabled ?? DEFAULT_SETTINGS.noteEnabled,
@@ -548,7 +518,7 @@ function showSettings(): void {
   const html = tpl
     .evaluate()
     .setWidth(460)
-    .setHeight(450);
+    .setHeight(280);
   SpreadsheetApp.getUi().showModalDialog(html, '🔐 CipherSheet Settings');
 }
 
@@ -560,5 +530,19 @@ function include(filename: string): string {
 function applyCommonTemplateVars<T extends CommonTemplateVars>(tpl: T): void {
   tpl.appVersion = APP_VERSION;
   tpl.feedbackUrl = FEEDBACK_URL;
-  tpl.githubDonateUrl = GITHUB_DONATE_URL;
+  tpl.donateUrl = DONATE_URL;
+  tpl.privacyUrl = PRIVACY_URL;
+}
+
+function invalidateAuth_() {
+  ScriptApp.invalidateAuth();
+}
+
+function h_(str: string) {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }

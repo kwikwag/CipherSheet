@@ -112,37 +112,17 @@
     
     .btn:disabled { opacity: 0.5; pointer-events: none; }
 
-    .dialog-footer {
-      height: 54px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 16px;
-      border-top: 1px solid #e8eaed;
-      background: #fff;
-    }
-    .footer-links {
-      display: flex;
-      gap: 10px;
-      align-items: center;
-    }
-    .link-btn {
-      border: none;
-      background: none;
-      padding: 0;
-      margin: 0;
+    .footer {
+      margin-top: 12px;
       font-size: 10px;
-      line-height: 1.2;
-      color: #1a73e8;
-      cursor: pointer;
-      text-decoration: underline;
-      text-underline-offset: 2px;
-      font-family: Arial, sans-serif;
-    }
-    .link-btn:hover { color: #1557b0; }
-    .footer-note {
-      font-size: 10px;
+      align-items: center;
+      display: flex;
+      gap: 8px;
       color: #80868b;
+    }
+
+    .footer-link {
+      color: #1a73e8;
     }
   </style>
 </head>
@@ -216,18 +196,26 @@
     <button class="btn btn-primary" id="btn-next" onclick="changeSlide(1)">Next</button>
   </div>
 
-  <div class="dialog-footer">
-    <div class="footer-links">
-      <button class="link-btn" onclick="openFeedback()">Feedback</button>
-      <button class="link-btn" onclick="openDonate()">Donate</button>
-    </div>
-    <div class="footer-note">This is an independent open-source project · v<?= appVersion ?></div>
+  <div class="footer">
+      <div class="footer-note">Open-sourced by an independent developer</div>
+      &bull;
+      <div class="footer-version">v<?= appVersion ?></div>
+      &bull;
+      <div class="footer-links">
+        <!-- <a class="footer-link" onclick="google.script.run.showOnboarding(); return false;" href="#">How to use</a>
+        &bull; -->
+        <a class="footer-link" target="_blank" href="<?= h_(feedbackUrl) ?>">Feedback</a>
+        &bull;
+        <a class="footer-link" target="_blank" href="<?= h_(donateUrl) ?>">Donate</a>
+        &bull;
+        <a class="footer-link" target="_blank" href="<?= h_(privacyUrl) ?>">Privacy</a>
+      </div>
   </div>
 </div>
 
 <script>
   const FEEDBACK_URL = '<?= feedbackUrl ?>';
-  const DONATE_URL = '<?= githubDonateUrl ?>';
+  const DONATE_URL = '<?= donateUrl ?>';
   let currentSlide = 0;
   const totalSlides = 4;
 

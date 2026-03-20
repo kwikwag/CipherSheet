@@ -59,7 +59,6 @@ Website: https://kwikwag.github.io/CipherSheet/
 | Key scope | Passphrase-derived keys are scoped to the spreadsheet ID |
 | Ciphertext format | `🔐` + base64(salt[16] \|\| iv[12] \|\| ciphertext+tag) |
 | Key storage | In-memory JavaScript only — never sent to any server |
-| Audit log | Hidden sheet `CipherSheet_AuditLog` logs operations (not values) |
 
 ---
 
@@ -76,7 +75,7 @@ Website: https://kwikwag.github.io/CipherSheet/
 
 ## Files
 
-- `apps-script/src/Code.ts` — Server-side Apps Script source in TypeScript (menu, cell read/write, protection management, audit log)
+- `apps-script/src/Code.ts` — Apps Script source in TypeScript
 - `apps-script/src/sidebar.html` — Client-side HTML/CSS/JS with all cryptography
 
 ---

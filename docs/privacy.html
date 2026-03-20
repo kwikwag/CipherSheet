@@ -4,16 +4,26 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Privacy Policy | CipherSheet</title>
+  <link rel="icon" type="image/svg+xml" href="../branding/logo.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="../branding/logo-32.png">
   <style>
     body { font-family: -apple-system, system-ui, sans-serif; line-height: 1.6; max-width: 860px; margin: 0 auto; padding: 2rem; color: #333; }
-    h1, h2, h3 { color: #1a73e8; margin-top: 1.5rem; }
-    a { color: #1a73e8; text-decoration: none; }
+    h1, h2, h3 { color: #056a46; margin-top: 1.5rem; }
+    a { color: #056a46; text-decoration: none; }
     a:hover { text-decoration: underline; }
     code { background: #f5f7fb; padding: 0.12rem 0.28rem; border-radius: 4px; }
     ul { padding-left: 1.2rem; }
-  </style>
+    h2.logo { font-size: 36px; }
+    .logo a { display: inline-flex; align-items: center; margin-bottom: 0.75rem; text-decoration: none; }
+    .logo img { margin-right: 8px; width: 2em; height: 2em; display: block; }
+    .logo span { color: #082c2eff; font-family: 'DejaVu Serif', Georgia, 'Times New Roman', Times, serif; font-weight: normal; }
+    .logo b { font-family: 'Google Sans', Arial, Helvetica, sans-serif; color: #189a54; font-weight: bold; }
+
+</style>
 </head>
 <body>
+  <h2 class="logo"><a href="index.html" aria-label="CipherSheet Home"><img src="../branding/logo.svg" alt="CipherSheet"><span>Cipher<b>Sheet</b></span></a></h2>
+
   <h1>CipherSheet Privacy Policy</h1>
   <p><strong>Last updated:</strong> March 20, 2026</p>
 
@@ -35,7 +45,6 @@
   <ul>
     <li><strong><code>auth/spreadsheets.currentonly</code>:</strong> Read and write selected cell values in the current spreadsheet, and manage CipherSheet notes and cell editing protection.</li>
     <li><strong><code>auth/script.container.ui</code>:</strong> Show CipherSheet sidebar and dialogs in Google Sheets.</li>
-    <li><strong><code>auth/userinfo.email</code>:</strong> When audit logging is enabled, record the acting user email in the audit log sheet.</li>
   </ul>
 
   <h2>How We Use Google User Data</h2>
@@ -44,7 +53,6 @@
     <li>Encrypt plaintext entered by the user and write ciphertext to selected cells.</li>
     <li>Decrypt ciphertext locally in the browser when a valid key is loaded.</li>
     <li>If you choose <strong>Reveal</strong>, send plaintext to Apps Script only to write it back to the selected cell.</li>
-    <li>Optionally maintain an in-spreadsheet audit log when enabled by the sheet owner.</li>
     <li>Store add-on settings in Apps Script document properties.</li>
   </ul>
 
@@ -70,10 +78,9 @@
   <ul>
     <li>CipherSheet does not store spreadsheet content or Google user data on CipherSheet-owned servers.</li>
     <li>Encryption keys are generated and stored locally by the user's browser. They are not communicated with Google Sheets nor the CipherSheet add-on.</li>
-    <li>Document settings and optional audit logs remain until changed or deleted by users with spreadsheet access.</li>
     <li>Temporary cache entries used for confirmation flow are short-lived and expire automatically.</li>
   </ul>
-  <p>You can delete data by clearing relevant cells, deleting the audit log sheet, removing document properties, or deleting the spreadsheet file. Uninstalling the add-on does not automatically delete existing spreadsheet data.</p>
+  <p>You can delete data by clearing relevant cells, removing document properties, or deleting the spreadsheet file. Uninstalling the add-on does not automatically delete existing spreadsheet data.</p>
 
   <h2>Security Protections</h2>
   <ul>
@@ -95,8 +102,11 @@
   <p>If you have any questions about this Privacy Policy, please <a href="https://docs.google.com/forms/d/e/1FAIpQLScRT2LRVGqDcpENJ2fYaqIOr0fE9XUsEk9tJLZUtSa4i4dleQ/viewform" target="_blank" rel="noopener">contact us</a>.</p>
   
   <p>
-    <a href="index.html">&larr; Back to Home</a> |
-    <a href="donate.html">Donate</a>
+    <a href="index.html">Home</a> |
+    <a href="terms.html">Terms of Service</a> | 
+    <!-- <a href="privacy.html">Privacy Policy</a> |  -->
+    <a href="donate.html">Donate</a> | 
+    <a href="https://docs.google.com/forms/d/e/1FAIpQLScRT2LRVGqDcpENJ2fYaqIOr0fE9XUsEk9tJLZUtSa4i4dleQ/viewform" target="_blank">Contact Us</a>
   </p>
 </body>
 </html>

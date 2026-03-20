@@ -5,12 +5,16 @@
   <title>Settings</title>
   <?!= include('downloaded/stylesheet'); ?>
   <style>
+    html {
+      overflow: visible;
+    }
     body {
       font-family: Arial, sans-serif;
-      padding: 16px 20px;
+      padding-top: 12px;
       margin: 0;
       color: #202124;
       font-size: 13px;
+      overflow: visible;
     }
     .section-title {
       font-size: 12px; font-weight: bold; color: #5f6368;
@@ -31,30 +35,48 @@
     .switch input { opacity: 0; width: 0; height: 0; }
     .slider {
       position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
-      background-color: #dadce0; transition: .2s; border-radius: 20px;
+      background-color: #dadce0;
+      transition: .2s;
+      border-radius: 20px;
     }
     .slider:before {
       position: absolute; content: ""; height: 16px; width: 16px; left: 2px; bottom: 2px;
-      background-color: white; transition: .2s; border-radius: 50%;
+      background-color: white;
+      transition: .2s;
+      border-radius: 50%;
       box-shadow: 0 1px 2px rgba(0,0,0,0.2);
     }
     input:checked + .slider { background-color: #1a73e8; }
     input:checked + .slider:before { transform: translateX(14px); }
     input:disabled + .slider { opacity: 0.5; cursor: not-allowed; }
 
-    .btn-row { display: flex; justify-content: flex-end; gap: 8px; margin-top: 24px; padding-top: 16px; }
-    .btn { height: 32px; padding: 0 16px; font-size: 13px; font-weight: 500; border-radius: 4px; cursor: pointer; transition: background 0.12s; }
+    .btn-row { display: flex; justify-content: flex-end; gap: 8px; }
+    .btn { height: 32px; padding: 0 16px; font-size: 13px; font-weight: 500; border-radius: 4px; cursor: pointer;
+      transition: background 0.12s;
+    }
     .btn-cancel { background: #fff; color: #5f6368; border: 1px solid #dadce0; }
     .btn-cancel:hover { background: #f1f3f4; color: #202124; }
     .btn-save { background: #1a73e8; color: #fff; border: 1px solid transparent; }
     .btn-save:hover { background: #1557b0; color: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
     
     .loading-overlay {
-      position: absolute; inset: 0; background: rgba(255,255,255,0.7);
-      backdrop-filter: blur(1px); display: flex; align-items: center; justify-content: center;
-      z-index: 10; opacity: 0; pointer-events: none; transition: opacity 0.2s;
+      position: absolute;
+      inset: 0;
+      background: rgba(255,255,255,0.7);
+      backdrop-filter: blur(1px);
+      transition: opacity 0.2s;
+      opacity: 0;
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      justify-content: center; 
+      opacity: 0; 
+      z-index: 10;
     }
-    .loading-overlay.visible { opacity: 1; pointer-events: auto; }
+    .loading-overlay.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
     .spinner {
       width: 24px; height: 24px; border: 3px solid rgba(26,115,232,0.2);
       border-top-color: #1a73e8; border-radius: 50%;
@@ -62,35 +84,17 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    .dialog-footer {
+    .footer {
       margin-top: 12px;
-      border-top: 1px solid #e8eaed;
-      padding-top: 8px;
-    }
-    .footer-links {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 6px;
+      font-size: 10px;
       align-items: center;
-    }
-    .link-btn {
-      border: none;
-      background: none;
-      padding: 0;
-      margin: 0;
-      font-size: 10px;
-      line-height: 1.2;
-      color: #1a73e8;
-      cursor: pointer;
-      text-decoration: underline;
-      text-underline-offset: 2px;
-      font-family: Arial, sans-serif;
-    }
-    .link-btn:hover { color: #1557b0; }
-    .footer-note {
-      font-size: 10px;
+      display: flex;
+      gap: 8px;
       color: #80868b;
-      line-height: 1.4;
+    }
+
+    .footer-link {
+      color: #1a73e8;
     }
   </style>
 </head>
@@ -98,23 +102,10 @@
   
   <div class="loading-overlay visible" id="loader"><div class="spinner"></div></div>
 
-  <div class="section-title">Security Settings</div>
   <div class="setting-row">
     <div class="setting-text">
-      <div class="setting-title">Enable Audit Log</div>
-      <div class="setting-desc">Record a log of all encrypt/decrypt/clear operations in a separate (hidden by default) sheet.</div>
-    </div>
-    <label class="switch">
-      <input type="checkbox" id="cb-auditLog">
-      <span class="slider"></span>
-    </label>
-  </div>
-
-  <div class="section-title">Cell Protection Behaviors <span style="font-weight:normal; text-transform:none; color:#80868b; font-size:11px;">(Affects subsequent edits)</span></div>
-  <div class="setting-row">
-    <div class="setting-text">
-      <div class="setting-title">Edit Warning</div>
-      <div class="setting-desc">Apply a "Warning Only" sheet protection to encrypted cells to warn users before editing.</div>
+      <div class="setting-title">Protect with warning</div>
+      <div class="setting-desc">Warn users before editing using Sheets data protection.</div>
     </div>
     <label class="switch">
       <input type="checkbox" id="cb-editWarning">
@@ -124,8 +115,8 @@
 
   <div class="setting-row">
     <div class="setting-text">
-      <div class="setting-title">Cell Note</div>
-      <div class="setting-desc">Add a descriptive note to the cell indicating it is encrypted.</div>
+      <div class="setting-title">Add a note</div>
+      <div class="setting-desc">Add a reminder note to encrypted cells.</div>
     </div>
     <label class="switch">
       <input type="checkbox" id="cb-note">
@@ -135,8 +126,8 @@
 
   <div class="setting-row" style="border-bottom:none">
     <div class="setting-text">
-      <div class="setting-title">Strict Reversion (onEdit)</div>
-      <div class="setting-desc">Automatically undo any manual edits made directly to the encrypted cell.</div>
+      <div class="setting-title">Reversion</div>
+      <div class="setting-desc">Undo direct edits to encrypted cells while add-on is active.</div>
     </div>
     <label class="switch">
       <input type="checkbox" id="cb-onEdit">
@@ -149,48 +140,46 @@
     <button class="btn btn-save" onclick="saveSettings()">Save Preferences</button>
   </div>
 
-  <div class="dialog-footer">
-    <div class="footer-links">
-      <button class="link-btn" onclick="openFeedback()">Feedback</button>
-      <button class="link-btn" onclick="openDonate()">Donate</button>
-    </div>
-    <div class="footer-note">
-      This is an independent open-source project · v<?= appVersion ?>
-    </div>
+  <div class="footer">
+      <div class="footer-note">Open-sourced by an independent developer</div>
+      &bull;
+      <div class="footer-version">v<?= appVersion ?></div>
+      &bull;
+      <div class="footer-links">
+        <a class="footer-link" onclick="google.script.run.showOnboarding(); return false;" href="#">How to use</a>
+        &bull;
+        <a class="footer-link" target="_blank" href="<?= h_(feedbackUrl) ?>">Feedback</a>
+        &bull;
+        <a class="footer-link" target="_blank" href="<?= h_(donateUrl) ?>">Donate</a>
+        &bull;
+        <a class="footer-link" target="_blank" href="<?= h_(privacyUrl) ?>">Privacy</a>
+      </div>
   </div>
 
   <script>
-    const FEEDBACK_URL = '<?= feedbackUrl ?>';
-    const DONATE_URL = '<?= githubDonateUrl ?>';
-
-    function openFeedback() {
-      window.open(FEEDBACK_URL, '_blank', 'noopener');
-    }
-
-    function openDonate() {
-      window.open(DONATE_URL, '_blank', 'noopener');
-    }
-
     window.addEventListener('load', () => {
+      console.log("[events] LOAD");
       google.script.run
         .withSuccessHandler(settings => {
-          document.getElementById('cb-auditLog').checked = settings.auditLogEnabled;
+          console.log("[events] LOAD -> SUCCESS");
           document.getElementById('cb-editWarning').checked = settings.editWarningEnabled;
           document.getElementById('cb-note').checked = settings.noteEnabled;
           document.getElementById('cb-onEdit').checked = settings.onEditEnabled;
           document.getElementById('loader').classList.remove('visible');
+          document.getElementById('loader').offsetHeight; // force repaint — backdrop-filter compositing layer doesn't flush in iframes otherwise
         })
         .withFailureHandler(e => {
+          console.log("[events] LOAD -> FAIL");
           alert("Error loading settings: " + e.message);
           google.script.host.close();
         })
         .getDocumentSettings();
+      console.log("[events] LOAD INVOKED");
     });
 
     function saveSettings() {
       document.getElementById('loader').classList.add('visible');
       const settings = {
-        auditLogEnabled: document.getElementById('cb-auditLog').checked,
         editWarningEnabled: document.getElementById('cb-editWarning').checked,
         noteEnabled: document.getElementById('cb-note').checked,
         onEditEnabled: document.getElementById('cb-onEdit').checked

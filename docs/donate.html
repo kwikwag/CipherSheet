@@ -4,11 +4,19 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Support CipherSheet</title>
+  <link rel="icon" type="image/svg+xml" href="branding/logo.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="branding/logo-32.png">
   <style>
+    @font-face {
+      font-family: "DejaVu Serif";
+      src: url("https://cdn.jsdelivr.net/npm/dejavu-fonts-ttf@2.37.3/ttf/DejaVuSerif.ttf") format("truetype");
+    }
+    @import url('https://fonts.googleapis.com/css2?family=Google+Sans:ital,opsz,wght@0,17..18,400..700;1,17..18,400..700&display=swap');
+
     :root {
-      --primary: #1a73e8;
-      --primary-hover: #1557b0;
-      --danger: #d93025;
+      --link: #1a73e8;
+      --primary: #056a46;
+      --primary-hover: #189a54;
       --bg: #f8f9fa;
       --text: #202124;
       --muted: #5f6368;
@@ -40,8 +48,18 @@
 
     h1 {
       font-size: 1.8rem;
-      color: var(--primary);
+      color: var(--text);
       margin-bottom: 12px;
+    }
+    .brand-lockup {
+      display: inline-flex;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .brand-lockup img {
+      height: 30px;
+      width: auto;
+      display: block;
     }
 
     p {
@@ -59,31 +77,35 @@
       height: 40px;
       padding: 0 18px;
       border-radius: 6px;
-      border: 1px solid var(--danger);
+      border: 1px solid var(--primary);
       color: #fff;
-      background: var(--danger);
+      background: var(--primary);
       font-weight: 600;
       font-size: 0.95rem;
     }
 
-    .cta:hover { background: #b3261e; border-color: #b3261e; }
+    .cta:hover { background: var(--primary-hover); border-color: var(--primary-hover); }
 
     .back {
       display: inline-block;
       margin-top: 16px;
-      color: var(--primary);
+      color: var(--link);
       text-decoration: none;
       font-size: 0.9rem;
     }
 
     .back:hover { text-decoration: underline; }
-  </style>
+
+    .logo { color: #082c2eff; font-family: 'DejaVu Serif', Georgia, 'Times New Roman', Times, serif; font-weight: normal; }
+    .logo b { font-family: 'Google Sans', Arial, Helvetica, sans-serif; color: #189a54ff; font-weight: bold; }
+
+</style>
 </head>
 <body>
   <main class="card">
-    <h1>Support CipherSheet</h1>
+    <h1>Support <span class="logo">Cipher<b>Sheet</b></span></h1>
     <p>CipherSheet is an independent open-source project and is free to use.</p>
-    <p>If it helps you protect sensitive spreadsheet data, donations are welcome and help keep development and maintenance sustainable.</p>
+    <p>If it helps you, your donation is welcome. It helps keep development and maintenance sustainable.</p>
 
     <a
       class="cta"
