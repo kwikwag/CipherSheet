@@ -53,7 +53,6 @@ interface SetEncryptedCellValueResponse extends OkResponse {
 
 interface DocumentSettings {
   editWarningEnabled: boolean;
-  noteEnabled: boolean;
   revertOnEditEnabled: boolean;
   defaultKeyType: 'ecdh' | 'preshared';
 }
@@ -105,7 +104,6 @@ const HEARTBEAT_TTL = 4;
 
 const DEFAULT_SETTINGS: DocumentSettings = {
   editWarningEnabled: true,
-  noteEnabled: true,
   revertOnEditEnabled: false,
   defaultKeyType: 'ecdh',
 };
@@ -259,17 +257,6 @@ function setEncryptedCellValue(
   range.setNumberFormat(';;;"🔒 Encrypted"');
 
   const settings = getDocumentSettings();
-
-  // Stamp a note so onEdit can also identify vault cells
-  if (settings.noteEnabled) {
-    const note = range.getNote() || '';
-    if (!note.includes('[CipherSheet]')) {
-      range.setNote(
-        (note ? note + '\n' : '') +
-          '[CipherSheet] Encrypted — edit via the CipherSheet sidebar only.'
-      );
-    }
-  }
 
   // Apply warning-only protection so even the owner sees a warning
   // before manually editing. Warning-only is the only mode that works
@@ -532,7 +519,6 @@ function normalizeDocumentSettings(
   return {
     editWarningEnabled:
       settings?.editWarningEnabled ?? DEFAULT_SETTINGS.editWarningEnabled,
-    noteEnabled: settings?.noteEnabled ?? DEFAULT_SETTINGS.noteEnabled,
     revertOnEditEnabled: settings?.revertOnEditEnabled ?? DEFAULT_SETTINGS.revertOnEditEnabled,
     defaultKeyType:
       raw === 'ecdh' || raw === 'preshared' ? raw : DEFAULT_SETTINGS.defaultKeyType,

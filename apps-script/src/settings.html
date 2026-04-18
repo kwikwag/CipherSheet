@@ -146,17 +146,6 @@
 
   <div class="setting-row">
     <div class="setting-text">
-      <div class="setting-title">Add a note</div>
-      <div class="setting-desc">Add a reminder note to encrypted cells.</div>
-    </div>
-    <label class="switch">
-      <input type="checkbox" id="cb-note">
-      <span class="slider"></span>
-    </label>
-  </div>
-
-  <div class="setting-row">
-    <div class="setting-text">
       <div class="setting-title">Reversion</div>
       <div class="setting-desc">Undo direct edits to encrypted cells while add-on is active. This is an experimental feature that might malfunction intermittently due to usage limits.</div>
     </div>
@@ -308,7 +297,6 @@
       google.script.run
         .withSuccessHandler(settings => {
           document.getElementById('cb-editWarning').checked = settings.editWarningEnabled;
-          document.getElementById('cb-note').checked = settings.noteEnabled;
           document.getElementById('cb-revertOnEdit').checked = settings.revertOnEditEnabled;
           const kt = settings.defaultKeyType === 'preshared' ? 'preshared' : 'ecdh';
           document.getElementById('rb-' + kt).checked = true;
@@ -327,7 +315,6 @@
       document.getElementById('loader').classList.add('visible');
       const settings = {
         editWarningEnabled: document.getElementById('cb-editWarning').checked,
-        noteEnabled: document.getElementById('cb-note').checked,
         revertOnEditEnabled: document.getElementById('cb-revertOnEdit').checked,
         defaultKeyType: document.querySelector('input[name="defaultKeyType"]:checked')?.value || 'ecdh'
       };
