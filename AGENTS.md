@@ -58,7 +58,10 @@ apps-script/
   src/
     Code.ts              # Apps Script server-side entry point
     appsscript.json      # Apps Script manifest (oauthScopes, runtimeVersion)
-    sidebar.html         # Main sidebar: UI + all client-side crypto
+    sidebar.html         # Thin shell: includes styles, body, script via <?!= include() ?>
+    sidebar-styles.html  # All sidebar CSS (included into sidebar.html)
+    sidebar-body.html    # Sidebar HTML body + template variable injection script block
+    sidebar-script.js    # All sidebar client-side JS; wrapped as <script> by build
     decrypt-confirm.html # Consent modal for revealing plaintext
     onboarding.html      # Welcome carousel (4 slides, screenshot-driven)
     settings.html        # Settings toggles + public key list + group management
@@ -70,7 +73,7 @@ docs/
   asymmetric-design.md   # Original design doc (superseded by implementation)
   branding/              # SVG/PNG logos
 scripts/
-  build-apps-script.mjs  # Build orchestrator (clean → tsc → copy assets)
+  build-apps-script.mjs  # Build orchestrator (clean → tsc → copy assets → wrap sidebar-script)
   init-clasp.sh          # First-time clasp setup
   preview-pages-paths.mjs
 .github/workflows/
@@ -149,9 +152,9 @@ Every encrypted cell stores a **self-contained payload** as its value, prefixed 
 
 | Key pattern | Content | Set by |
 |---|---|---|
-| `CIPHERSHEET_SETTINGS` | JSON `DocumentSettings` object (`editWarningEnabled`, `noteEnabled`, `revertOnEditEnabled`, `defaultKeyType`) | `setDocumentSettings()` |
+| `CIPHERSHEET_SETTINGS` | JSON `DocumentSettings` object (`editWarningEnabled`, `revertOnEditEnabled`, `defaultKeyType`) | `setDocumentSettings()` |
 | `pk:<email>` | base64-encoded SPKI of user's ECDH P-256 public key | `storePublicKey()` |
-| `grp:<name>` | JSON array of `SHA-256(lowercase(email))` strings | `storeGroupDefinition()` |
+| `grp:<groupId>` | JSON `{ emailHashes: string[], label: string }` where `groupId` = first 16 hex chars of SHA-256(sorted email hashes joined with `\|`) | `upsertGroup()` |
 
 ---
 
@@ -176,17 +179,17 @@ Server-side Apps Script. TypeScript compiled to JS; all Apps Script globals (`Sp
 | `getCurrentUserEmail()` | Returns `Session.getActiveUser().getEmail()` |
 | `storePublicKey(base64SPKI)` | Derives email server-side, writes `pk:<email>` to Document Properties |
 | `listPublicKeys()` | Returns `{ email, publicKey }[]` from all `pk:` properties |
-| `storeGroupDefinition(name, emailHashes)` | Writes `grp:<name>` → JSON array of SHA-256 email hashes |
-| `listGroups()` | Returns `{ name, emailHashes }[]` from all `grp:` properties |
-| `getDocumentSettings()` / `setDocumentSettings()` | JSON settings in Document Properties (`editWarningEnabled`, `noteEnabled`, `revertOnEditEnabled`, `defaultKeyType`) |
+| `upsertGroup(groupId, emailHashes, label)` | Writes `grp:<groupId>` → `{ emailHashes, label }`; preserves existing `emailHashes` on update |
+| `listGroups()` | Returns `{ id, emailHashes, label }[]` from all `grp:` properties |
+| `getDocumentSettings()` / `setDocumentSettings()` | JSON settings in Document Properties (`editWarningEnabled`, `revertOnEditEnabled`, `defaultKeyType`) |
 | `navigateToCell(cellRef, sheetName)` | Activates a cell in the sheet UI |
 | `onEdit(e)` | Auto-reverts direct edits to vault cells (requires `revertOnEditEnabled`) |
 
 ### [apps-script/src/sidebar.html](apps-script/src/sidebar.html)
 
-Single-file HTML bundle (inline CSS + JS). All cryptographic operations run here.
+Thin shell that composes the sidebar via `<?!= include() ?>` directives. All cryptographic operations run in [sidebar-script.js](apps-script/src/sidebar-script.js); CSS is in [sidebar-styles.html](apps-script/src/sidebar-styles.html); body HTML and template variable injection are in [sidebar-body.html](apps-script/src/sidebar-body.html).
 
-**Client-side state:**
+**Client-side state** (in [sidebar-script.js](apps-script/src/sidebar-script.js)):
 
 | Variable | Type | Meaning |
 |---|---|---|
@@ -196,6 +199,9 @@ Single-file HTML bundle (inline CSS + JS). All cryptographic operations run here
 | `unlockPassword` | `string` | Auto-generated PBKDF2 password, in memory while unlocked |
 | `pubKeyCache` | `{ email, pubKey, fp }[]` | All registered users' public keys, loaded at init |
 | `ownEmail` | `string` | Current user's email, fetched via `getCurrentUserEmail()` at init |
+| `emailReady` | `Promise<void>` | Resolves when `ownEmail` is set; ECDH paths await this before proceeding |
+| `keyInStorage` | `boolean` | True when an ECDH keypair exists in IndexedDB (may be locked) |
+| `groupCache` | `{ id, emailHashes, label }[]` | Cached group list from server, used for recipient summary labels |
 
 **Key functions:**
 
@@ -215,8 +221,11 @@ Single-file HTML bundle (inline CSS + JS). All cryptographic operations run here
 | `decryptPreshared(payload)` | Type 0x01: AES-GCM decrypt with pre-shared key |
 | `decrypt(ciphertextStr)` | Dispatcher: read type byte, call ECDH or pre-shared path |
 | `refreshPubKeyCache()` | Call `listPublicKeys()`, import all SPKI as CryptoKeys |
-| `encryptAndSave()` | Encrypt (ECDH if available, else pre-shared) → call `setEncryptedCellValue` |
-| `showKeyState()` | Render key section based on IndexedDB entry + in-memory state |
+| `refreshGroupCache()` | Call `listGroups()`, populate `groupCache` |
+| `encryptAndSave()` | Encrypt (ECDH if available, else pre-shared) → call `setEncryptedCellValue`; fires `upsertGroup` fire-and-forget when >1 recipient |
+| `showKeyState()` | Render key section based on IndexedDB entry + in-memory state; sets `keyInStorage` |
+| `sha256hex(str)` | Sync SHA-256 stub (async workaround) used for email hashing in recipient summary |
+| `computeGroupId(emailHashes)` | First 16 hex chars of SHA-256(sorted hashes joined with `\|`) |
 
 **Key section UI states:**
 - `#ks-setup` — no keys in IndexedDB; shows "Generate key" (dispatches on `defaultKeyType`) + "Import existing key"
@@ -249,7 +258,7 @@ Consent modal. Displays risk warnings. Requires user to type the cell address to
 
 ### [apps-script/src/settings.html](apps-script/src/settings.html)
 
-Settings toggles (protection, note, reversion) + read-only list of registered public keys with fingerprints + group management UI (create/delete named recipient groups via `storeGroupDefinition` / `listGroups`).
+Settings toggles (protection, reversion, default key type) + read-only list of registered public keys with fingerprints + implicit group list (auto-populated from encryption activity; user can add labels via inline input saved by `upsertGroup`).
 
 ### [apps-script/src/onboarding.html](apps-script/src/onboarding.html)
 
@@ -276,8 +285,9 @@ npx clasp push --force         # push dist/ to Apps Script project
 
 ### Build script ([scripts/build-apps-script.mjs](scripts/build-apps-script.mjs))
 1. Deletes `apps-script/dist/`
-2. Runs `tsc` with `tsconfig.apps-script.json`
+2. Runs `tsc` with `tsconfig.apps-script.json` (compiles `Code.ts` → `dist/Code.js`)
 3. Copies non-TS files (HTML, JSON, images) from `src/` → `dist/`
+4. Wraps `dist/sidebar-script.js` as `<script>…</script>` → `dist/sidebar-script.html`, then deletes the `.js`
 
 ### TypeScript notes
 - `strict: false` — required for Apps Script global types
@@ -319,13 +329,12 @@ Minimal scopes: current spreadsheet + container UI only. See [appsscript.json](a
 ## Deferred / Known Gaps
 
 - **Onboarding slides** — still describe the pre-shared key flow; need updating for the ECDH first-run wizard
-- **WebAuthn PRF unlock** — partial: `PasswordCredential` store/autofill implemented; WebAuthn PRF and cross-browser form-submit fallback still TODO (see `feat/passkey-unlock` in TASKS.md)
+- **WebAuthn PRF unlock via popup** — `PasswordCredential` store/autofill and c2 forward-compatible PRF probe are implemented; the c1 same-project web app popup path is still TODO (see `feat/passkey-unlock c1` in TASKS.md)
 - **PRF key rotation** — deferred pending WebAuthn iframe support
 - **Add/remove recipient on existing cells** — not yet exposed in UI; re-encryption on remove and cheap add-only re-wrap on add are both described in plan
-- **Group membership resolution in picker** — groups defined but picker doesn't yet expand groups to individual recipients
+- **Group membership resolution in picker** — groups appear in summary label but picker doesn't expand groups to individual recipients
 - **X25519 / Curve25519 support** — type `0x03` reserved; pending wider WebCrypto adoption
 - **Threshold / M-of-N decryption**
 - **Audit log**
 - **Time-boxed access / burn-after-reading**
 - **Group key indirection** (shared symmetric group key to avoid per-member ECDH entries)
-- **`deleteProperty` server function** — `storeGroupDefinition` cannot truly delete groups; a `deleteDocumentProperty(key)` server function would fix this

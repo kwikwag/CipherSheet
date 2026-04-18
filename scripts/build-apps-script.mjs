@@ -1,4 +1,4 @@
-import { cpSync, existsSync, mkdirSync, readdirSync, rmSync, statSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, extname, join, relative } from 'node:path';
 import { execFileSync } from 'node:child_process';
 
@@ -43,5 +43,11 @@ for (const file of walk(SRC_DIR)) {
   ensureDir(dirname(dest));
   cpSync(file, dest);
 }
+
+// Wrap sidebar-script.js as sidebar-script.html for Apps Script include()
+const sidebarJs = join(DIST_DIR, 'sidebar-script.js');
+const sidebarHtml = join(DIST_DIR, 'sidebar-script.html');
+writeFileSync(sidebarHtml, `<script>\n${readFileSync(sidebarJs, 'utf8')}</script>\n`);
+rmSync(sidebarJs);
 
 console.log(`Built Apps Script files into ${DIST_DIR}`);
