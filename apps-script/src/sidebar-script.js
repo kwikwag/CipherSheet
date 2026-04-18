@@ -5,7 +5,8 @@
 // ══════════════════════════════════════════════════════════════
 
 // ── Constants ──────────────────────────────────────────────────
-const VAULT_PFX     = '\uD83D\uDD10'; // 🔐
+const VAULT_PFX      = '\uD83D\uDD10'; // 🔐
+const PRF_EVAL_INPUT = new TextEncoder().encode('CipherSheet unlock key v1');
 const TYPE_ECDH     = 0x02;
 const TYPE_PRESHARED = 0x01;
 const IV_LEN        = 12;
@@ -16,7 +17,7 @@ const IDB_STORE     = 'keys';
 const IDB_ECDH_KEY  = 'ecdh';
 const POLL_MS       = 800;
 const POLL_MAX      = 75;
-// FEEDBACK_URL and DONATE_URL are injected by sidebar-body.html before this script runs
+// FEEDBACK_URL, DONATE_URL, PRIVACY_URL, and PASSKEY_POPUP_URL are injected by sidebar.html.
 
 // ── Session state ──────────────────────────────────────────────
 let ecdhPrivKey    = null;  // non-extractable ECDH CryptoKey
@@ -33,6 +34,7 @@ let defaultKeyType = 'ecdh'; // loaded from document settings at init
 let emailReady     = Promise.resolve(); // resolves when ownEmail is set
 let keyInStorage   = false;            // true when IDB has a stored keypair
 let groupCache     = [];               // [{ id, emailHashes, label }]
+let ecdhFp         = null;             // fingerprint of active ECDH public key
 
 // ── Encoding helpers ───────────────────────────────────────────
 const buf2b64    = b => btoa(String.fromCharCode(...new Uint8Array(b)));
@@ -597,7 +599,7 @@ async function loadKeyFile(file) {
   }
 }
 
-async function activatePresharedKey(keyBytes, meta) {
+async function activatePresharedKey(keyBytes, _meta) {
   // Validate against current cell if encrypted
   if (currentCell) {
     const raw = String(currentCell.value || '');
@@ -656,15 +658,22 @@ async function showKeyState() {
     if (ecdhPubKey) {
       const spki = new Uint8Array(await crypto.subtle.exportKey('spki', ecdhPubKey));
       const fp   = await fingerprint(spki);
+      ecdhFp = fp;
       document.getElementById('kEmail').textContent       = ownEmail || '—';
       document.getElementById('kFingerprint').textContent = fp;
     }
+    const hasPasskey = !!(entry?.credentialId && entry?.prfWrappedPassword);
+    const enBtn = document.getElementById('btnEnablePasskey');
+    if (enBtn) enBtn.style.display = (PASSKEY_POPUP_URL && !hasPasskey) ? '' : 'none';
   } else if (entry) {
     // Locked — show fingerprint from stored entry
     document.getElementById('ks-setup').style.display    = 'none';
     document.getElementById('ks-locked').style.display   = 'block';
     document.getElementById('ks-unlocked').style.display = 'none';
     document.getElementById('ksLockedFp').textContent    = entry.publicKeyFp || '';
+    const hasPasskey = !!(entry.credentialId && entry.prfWrappedPassword);
+    const pkBtn = document.getElementById('btnPasskeyUnlock');
+    if (pkBtn) pkBtn.style.display = hasPasskey ? '' : 'none';
   } else {
     // No keys
     document.getElementById('ks-setup').style.display    = 'block';
@@ -681,6 +690,146 @@ function copySetupPassword() {
     () => toast('Password copied', 'ok'),
     () => toast('Copy failed — select and copy manually', 'warn')
   );
+}
+
+// ── PRF (passkey) unlock ───────────────────────────────────────
+function _prfPopupHandshake(action, extraData) {
+  return new Promise((resolve, reject) => {
+    if (!PASSKEY_POPUP_URL) { reject(new Error('Passkey popup URL not configured')); return; }
+    const popupOrigin = new URL(PASSKEY_POPUP_URL).origin;
+    const channel = buf2b64url(crypto.getRandomValues(new Uint8Array(16)));
+    const url = PASSKEY_POPUP_URL +
+      '?action=' + encodeURIComponent(action) +
+      '&channel=' + encodeURIComponent(channel) +
+      '&returnOrigin=' + encodeURIComponent(window.location.origin);
+    const popup = window.open(
+      url, 'ciphersheet-prf',
+      'width=480,height=280,toolbar=no,menubar=no,location=no,scrollbars=no'
+    );
+    if (!popup) { reject(new Error('Popup was blocked — allow popups for this site')); return; }
+    console.log('[prf] opened popup');
+
+    const timeout = setTimeout(() => { cleanup(); reject(new Error('Passkey timed out')); }, 90000);
+    const closedCheck = setInterval(() => {
+      if (popup.closed) { cleanup(); reject(new Error('Passkey popup was closed')); }
+    }, 600);
+
+    function postStart() {
+      console.log('[prf] sending prf-start via postMessage');
+      popup.postMessage({ type: 'prf-start', channel, ...extraData }, popupOrigin);
+    }
+    // Keep retrying until the static popup is loaded. Duplicate starts are ignored there.
+    const startRetry = setInterval(postStart, 1000);
+    const initialStart = setTimeout(postStart, 250);
+
+    function cleanup() {
+      clearTimeout(timeout); clearTimeout(initialStart); clearInterval(startRetry); clearInterval(closedCheck);
+      window.removeEventListener('message', onMessage);
+    }
+    function onMessage(evt) {
+      if (evt.origin !== popupOrigin || evt.source !== popup) return;
+      const msg = evt.data;
+      if (msg?.channel !== channel) return;
+      console.log('[prf] sidebar got popup message:', msg?.type);
+      if (msg?.type === 'prf-ready') {
+        postStart();
+      } else if (msg?.type === 'prf-result') {
+        cleanup(); resolve(msg);
+      } else if (msg?.type === 'prf-error') {
+        cleanup(); reject(new Error(msg.message || 'Passkey operation failed'));
+      }
+    }
+    window.addEventListener('message', onMessage);
+  });
+}
+
+async function _storePrfWrap(credentialId, prfOutput, password) {
+  const key = await crypto.subtle.importKey('raw', prfOutput, { name: 'AES-GCM' }, false, ['encrypt']);
+  const iv  = crypto.getRandomValues(new Uint8Array(12));
+  const enc = await crypto.subtle.encrypt(
+    { name: 'AES-GCM', iv }, key, new TextEncoder().encode(password)
+  );
+  const existing = await idbGet(IDB_ECDH_KEY);
+  if (!existing) return;
+  await idbPut(IDB_ECDH_KEY, {
+    ...existing,
+    credentialId,
+    prfWrappedPassword: new Uint8Array(enc),
+    prfPasswordIv: iv
+  });
+}
+
+async function _prfUserHandle(fp) {
+  const source = 'CipherSheet passkey user v1:' + (ownEmail || '') + ':' + (fp || '');
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(source));
+  return Array.from(new Uint8Array(digest));
+}
+
+async function _tryPrfEnroll(password, fp) {
+  if (!PASSKEY_POPUP_URL) return;
+  const btn = document.getElementById('btnEnablePasskey');
+  if (btn) btn.disabled = true;
+  try {
+    const challenge  = Array.from(crypto.getRandomValues(new Uint8Array(32)));
+    const userHandle = await _prfUserHandle(fp);
+    const msg = await _prfPopupHandshake('prf-enroll', {
+      challenge, userHandle,
+      userName:  ownEmail || 'user',
+      evalInput: Array.from(PRF_EVAL_INPUT)
+    });
+    if (msg.prfOutput && msg.credentialId) {
+      await _storePrfWrap(msg.credentialId, new Uint8Array(msg.prfOutput), password);
+      await showKeyState();
+      toast('Passkey unlock enabled!', 'ok');
+    }
+  } catch (e) {
+    if (e.message !== 'Passkey popup was closed') {
+      toast('Passkey setup failed: ' + e.message, 'err');
+    }
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+async function enablePasskeyUnlock() {
+  if (!ecdhPrivKey) { toast('Unlock your keypair first', 'warn'); return; }
+  const fp = ecdhFp ||
+    (ecdhPubKey
+      ? await fingerprint(new Uint8Array(await crypto.subtle.exportKey('spki', ecdhPubKey)))
+      : '');
+  await _tryPrfEnroll(unlockPassword, fp);
+}
+
+async function unlockWithPasskey() {
+  const btn = document.getElementById('btnPasskeyUnlock');
+  if (btn) btn.disabled = true;
+  setLoading(true);
+  try {
+    const entry = await idbGet(IDB_ECDH_KEY);
+    if (!entry?.credentialId || !entry?.prfWrappedPassword) throw new Error('No passkey enrolled');
+    const challenge = Array.from(crypto.getRandomValues(new Uint8Array(32)));
+    const msg = await _prfPopupHandshake('prf-get', {
+      challenge,
+      credentialId: entry.credentialId,
+      evalInput: Array.from(PRF_EVAL_INPUT)
+    });
+    if (!msg.prfOutput) throw new Error('No PRF output received');
+    const prfKey = await crypto.subtle.importKey(
+      'raw', new Uint8Array(msg.prfOutput), { name: 'AES-GCM' }, false, ['decrypt']
+    );
+    const pwBytes = await crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv: new Uint8Array(entry.prfPasswordIv) },
+      prfKey, entry.prfWrappedPassword
+    );
+    await _doUnlockWithPassword(new TextDecoder().decode(pwBytes));
+  } catch (e) {
+    if (e.message !== 'Passkey popup was closed') {
+      toast('Passkey unlock failed: ' + e.message, 'err');
+    }
+  } finally {
+    if (btn) btn.disabled = false;
+    setLoading(false);
+  }
 }
 
 // ── HTML escaping ──────────────────────────────────────────────
@@ -794,9 +943,18 @@ function updateButtons() {
   const btnD = document.getElementById('btnDecrypt');
   cellIsEncrypted ? btnD.classList.add('visible') : btnD.classList.remove('visible');
 
-  // Hide file input when both key types are active
-  document.getElementById('keyFileInput').style.display =
-    (presharedKey && ecdhPrivKey) ? 'none' : '';
+  // File input is only interactive when no key exists at all (not locked, not active).
+  // When a key is stored but locked, the overlay is informational only — clicking it
+  // should not open a file dialog; the user must unlock via the password UI below.
+  const noKey = !keyInStorage && !presharedKey;
+  document.getElementById('keyFileInput').style.display = noKey ? '' : 'none';
+
+  // "or drop a .ciphersheet-key file" subtext: show only when drag-and-drop is useful
+  // (no active key — locked keys still allow drag since ecdhPrivKey is null).
+  const allowDrop = !presharedKey && !ecdhPrivKey;
+  document.querySelectorAll('.ov-subtext').forEach(el => {
+    el.style.display = allowDrop ? '' : 'none';
+  });
 
   // Show recipient picker when ECDH active and cell is not encrypted
   const showPicker = ecdhPrivKey !== null && !cellIsEncrypted && pubKeyCache.length > 0;
@@ -1071,6 +1229,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // ── Init ───────────────────────────────────────────────────────
 window.addEventListener('load', async () => {
+  document.getElementById('footerFeedback').href = FEEDBACK_URL;
+  document.getElementById('footerDonate').href   = DONATE_URL;
+  document.getElementById('footerPrivacy').href  = PRIVACY_URL;
+  document.getElementById('footerVersion').textContent = 'v' + APP_VERSION_STR;
   emailReady = new Promise(resolve =>
     google.script.run
       .withSuccessHandler(email => { ownEmail = email || ''; resolve(); })

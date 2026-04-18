@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CipherSheet Passkey</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: Arial, sans-serif;
+      font-size: 13px;
+      color: #202124;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 24px;
+      background: #fff;
+    }
+    .card { max-width: 340px; width: 100%; text-align: center; }
+    .icon { font-size: 36px; margin-bottom: 14px; }
+    .title { font-size: 15px; font-weight: 600; margin-bottom: 8px; }
+    .status { font-size: 12px; color: #5f6368; line-height: 1.5; }
+    .status.err { color: #c5221f; }
+  </style>
+</head>
+<body>
+<div class="card">
+  <div class="icon" id="icon">Key</div>
+  <div class="title" id="title">CipherSheet Passkey</div>
+  <div class="status" id="status">Connecting...</div>
+</div>
+<script>
+  const params = new URLSearchParams(location.search);
+  const action = params.get('action') || '';
+  const channel = params.get('channel') || '';
+  const returnOrigin = params.get('returnOrigin') || '';
+  const PRF_EVAL = new TextEncoder().encode('CipherSheet unlock key v1');
+
+  let replyWindow = null;
+  let replyOrigin = '';
+  let started = false;
+
+  console.log('[prf-popup] loaded. action:', action, 'origin:', location.origin, 'opener:', window.opener);
+
+  function ui(title, status, icon, isErr) {
+    if (title) document.getElementById('title').textContent = title;
+    if (status) document.getElementById('status').textContent = status;
+    if (icon) document.getElementById('icon').textContent = icon;
+    document.getElementById('status').classList.toggle('err', !!isErr);
+  }
+
+  function isValidReturnOrigin(origin) {
+    try {
+      const url = new URL(origin);
+      return url.origin === origin && url.protocol === 'https:';
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function send(msg) {
+    const target = replyWindow || window.opener;
+    const origin = replyOrigin || (isValidReturnOrigin(returnOrigin) ? returnOrigin : '');
+    if (!target || !origin) return;
+    target.postMessage({ ...msg, channel }, origin);
+  }
+
+  if (window.opener && isValidReturnOrigin(returnOrigin)) {
+    window.opener.postMessage({ type: 'prf-ready', channel }, returnOrigin);
+  }
+
+  window.addEventListener('message', async evt => {
+    console.log('[prf-popup] got message:', evt.data?.type);
+    if (evt.data?.type !== 'prf-start') return;
+    if (evt.data?.channel !== channel) return;
+    if (!isValidReturnOrigin(returnOrigin) || evt.origin !== returnOrigin) return;
+    if (started) return;
+    started = true;
+    replyWindow = evt.source;
+    replyOrigin = evt.origin;
+
+    const { challenge, evalInput, credentialId, userHandle, userName } = evt.data;
+    const challengeBuf = new Uint8Array(challenge).buffer;
+    const evalBuf = new Uint8Array(evalInput || Array.from(PRF_EVAL)).buffer;
+
+    try {
+      if (action === 'prf-enroll') {
+        ui('Register passkey', 'Follow the prompt from your browser or device...', null, false);
+
+        const cred = await navigator.credentials.create({ publicKey: {
+          challenge: challengeBuf,
+          rp: { id: location.hostname, name: 'CipherSheet' },
+          user: {
+            id: new Uint8Array(userHandle || [0]).buffer,
+            name: userName || 'user',
+            displayName: 'CipherSheet'
+          },
+          pubKeyCredParams: [{ type: 'public-key', alg: -7 }],
+          authenticatorSelection: { userVerification: 'required' },
+          extensions: { prf: { eval: { first: evalBuf } } }
+        }});
+
+        const ext = cred.getClientExtensionResults();
+        const prfFirst = ext?.prf?.results?.first;
+
+        if (prfFirst) {
+          send({
+            type: 'prf-result',
+            credentialId: Array.from(new Uint8Array(cred.rawId)),
+            prfOutput: Array.from(new Uint8Array(prfFirst))
+          });
+          ui(null, 'Done!', 'OK', false);
+          setTimeout(() => window.close(), 800);
+          return;
+        }
+
+        if (!ext?.prf?.enabled) {
+          throw new Error('This authenticator does not support PRF. Use your password instead.');
+        }
+
+        ui(null, 'Almost there - one more prompt...', null, false);
+        const getCred = await navigator.credentials.get({ publicKey: {
+          challenge: crypto.getRandomValues(new Uint8Array(32)).buffer,
+          rpId: location.hostname,
+          allowCredentials: [{ type: 'public-key', id: cred.rawId }],
+          userVerification: 'required',
+          extensions: { prf: { eval: { first: evalBuf } } }
+        }});
+        const getFirst = getCred.getClientExtensionResults()?.prf?.results?.first;
+        if (!getFirst) throw new Error('PRF output unavailable on this authenticator.');
+
+        send({
+          type: 'prf-result',
+          credentialId: Array.from(new Uint8Array(cred.rawId)),
+          prfOutput: Array.from(new Uint8Array(getFirst))
+        });
+        ui(null, 'Done!', 'OK', false);
+        setTimeout(() => window.close(), 800);
+
+      } else if (action === 'prf-get') {
+        ui('Unlock with passkey', 'Follow the prompt from your browser or device...', null, false);
+
+        const cred = await navigator.credentials.get({ publicKey: {
+          challenge: challengeBuf,
+          rpId: location.hostname,
+          allowCredentials: [{ type: 'public-key', id: new Uint8Array(credentialId).buffer }],
+          userVerification: 'required',
+          extensions: { prf: { eval: { first: evalBuf } } }
+        }});
+        const prfFirst = cred.getClientExtensionResults()?.prf?.results?.first;
+        if (!prfFirst) throw new Error('No PRF output - authenticator may not support PRF.');
+
+        send({ type: 'prf-result', prfOutput: Array.from(new Uint8Array(prfFirst)) });
+        ui(null, 'Done!', 'OK', false);
+        setTimeout(() => window.close(), 800);
+
+      } else {
+        throw new Error('Unknown action: ' + action);
+      }
+    } catch (e) {
+      ui(null, e.message, 'X', true);
+      send({ type: 'prf-error', message: e.message });
+      setTimeout(() => window.close(), 4000);
+    }
+  });
+</script>
+</body>
+</html>

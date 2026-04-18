@@ -282,6 +282,15 @@
   }
   .btn-copy:hover { background: #e8f0fe; }
 
+  /* ── Passkey button ── */
+  .btn-passkey {
+    height: 32px; padding: 0 16px; background: #fff; color: #1a73e8;
+    font-size: 13px; font-weight: 500; border: 1px solid #dadce0;
+    border-radius: 4px; cursor: pointer; transition: background 0.12s; text-align: center;
+  }
+  .btn-passkey:hover:not(:disabled) { background: #f0f6ff; }
+  .btn-passkey:disabled { opacity: 0.5; cursor: not-allowed; }
+
   .footer {
     margin-top: 12px;
     font-size: 10px;

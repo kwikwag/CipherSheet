@@ -60,7 +60,7 @@ apps-script/
     appsscript.json      # Apps Script manifest (oauthScopes, runtimeVersion)
     sidebar.html         # Thin shell: includes styles, body, script via <?!= include() ?>
     sidebar-styles.html  # All sidebar CSS (included into sidebar.html)
-    sidebar-body.html    # Sidebar HTML body + template variable injection script block
+    sidebar-body.html    # Sidebar HTML body
     sidebar-script.js    # All sidebar client-side JS; wrapped as <script> by build
     decrypt-confirm.html # Consent modal for revealing plaintext
     onboarding.html      # Welcome carousel (4 slides, screenshot-driven)
@@ -70,6 +70,7 @@ apps-script/
   dist/                  # Compiled output; pushed to Apps Script via clasp
 docs/
   index.html, privacy.html, terms.html, donate.html, thank-you.html
+  prf-popup.html         # GitHub Pages top-level WebAuthn PRF popup for passkey unlock
   asymmetric-design.md   # Original design doc (superseded by implementation)
   branding/              # SVG/PNG logos
 scripts/
@@ -167,7 +168,8 @@ Server-side Apps Script. TypeScript compiled to JS; all Apps Script globals (`Sp
 | Function | Purpose |
 |---|---|
 | `onInstall` / `onOpen` | Build add-on menu; resilient to authorization failures |
-| `showSidebar` / `showOnboarding` / `showSettings` | Open HTML panels |
+| `showSidebar` / `showOnboarding` / `showSettings` | Open HTML panels; `showSidebar` injects the passkey popup URL |
+| `getPasskeyPopupUrl` | Returns the GitHub Pages top-level WebAuthn PRF popup URL |
 | `getSelectedCellValue()` | Returns `{ value, cellRef, sheetName }` using `cell.getValue()` (not display value) |
 | `setEncryptedCellValue(payload, cellRef, sheetName)` | Writes payload, applies `;;;"🔒 Encrypted"` number format, warning protection, note |
 | `revealCell(plaintext, cellRef, sheetName)` | Writes plaintext, resets number format to `@`, removes protection/note |
@@ -187,7 +189,7 @@ Server-side Apps Script. TypeScript compiled to JS; all Apps Script globals (`Sp
 
 ### [apps-script/src/sidebar.html](apps-script/src/sidebar.html)
 
-Thin shell that composes the sidebar via `<?!= include() ?>` directives. All cryptographic operations run in [sidebar-script.js](apps-script/src/sidebar-script.js); CSS is in [sidebar-styles.html](apps-script/src/sidebar-styles.html); body HTML and template variable injection are in [sidebar-body.html](apps-script/src/sidebar-body.html).
+Thin shell that composes the sidebar via `<?!= include() ?>` directives and injects template constants (`FEEDBACK_URL`, `DONATE_URL`, `PRIVACY_URL`, `PASSKEY_POPUP_URL`) before loading client code. All cryptographic operations run in [sidebar-script.js](apps-script/src/sidebar-script.js); CSS is in [sidebar-styles.html](apps-script/src/sidebar-styles.html); body HTML is in [sidebar-body.html](apps-script/src/sidebar-body.html).
 
 **Client-side state** (in [sidebar-script.js](apps-script/src/sidebar-script.js)):
 
@@ -202,12 +204,13 @@ Thin shell that composes the sidebar via `<?!= include() ?>` directives. All cry
 | `emailReady` | `Promise<void>` | Resolves when `ownEmail` is set; ECDH paths await this before proceeding |
 | `keyInStorage` | `boolean` | True when an ECDH keypair exists in IndexedDB (may be locked) |
 | `groupCache` | `{ id, emailHashes, label }[]` | Cached group list from server, used for recipient summary labels |
+| `ecdhFp` | `string \| null` | Fingerprint of the active ECDH public key, reused as the passkey user handle |
 
 **Key functions:**
 
 | Function | Purpose |
 |---|---|
-| `setupNewKeypair()` | Generate ECDH P-256 keypair, wrap+store in IndexedDB, download `.ciphersheet-key` backup, register SPKI with server |
+| `setupNewKeypair()` | Generate ECDH P-256 keypair, wrap+store in IndexedDB, download `.ciphersheet-key` backup, register SPKI with server, and run the forward-compatible iframe PRF probe |
 | `generatePresharedKey()` | Generate random 32-byte AES key, download as `.ciphersheet-key`, activate |
 | `generateKey()` | Dispatcher: calls `setupNewKeypair` or `generatePresharedKey` based on `defaultKeyType` setting |
 | `loadKeyFile(file)` | Unified file loader: detects key type from JSON `type` field (`CipherSheet-ECDH-P256` or `CipherSheet-AES256`); falls back to legacy formats |
@@ -224,22 +227,27 @@ Thin shell that composes the sidebar via `<?!= include() ?>` directives. All cry
 | `refreshGroupCache()` | Call `listGroups()`, populate `groupCache` |
 | `encryptAndSave()` | Encrypt (ECDH if available, else pre-shared) → call `setEncryptedCellValue`; fires `upsertGroup` fire-and-forget when >1 recipient |
 | `showKeyState()` | Render key section based on IndexedDB entry + in-memory state; sets `keyInStorage` |
+| `_prfPopupHandshake(action, extraData)` | Open the GitHub Pages PRF popup and exchange `prf-ready` / `prf-start` / result messages over cross-origin `postMessage` with a random channel token |
+| `_storePrfWrap(credentialId, prfOutput, password)` | Wrap the generated ECDH unlock password with a WebAuthn PRF-derived AES-GCM key and store it in IndexedDB |
+| `_prfUserHandle(fp)` | Derive the WebAuthn `user.id` as a 32-byte SHA-256 digest so it stays below the 64-byte limit |
+| `_tryPrfEnroll(password, fp)` / `enablePasskeyUnlock()` | Enroll a passkey for the active ECDH keypair and persist the PRF-wrapped unlock password |
+| `unlockWithPasskey()` | Use the popup PRF flow to unwrap the stored unlock password and unlock the ECDH keypair |
 | `sha256hex(str)` | Sync SHA-256 stub (async workaround) used for email hashing in recipient summary |
 | `computeGroupId(emailHashes)` | First 16 hex chars of SHA-256(sorted hashes joined with `\|`) |
 
 **Key section UI states:**
 - `#ks-setup` — no keys in IndexedDB; shows "Generate key" (dispatches on `defaultKeyType`) + "Import existing key"
-- `#ks-locked` — ECDH keypair stored in IndexedDB but not in memory; shows fingerprint + unlock password input + "Forget this key" escape hatch
-- `#ks-unlocked` — ECDH keypair active; shows email, fingerprint, Lock button
+- `#ks-locked` — ECDH keypair stored in IndexedDB but not in memory; shows fingerprint + unlock password input, passkey unlock when enrolled, and "Forget this key" escape hatch
+- `#ks-unlocked` — ECDH keypair active; shows email, fingerprint, optional "Enable passkey unlock", and Lock button
 - `#ks-preshared-loaded` — pre-shared key active; always shown independently below ECDH section
 
 **IndexedDB schema** (`CipherSheet` db, `keys` store):
 
 | Key | Value shape |
 |---|---|
-| `'ecdh'` | `{ wrapped: Uint8Array, iv: Uint8Array, salt: Uint8Array, publicKeySpki: Uint8Array, publicKeyFp: string }` |
+| `'ecdh'` | `{ wrapped: Uint8Array, iv: Uint8Array, salt: Uint8Array, publicKeySpki: Uint8Array, publicKeyFp: string, credentialId?: number[], prfWrappedPassword?: Uint8Array, prfPasswordIv?: Uint8Array }` |
 
-The `wrapped` field is the PBKDF2+AES-GCM encrypted JWK of the ECDH private key. `publicKeySpki` and `publicKeyFp` are stored unencrypted so the locked UI can show the fingerprint.
+The `wrapped` field is the PBKDF2+AES-GCM encrypted JWK of the ECDH private key. `publicKeySpki`, `publicKeyFp`, and optional passkey metadata are stored unencrypted so the locked UI can show the fingerprint and start PRF unlock; `prfWrappedPassword` contains only the generated unlock password encrypted under a PRF-derived AES-GCM key.
 
 **Extractable key audit:**
 
@@ -255,6 +263,10 @@ The `wrapped` field is the PBKDF2+AES-GCM encrypted JWK of the ECDH private key.
 ### [apps-script/src/decrypt-confirm.html](apps-script/src/decrypt-confirm.html)
 
 Consent modal. Displays risk warnings. Requires user to type the cell address to confirm "Reveal". Sends `heartbeatModalAlive` + `recordDecryptIntent` to Apps Script UserCache.
+
+### [docs/prf-popup.html](docs/prf-popup.html)
+
+GitHub Pages top-level popup for WebAuthn PRF enrollment and unlock. It waits for `prf-start` over `postMessage`, validates `returnOrigin` and the random channel token, ignores duplicate starts, calls `navigator.credentials.create()` / `navigator.credentials.get()` with PRF eval input, returns `credentialId` and PRF output to the sidebar, then closes.
 
 ### [apps-script/src/settings.html](apps-script/src/settings.html)
 
@@ -317,6 +329,7 @@ Minimal scopes: current spreadsheet + container UI only. See [appsscript.json](a
 |---|---|
 | Google reads plaintext | All crypto in browser; only ciphertext stored server-side |
 | Key exfiltration via XSS | ECDH private key non-extractable; pre-shared key non-extractable |
+| Passkey secret exposure | WebAuthn PRF output stays in the GitHub Pages popup/sidebar `postMessage` path and only decrypts the generated ECDH unlock password stored in IndexedDB |
 | Recipient identity leak | Only SHA-256(lowercase(email)) in cell payload — no plaintext emails |
 | Consent spoofing | Modal heartbeat + UserCache polling; sidebar never proceeds without server-confirmed intent |
 | Version History exposure | User warned in consent modal; cannot be prevented by the add-on |
@@ -329,8 +342,7 @@ Minimal scopes: current spreadsheet + container UI only. See [appsscript.json](a
 ## Deferred / Known Gaps
 
 - **Onboarding slides** — still describe the pre-shared key flow; need updating for the ECDH first-run wizard
-- **WebAuthn PRF unlock via popup** — `PasswordCredential` store/autofill and c2 forward-compatible PRF probe are implemented; the c1 same-project web app popup path is still TODO (see `feat/passkey-unlock c1` in TASKS.md)
-- **PRF key rotation** — deferred pending WebAuthn iframe support
+- **PRF key rotation** — not yet exposed; would require enrolling a replacement credential and rewrapping the stored unlock password
 - **Add/remove recipient on existing cells** — not yet exposed in UI; re-encryption on remove and cheap add-only re-wrap on add are both described in plan
 - **Group membership resolution in picker** — groups appear in summary label but picker doesn't expand groups to individual recipients
 - **X25519 / Curve25519 support** — type `0x03` reserved; pending wider WebCrypto adoption

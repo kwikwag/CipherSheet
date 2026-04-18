@@ -1,9 +1,3 @@
-<!-- Template variables injected before sidebar-script runs -->
-<script>
-const FEEDBACK_URL = '<?= feedbackUrl ?>';
-const DONATE_URL   = '<?= donateUrl ?>';
-</script>
-
 <!-- ── Cell meta ── -->
 <div class="cell-meta">
   <span class="cell-ref-chip" id="cellRef" title="Click to navigate to this cell"
@@ -89,6 +83,8 @@ const DONATE_URL   = '<?= donateUrl ?>';
              placeholder="Unlock password" autocomplete="current-password">
       <button type="submit" class="btn-pw-unlock">Unlock</button>
     </form>
+    <button class="btn-passkey" id="btnPasskeyUnlock" onclick="unlockWithPasskey()"
+            style="display:none; width:100%; margin-top:6px">🔑 Use passkey</button>
     <div id="forgetKeyWrap" style="margin-top:6px; font-size:11px; text-align:center">
       <a href="#" onclick="event.preventDefault(); showForgetKeyConfirm()">Forget this key</a>
     </div>
@@ -114,6 +110,8 @@ const DONATE_URL   = '<?= donateUrl ?>';
         <tr><td>SHA-256</td>  <td id="kFingerprint">—</td></tr>
       </table>
     </div>
+    <button class="btn-passkey" id="btnEnablePasskey" onclick="enablePasskeyUnlock()"
+            style="display:none; width:100%; margin-bottom:8px">🔑 Enable passkey unlock</button>
     <button class="btn-clear" onclick="lockEcdh()">Lock</button>
   </div>
 
@@ -154,16 +152,16 @@ const DONATE_URL   = '<?= donateUrl ?>';
 <div class="footer">
     <div class="footer-note">Open-sourced by an independent developer</div>
     &bull;
-    <div class="footer-version">v<?= appVersion ?></div>
+    <div class="footer-version" id="footerVersion"></div>
     &bull;
     <div class="footer-links">
       <a class="footer-link" onclick="google.script.run.showOnboarding(); return false;" href="#">How to use</a>
       &bull;
-      <a class="footer-link" target="_blank" href="<?= h_(feedbackUrl) ?>">Feedback</a>
+      <a class="footer-link" target="_blank" id="footerFeedback">Feedback</a>
       &bull;
-      <a class="footer-link" target="_blank" href="<?= h_(donateUrl) ?>">Donate</a>
+      <a class="footer-link" target="_blank" id="footerDonate">Donate</a>
       &bull;
-      <a class="footer-link" target="_blank" href="<?= h_(privacyUrl) ?>">Privacy</a>
+      <a class="footer-link" target="_blank" id="footerPrivacy">Privacy</a>
     </div>
 </div>
 

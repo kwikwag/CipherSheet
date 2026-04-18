@@ -67,7 +67,9 @@ interface CommonTemplateVars {
 
 interface SidebarTemplate
   extends GoogleAppsScript.HTML.HtmlTemplate,
-    CommonTemplateVars {}
+    CommonTemplateVars {
+  passkeyPopupUrl: string;
+}
 
 interface OnboardingTemplate
   extends GoogleAppsScript.HTML.HtmlTemplate,
@@ -171,9 +173,17 @@ function showOnboarding(): void {
   SpreadsheetApp.getUi().showModalDialog(html, '🔐 Welcome to CipherSheet');
 }
 
+const PASSKEY_POPUP_URL =
+  'https://www.yuvalsadan.com/CipherSheet/prf-popup.html';
+
+function getPasskeyPopupUrl(): string {
+  return PASSKEY_POPUP_URL;
+}
+
 function showSidebar(): void {
   const tpl = HtmlService.createTemplateFromFile('sidebar') as SidebarTemplate;
   applyCommonTemplateVars(tpl);
+  tpl.passkeyPopupUrl = getPasskeyPopupUrl();
 
   const html = tpl
     .evaluate()

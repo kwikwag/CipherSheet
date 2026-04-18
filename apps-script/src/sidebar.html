@@ -8,6 +8,14 @@
 <?!= include('sidebar-styles'); ?>
 </head>
 <body>
+<!-- Template variables — must live here, not in included files, as include() is not template-aware -->
+<script>
+const FEEDBACK_URL      = '<?= feedbackUrl ?>';
+const DONATE_URL        = '<?= donateUrl ?>';
+const PRIVACY_URL       = '<?= privacyUrl ?>';
+const PASSKEY_POPUP_URL = '<?= passkeyPopupUrl ?>';
+const APP_VERSION_STR   = '<?= appVersion ?>';
+</script>
 <?!= include('sidebar-body'); ?>
 <?!= include('sidebar-script'); ?>
 </body>
