@@ -803,6 +803,7 @@ async function decrypt(ciphertextStr) {
 async function setupNewKeypair() {
   const btn = document.getElementById('btnGenKey');
   btn.disabled = true; btn.textContent = 'Generating…';
+  setLoading(true);
   try {
     // Generate keypair (extractable=true so we can export JWK for backup)
     const keyPair = await crypto.subtle.generateKey(
@@ -865,12 +866,14 @@ async function setupNewKeypair() {
     toast('Setup failed: ' + e.message, 'err');
   } finally {
     btn.disabled = false; btn.textContent = 'Generate key';
+    setLoading(false);
   }
 }
 
 async function generatePresharedKey() {
   const btn = document.getElementById('btnGenKey');
   btn.disabled = true; btn.textContent = 'Generating…';
+  setLoading(true);
   try {
     const keyBytes = crypto.getRandomValues(new Uint8Array(32));
     const backup = JSON.stringify({ type: 'CipherSheet-AES256', version: 1, key: buf2b64(keyBytes.buffer) }, null, 2);
@@ -884,6 +887,7 @@ async function generatePresharedKey() {
     toast('Setup failed: ' + e.message, 'err');
   } finally {
     btn.disabled = false; btn.textContent = 'Generate key';
+    setLoading(false);
   }
 }
 
@@ -948,11 +952,17 @@ async function forgetKey() {
 async function unlockWithPassword() {
   const pw = document.getElementById('unlockPassword').value.trim();
   if (!pw) { toast('Enter the unlock password', 'warn'); return; }
+  const btn = document.querySelector('.btn-pw-unlock');
+  btn.disabled = true;
+  setLoading(true);
   try {
     await _doUnlockWithPassword(pw);
     document.getElementById('unlockPassword').value = '';
   } catch(e) {
     toast('Wrong password or corrupted key: ' + e.message, 'err');
+  } finally {
+    btn.disabled = false;
+    setLoading(false);
   }
 }
 
