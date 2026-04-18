@@ -347,21 +347,21 @@
     <div class="cell-overlay enc" id="encOverlay">
       <div class="ov-icon">🔒</div>
       <div class="ov-text">Unlock key to decrypt</div>
-      <div class="ov-subtext">or drop a .ciphersheet-key / .vaultkey file</div>
+      <div class="ov-subtext">or drop a .ciphersheet-key file</div>
     </div>
 
     <!-- Plaintext overlay -->
     <div class="cell-overlay plain" id="plainOverlay">
       <div class="ov-icon">🔓</div>
       <div class="ov-text">Unlock key to encrypt</div>
-      <div class="ov-subtext">or drop a .ciphersheet-key / .vaultkey file</div>
+      <div class="ov-subtext">or drop a .ciphersheet-key file</div>
     </div>
   </div>
 
   <!-- ── Recipient picker (shown when ECDH active + plaintext cell) ── -->
   <div class="recipient-section" id="recipientSection" style="display:none">
     <div class="recipient-header" id="recipientHeader" onclick="toggleRecipientList()">
-      <span class="recipient-label">Recipients:</span>
+      <span class="recipient-label">Visible to:</span>
       <span class="recipient-summary" id="recipientSummary">Everyone</span>
       <span class="recipient-chevron" id="recipientChevron">▾</span>
     </div>
@@ -387,9 +387,6 @@
     <div class="setup-actions">
       <button class="btn-generate" id="btnGenKey" onclick="generateKey()">
         Generate key
-      </button>
-      <button class="btn-generate btn-secondary" onclick="document.getElementById('keyFileInput').click()">
-        Import existing key
       </button>
     </div>
   </div>
@@ -453,7 +450,11 @@
 
   <!-- Password setup notification (shown once after keypair generation) -->
   <div id="passwordSetupBox" class="password-setup-box" style="display:none; margin-top:10px">
-    <strong>⚠ Save your unlock password</strong>
+    <div style="display:flex; justify-content:space-between; align-items:flex-start">
+      <strong>⚠ Save your unlock password</strong>
+      <button onclick="document.getElementById('passwordSetupBox').style.display='none'"
+              style="background:none;border:none;cursor:pointer;font-size:14px;color:#80868b;padding:0;line-height:1">✕</button>
+    </div>
     Store this in your password manager. You will need it to unlock your keypair in future sessions.
     <div class="password-display" id="setupPasswordDisplay"></div>
     <button class="btn-copy" onclick="copySetupPassword()">Copy</button>
@@ -1432,7 +1433,7 @@ async function encryptAndSave() {
     let ct;
     if (ecdhPrivKey) {
       const recipients = getSelectedRecipients();
-      if (recipients.length === 0) { toast('No recipients selected', 'warn'); setLoading(false); return; }
+      if (recipients.length === 0) { toast('Select at least one person', 'warn'); setLoading(false); return; }
       ct = await encryptECDH(plaintext, recipients);
     } else {
       ct = await encryptPreshared(plaintext);
