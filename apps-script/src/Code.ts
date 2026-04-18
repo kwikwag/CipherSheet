@@ -43,8 +43,9 @@ interface PublicKeyEntry {
 }
 
 interface GroupEntry {
-  name: string;
+  id: string;
   emailHashes: string[];
+  label: string;
 }
 
 interface SetEncryptedCellValueResponse extends OkResponse {
@@ -553,23 +554,34 @@ function listPublicKeys(): PublicKeyEntry[] {
 
 // ── Group management ──────────────────────────────────────────────
 
-function storeGroupDefinition(name: string, emailHashes: string[]): OkResponse {
-  if (!name || name.startsWith('@')) throw new Error('Invalid group name');
-  PropertiesService.getDocumentProperties().setProperty(
-    GRP_PREFIX + name, JSON.stringify(emailHashes)
-  );
+function upsertGroup(groupId: string, emailHashes: string[], label: string): OkResponse {
+  const docProps = PropertiesService.getDocumentProperties();
+  const key = GRP_PREFIX + groupId;
+  let existing: { emailHashes: string[]; label: string } | null = null;
+  const raw = docProps.getProperty(key);
+  if (raw) {
+    try { existing = JSON.parse(raw); } catch (_) {}
+  }
+  const entry = {
+    emailHashes: existing?.emailHashes ?? emailHashes,
+    label: label || existing?.label || '',
+  };
+  docProps.setProperty(key, JSON.stringify(entry));
   return { ok: true };
 }
 
 function listGroups(): GroupEntry[] {
   const props = PropertiesService.getDocumentProperties().getProperties();
-  return Object.keys(props)
-    .filter(k => k.startsWith(GRP_PREFIX))
-    .map(k => {
-      let emailHashes: string[] = [];
-      try { emailHashes = JSON.parse(props[k]); } catch (_) {}
-      return { name: k.slice(GRP_PREFIX.length), emailHashes };
-    });
+  const result: GroupEntry[] = [];
+  for (const k of Object.keys(props)) {
+    if (!k.startsWith(GRP_PREFIX)) continue;
+    try {
+      const v = JSON.parse(props[k]);
+      if (!Array.isArray(v?.emailHashes)) continue;
+      result.push({ id: k.slice(GRP_PREFIX.length), emailHashes: v.emailHashes, label: v.label || '' });
+    } catch (_) {}
+  }
+  return result;
 }
 
 function showSettings(): void {

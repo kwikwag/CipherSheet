@@ -524,6 +524,7 @@ let setupPassword  = null;  // set during keypair generation, cleared after disp
 let defaultKeyType = 'ecdh'; // loaded from document settings at init
 let emailReady     = Promise.resolve(); // resolves when ownEmail is set
 let keyInStorage   = false;            // true when IDB has a stored keypair
+let groupCache     = [];               // [{ id, emailHashes, label }]
 
 // ── Encoding helpers ───────────────────────────────────────────
 const buf2b64    = b => btoa(String.fromCharCode(...new Uint8Array(b)));
@@ -1140,6 +1141,34 @@ function copySetupPassword() {
   );
 }
 
+// ── HTML escaping ──────────────────────────────────────────────
+function escHtml(s) {
+  return String(s).slice(0, 200).replace(/[&<>"']/g, c =>
+    ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])
+  );
+}
+
+// ── SHA-256 hex helper (for group id computation) ──────────────
+async function sha256hex(str) {
+  const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return buf2hex(h);
+}
+
+async function computeGroupId(emailHashes) {
+  const sorted = [...emailHashes].sort().join('|');
+  const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(sorted));
+  return buf2hex(h).slice(0, 16);
+}
+
+// ── Group cache ────────────────────────────────────────────────
+async function refreshGroupCache() {
+  try {
+    groupCache = await new Promise((res, rej) =>
+      google.script.run.withSuccessHandler(res).withFailureHandler(rej).listGroups()
+    );
+  } catch(_) {}
+}
+
 // ── Public key cache ───────────────────────────────────────────
 async function refreshPubKeyCache() {
   try {
@@ -1170,9 +1199,9 @@ function renderRecipientList() {
     const item = document.createElement('label');
     item.className = 'recipient-item';
     item.innerHTML =
-      `<input type="checkbox" checked data-email="${email}">` +
-      `<span class="recipient-email">${email}</span>` +
-      `<span class="recipient-fp">${fp.slice(0, 9)}…</span>`;
+      `<input type="checkbox" checked data-email="${escHtml(email)}">` +
+      `<span class="recipient-email">${escHtml(email)}</span>` +
+      `<span class="recipient-fp">${escHtml(fp.slice(0, 9))}…</span>`;
     item.querySelector('input').addEventListener('change', updateRecipientSummary);
     list.appendChild(item);
   }
@@ -1180,13 +1209,29 @@ function renderRecipientList() {
 }
 
 function updateRecipientSummary() {
-  const all      = document.querySelectorAll('#recipientList input[type=checkbox]');
-  const checked  = document.querySelectorAll('#recipientList input[type=checkbox]:checked');
-  const total    = all.length;
-  const n        = checked.length;
+  const all     = document.querySelectorAll('#recipientList input[type=checkbox]');
+  const checked = [...document.querySelectorAll('#recipientList input[type=checkbox]:checked')];
+  const total   = all.length;
+  const n       = checked.length;
+  if (total === 0) { document.getElementById('recipientSummary').textContent = 'No registered users'; return; }
+  if (n === total) { document.getElementById('recipientSummary').textContent = `Everyone (${total})`; return; }
+  if (n === 0)     { document.getElementById('recipientSummary').textContent = 'Nobody'; return; }
+  if (n === 1)     { document.getElementById('recipientSummary').textContent = checked[0].dataset.email; return; }
+  // Look up in group cache by matching email hashes
+  const checkedEmails = checked.map(cb => cb.dataset.email);
+  const checkedHashes = checkedEmails.map(e => ''); // placeholder; async lookup below
+  _updateRecipientSummaryAsync(checkedEmails);
+}
+
+async function _updateRecipientSummaryAsync(emails) {
+  const hashes = await Promise.all(emails.map(e => sha256hex(e.toLowerCase())));
+  const sorted = [...hashes].sort();
+  const match = groupCache.find(g => {
+    const gh = [...g.emailHashes].sort();
+    return gh.length === sorted.length && gh.every((h, i) => h === sorted[i]);
+  });
   document.getElementById('recipientSummary').textContent =
-    total === 0 ? 'No registered users' :
-    n === total ? `Everyone (${total})` : `${n} of ${total}`;
+    match?.label || emails.length + ' people';
 }
 
 function toggleRecipientList() {
@@ -1441,6 +1486,14 @@ async function encryptAndSave() {
       const recipients = getSelectedRecipients();
       if (recipients.length === 0) { toast('Select at least one person', 'warn'); setLoading(false); return; }
       ct = await encryptECDH(plaintext, recipients);
+      if (recipients.length > 1) {
+        const hashes = await Promise.all(
+          recipients.map(r => sha256hex(r.email.toLowerCase()))
+        );
+        const groupId = await computeGroupId(hashes);
+        google.script.run.upsertGroup(groupId, hashes, '');
+        refreshGroupCache();
+      }
     } else {
       ct = await encryptPreshared(plaintext);
     }
@@ -1477,6 +1530,7 @@ window.addEventListener('load', async () => {
   await showKeyState();
   refreshCell();
   refreshPubKeyCache();
+  refreshGroupCache();
 
   // If a locked keypair is stored, try silent PasswordCredential autofill
   if (window.PasswordCredential) {
