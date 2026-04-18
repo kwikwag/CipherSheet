@@ -521,6 +521,7 @@ let pubKeyCache    = [];    // [{ email: string, pubKey: CryptoKey, fp: string }
 let ownEmail       = '';
 let setupPassword  = null;  // set during keypair generation, cleared after display
 let defaultKeyType = 'ecdh'; // loaded from document settings at init
+let emailReady     = Promise.resolve(); // resolves when ownEmail is set
 
 // ── Encoding helpers ───────────────────────────────────────────
 const buf2b64    = b => btoa(String.fromCharCode(...new Uint8Array(b)));
@@ -1323,6 +1324,7 @@ function refreshCell() {
     .withSuccessHandler(async data => {
       currentCell = data;
       renderField(data);
+      await emailReady;
       await autoDecrypt();
       setLoading(false);
     })
@@ -1444,11 +1446,12 @@ async function encryptAndSave() {
 
 // ── Init ───────────────────────────────────────────────────────
 window.addEventListener('load', async () => {
-  // Fetch email, settings, and public key cache concurrently with cell read
-  google.script.run
-    .withSuccessHandler(email => { ownEmail = email || ''; })
-    .withFailureHandler(() => {})
-    .getCurrentUserEmail();
+  emailReady = new Promise(resolve =>
+    google.script.run
+      .withSuccessHandler(email => { ownEmail = email || ''; resolve(); })
+      .withFailureHandler(() => resolve())
+      .getCurrentUserEmail()
+  );
   google.script.run
     .withSuccessHandler(s => { if (s && s.defaultKeyType) defaultKeyType = s.defaultKeyType; })
     .withFailureHandler(() => {})
