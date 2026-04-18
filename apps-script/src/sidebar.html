@@ -66,8 +66,9 @@
     align-items: center; justify-content: center;
     flex-direction: column; gap: 3px;
     border-radius: 4px; transition: background 0.15s; cursor: pointer;
+    pointer-events: none;
   }
-  .cell-overlay.visible { display: flex; }
+  .cell-overlay.visible { display: flex; pointer-events: auto; }
   .cell-overlay:hover   { background: rgba(26,115,232,0.04); }
   .key-file-input {
     position: absolute; inset: 0; width: 100%; height: 100%;
@@ -1378,6 +1379,8 @@ async function autoDecrypt() {
         field.value = ''; toast('Cannot decrypt this cell with the loaded key', 'err');
         field.classList.add('blurred'); field.disabled = true;
       }
+      document.getElementById('encOverlay').classList.remove('visible');
+      document.getElementById('plainOverlay').classList.remove('visible');
     } else {
       field.value = raw; field.classList.add('blurred'); field.disabled = true;
       document.getElementById('encOverlay').classList.add('visible');
@@ -1385,9 +1388,9 @@ async function autoDecrypt() {
   } else {
     field.value = '';
     field.classList.remove('blurred'); field.disabled = false;
+    document.getElementById('encOverlay').classList.remove('visible');
+    document.getElementById('plainOverlay').classList.remove('visible');
   }
-  document.getElementById('encOverlay').classList.remove('visible');
-  document.getElementById('plainOverlay').classList.remove('visible');
   updateButtons();
 }
 
