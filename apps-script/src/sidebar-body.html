@@ -82,11 +82,13 @@ const DONATE_URL   = '<?= donateUrl ?>';
       </div>
       <div class="locked-fp" id="ksLockedFp"></div>
     </div>
-    <div class="password-row">
+    <form class="password-row" onsubmit="event.preventDefault(); unlockWithPassword()">
+      <input type="text" autocomplete="username" value="ciphersheet-unlock"
+             style="display:none" aria-hidden="true" tabindex="-1">
       <input type="password" class="password-input" id="unlockPassword"
-             placeholder="Unlock password" onkeydown="if(event.key==='Enter')unlockWithPassword()">
-      <button class="btn-pw-unlock" onclick="unlockWithPassword()">Unlock</button>
-    </div>
+             placeholder="Unlock password" autocomplete="current-password">
+      <button type="submit" class="btn-pw-unlock">Unlock</button>
+    </form>
     <div id="forgetKeyWrap" style="margin-top:6px; font-size:11px; text-align:center">
       <a href="#" onclick="event.preventDefault(); showForgetKeyConfirm()">Forget this key</a>
     </div>
