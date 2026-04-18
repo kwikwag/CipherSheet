@@ -483,6 +483,12 @@
     </div>
 </div>
 
+<!-- Hidden form for cross-browser password manager save (non-PasswordCredential browsers) -->
+<form id="pwSaveForm" method="post" action="" style="display:none">
+  <input type="text"     name="username" autocomplete="username"         value="ciphersheet-unlock">
+  <input type="password" name="password" autocomplete="current-password" id="pwSaveInput">
+</form>
+
 <div id="status-bar">
   <span id="toast-msg"></span>
   <button id="toast-dismiss" onclick="dismissToast()" title="Dismiss">✕</button>
@@ -822,7 +828,21 @@ async function setupNewKeypair() {
     // publicKeySpki and publicKeyFp are stored unencrypted so the locked-state UI
     // can display the fingerprint for identity confirmation without needing the password.
     const { wrapped, iv, salt } = await wrapData(jwkBytes, password);
-    await idbPut(IDB_ECDH_KEY, { wrapped, iv, salt, publicKeySpki: spki, publicKeyFp: fp });
+    let credentialId = null;
+    try {
+      // c2: forward-compatible PRF probe — throws SecurityError today in the iframe;
+      // if Google ever adds the iframe permission header, this will silently start working.
+      const challenge = crypto.getRandomValues(new Uint8Array(32));
+      const cred = await navigator.credentials.create({ publicKey: {
+        challenge, rp: { name: 'CipherSheet' },
+        user: { id: new TextEncoder().encode(fp), name: ownEmail || 'user', displayName: 'CipherSheet' },
+        pubKeyCredParams: [{ type: 'public-key', alg: -7 }],
+        authenticatorSelection: { userVerification: 'required' },
+        extensions: { prf: {} }
+      }});
+      if (cred) credentialId = Array.from(new Uint8Array(cred.rawId));
+    } catch (_) {}
+    await idbPut(IDB_ECDH_KEY, { wrapped, iv, salt, publicKeySpki: spki, publicKeyFp: fp, credentialId });
 
     // Try to store password via PasswordCredential (Chrome password manager)
     if (window.PasswordCredential) {
@@ -909,13 +929,33 @@ async function _importEcdhFromJwk(jwk) {
   const password = buf2b64url(crypto.getRandomValues(new Uint8Array(32)));
   const jwkBytes = new TextEncoder().encode(JSON.stringify(jwk));
   const { wrapped, iv, salt } = await wrapData(jwkBytes, password);
-  await idbPut(IDB_ECDH_KEY, { wrapped, iv, salt, publicKeySpki: spki, publicKeyFp: fp });
+  let credentialId = null;
+  try {
+    const challenge = crypto.getRandomValues(new Uint8Array(32));
+    const cred = await navigator.credentials.create({ publicKey: {
+      challenge, rp: { name: 'CipherSheet' },
+      user: { id: new TextEncoder().encode(fp), name: ownEmail || 'user', displayName: 'CipherSheet' },
+      pubKeyCredParams: [{ type: 'public-key', alg: -7 }],
+      authenticatorSelection: { userVerification: 'required' },
+      extensions: { prf: {} }
+    }});
+    if (cred) credentialId = Array.from(new Uint8Array(cred.rawId));
+  } catch (_) {}
+  await idbPut(IDB_ECDH_KEY, { wrapped, iv, salt, publicKeySpki: spki, publicKeyFp: fp, credentialId });
 
   ecdhPrivKey   = await crypto.subtle.importKey(
     'jwk', jwk, { name: 'ECDH', namedCurve: 'P-256' }, false, ['deriveBits']
   );
   ecdhPubKey    = pubKey;
   unlockPassword = password;
+
+  if (window.PasswordCredential) {
+    try {
+      const cred = new PasswordCredential({ id: 'ciphersheet-key', password, name: 'CipherSheet Keypair' });
+      await navigator.credentials.store(cred);
+    } catch (_) {}
+  }
+  _triggerPasswordSave(password);
 
   try {
     await new Promise((res, rej) =>
@@ -1513,6 +1553,20 @@ async function encryptAndSave() {
     setLoading(false);
   }
 }
+
+// ── Password manager save helpers ─────────────────────────────
+function _triggerPasswordSave(password) {
+  const input = document.getElementById('pwSaveInput');
+  if (input) {
+    input.value = password;
+    document.getElementById('pwSaveForm').requestSubmit();
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const form = document.getElementById('pwSaveForm');
+  if (form) form.addEventListener('submit', e => e.preventDefault());
+});
 
 // ── Init ───────────────────────────────────────────────────────
 window.addEventListener('load', async () => {
