@@ -55,18 +55,44 @@ Prefer editing the existing entry over creating a new paragraph. Keep the file c
 
 ```
 apps-script/
-  src/
-    Code.ts              # Apps Script server-side entry point
+  server/                # Apps Script server-side source
+    Code.ts              # Server entry point (compiled with tsc, module: none)
     appsscript.json      # Apps Script manifest (oauthScopes, runtimeVersion)
-    sidebar.html         # Thin shell: includes styles, body, script via <?!= include() ?>
-    sidebar-styles.html  # All sidebar CSS (included into sidebar.html)
-    sidebar-body.html    # Sidebar HTML body
-    sidebar-script.js    # All sidebar client-side JS; wrapped as <script> by build
+    sidebar.html         # Shell: injects CS_CONFIG, mounts <div id="root">, includes sidebar-script
     decrypt-confirm.html # Consent modal for revealing plaintext
     onboarding.html      # Welcome carousel (4 slides, screenshot-driven)
     settings.html        # Settings toggles + public key list + group management
     downloaded/          # Vendored external CSS (Google Add-on stylesheet)
     imgs-encoded/        # Base64-encoded screenshots included by build
+  client/                # Sidebar React/Vite client source (TypeScript strict)
+    index.html           # Dev server entry (sets mock CS_CONFIG)
+    vite.config.ts       # Vite: IIFE output → dist-client/sidebar.js
+    tsconfig.json        # Client TypeScript config (strict: true, ES2022)
+    src/
+      main.tsx           # Entry: mounts React app into #root
+      App.tsx            # Root component; AppProvider + ThemeProvider
+      theme.ts           # MUI Material 3 theme
+      types/index.ts     # Shared TypeScript types (CellData, PubKeyCacheEntry, etc.)
+      utils/
+        encoding.ts      # Base64/hex helpers
+        crypto.ts        # All WebCrypto operations (ECDH, AES-GCM, PBKDF2, HKDF, PRF)
+        idb.ts           # IndexedDB helpers (open/get/put/delete)
+        gas.ts           # google.script.run promisified wrapper
+        download.ts      # JSON file download helper
+      context/
+        AppContext.tsx    # Global React state (keys, cell, caches, toast, loading)
+      hooks/
+        useKeyOps.ts     # Key generation, import, unlock, lock, PRF/passkey
+        usePresharedKey.ts # Pre-shared key activate/clear
+        useCellOps.ts    # Cell refresh, encrypt, decrypt, unprotect polling
+        useCacheOps.ts   # Public key cache + group cache refresh
+        useInitApp.ts    # App initialization (email, settings, key state, cell)
+      components/
+        cell/            # CellMeta (header chip), CellEditor (textarea + overlays)
+        key/             # KeySection, KeySetup, KeyLocked, KeyUnlocked, PresharedKeySection, PasswordSetupBox
+        recipients/      # RecipientPicker (collapsible checkbox list)
+        footer/          # Footer (links + version)
+        common/          # LoadingOverlay, AppSnackbar
   dist/                  # Compiled output; pushed to Apps Script via clasp
 docs/
   index.html, privacy.html, terms.html, donate.html, thank-you.html
@@ -93,10 +119,12 @@ AGENTS.md                # This file
 | Layer | Technology |
 |---|---|
 | Add-on runtime | Google Apps Script (V8) |
-| Language | TypeScript 5.8 (`strict: false` for Apps Script type compatibility) |
+| Server language | TypeScript 5.8 (`strict: false` for Apps Script type compatibility) |
+| Client language | TypeScript 5.8 (`strict: true`), React 19, MUI v7 (Material 3 theme) |
+| Client build | Vite 6 — IIFE bundle → `sidebar-script.html` |
 | Client crypto | Browser WebCrypto API — no external crypto libraries |
 | Key persistence | `indexedDB` (sidebar iframe origin) |
-| Build | Node.js ≥22, `scripts/build-apps-script.mjs` |
+| Build | Node.js ≥22, `scripts/build-apps-script.mjs` (tsc + vite) |
 | Deploy | `@google/clasp` 2.5.0 |
 | CI/CD | GitHub Actions |
 | Docs hosting | GitHub Pages (`/docs` dir, `main` branch) |
@@ -296,15 +324,23 @@ npx clasp push --force         # push dist/ to Apps Script project
 | `clasp:deploy` | Build + push + deploy |
 
 ### Build script ([scripts/build-apps-script.mjs](scripts/build-apps-script.mjs))
-1. Deletes `apps-script/dist/`
-2. Runs `tsc` with `tsconfig.apps-script.json` (compiles `Code.ts` → `dist/Code.js`)
-3. Copies non-TS files (HTML, JSON, images) from `src/` → `dist/`
-4. Wraps `dist/sidebar-script.js` as `<script>…</script>` → `dist/sidebar-script.html`, then deletes the `.js`
+1. Deletes `apps-script/dist/` and `apps-script/dist-client/`
+2. Runs `tsc` with `tsconfig.apps-script.json` (compiles `server/Code.ts` → `dist/Code.js`)
+3. Copies non-TS files from `server/` → `dist/` (HTML, JSON, assets)
+4. Runs Vite with `client/vite.config.ts` → `dist-client/sidebar.js` (IIFE bundle)
+5. Wraps `dist-client/sidebar.js` as `<script>…</script>` → `dist/sidebar-script.html`
+6. Deletes intermediate `dist-client/`
+
+### Dev server
+```bash
+npm run dev:sidebar   # Vite dev server at localhost:5173 (mock CS_CONFIG in index.html)
+```
+GAS calls (`google.script.run`) reject with an error in dev mode.
 
 ### TypeScript notes
-- `strict: false` — required for Apps Script global types
-- All Apps Script globals (`SpreadsheetApp`, `Session`, `PropertiesService`, etc.) resolve via `@types/google-apps-script`; IDE LSP may show spurious errors but `tsc` and the build are authoritative
-- `module: none`, `target: ES2020` — Apps Script expects a single concatenated script
+- **Server** (`tsconfig.apps-script.json`): `strict: false`, `module: none`, `target: ES2020` — required for Apps Script globals
+- **Client** (`apps-script/client/tsconfig.json`): `strict: true`, `target: ES2022`, `module: ESNext` — compiled by Vite (not emitted by tsc)
+- `Uint8Array` generic issue (TS 5.8+): WebCrypto APIs require `Uint8Array<ArrayBuffer>`. Use the `u8()` cast helper in `utils/crypto.ts` when passing slice results to crypto APIs.
 
 ### CI/CD
 - **`deploy-pages.yml`** — triggers on `main` branch changes to `docs/**`; deploys GitHub Pages

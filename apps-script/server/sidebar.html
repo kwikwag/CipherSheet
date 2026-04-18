@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CipherSheet</title>
+<?!= include('downloaded/stylesheet'); ?>
+</head>
+<body>
+<script>
+window.CS_CONFIG = {
+  feedbackUrl:     '<?= feedbackUrl ?>',
+  donateUrl:       '<?= donateUrl ?>',
+  privacyUrl:      '<?= privacyUrl ?>',
+  passkeyPopupUrl: '<?= passkeyPopupUrl ?>',
+  appVersion:      '<?= appVersion ?>',
+};
+</script>
+<div id="root"></div>
+<?!= include('sidebar-script'); ?>
+</body>
+</html>

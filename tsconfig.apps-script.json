@@ -8,5 +8,5 @@
     "types": ["google-apps-script"],
     "outDir": "apps-script/dist"
   },
-  "include": ["apps-script/src/**/*.ts"]
+  "include": ["apps-script/server/**/*.ts"]
 }

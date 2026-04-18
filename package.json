@@ -6,15 +6,28 @@
   "description": "CipherSheet build and deploy tooling",
   "scripts": {
     "build:apps-script": "node scripts/build-apps-script.mjs",
+    "dev:sidebar": "vite --config apps-script/client/vite.config.ts apps-script/client",
     "clasp:push": "npm run build:apps-script && clasp push --force",
     "clasp:version": "npm run build:apps-script && clasp version",
     "clasp:deploy": "npm run build:apps-script && clasp push --force && clasp deploy",
     "pages:preview": "node scripts/preview-pages-paths.mjs"
   },
+  "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
+    "@mui/icons-material": "^7.1.0",
+    "@mui/material": "^7.1.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
   "devDependencies": {
     "@google/clasp": "^2.5.0",
     "@types/google-apps-script": "^1.0.98",
-    "typescript": "^5.8.2"
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "^5.8.2",
+    "vite": "^6.3.2"
   },
   "engines": {
     "node": ">=22"
