@@ -26,6 +26,31 @@ Prefer editing the existing entry over creating a new paragraph. Keep the file c
 
 ---
 
+## TASKS.md
+
+[TASKS.md](TASKS.md) is the backlog of pending work items. Each task has a short token name in the form `category/slug` (e.g., `fix/unlock-loading`, `feat/passkey-unlock`, `refactor/modular-sidebar`).
+
+**When to update TASKS.md:**
+
+- **Before starting a task** — re-read it to understand the full scope; correct any inaccuracies you notice.
+- **After completing a task** — remove it entirely from TASKS.md (do not leave a "done" marker; git history is the record).
+- **When discovering sub-tasks or blockers** — either refine the existing entry or add a new one.
+- **When the user describes new work** — add a new entry with a token name and enough detail that a future agent can implement it without asking follow-up questions: root cause, affected files and approximate line numbers, exact change, and any gotchas.
+
+**What belongs in a task entry:**
+- The token name and a one-line summary as the heading.
+- The affected files and relevant function/line references.
+- The root cause or motivation (not just "do X" but "why X").
+- The concrete change — code snippets where the approach is non-obvious.
+- Explicit gotchas: things to preserve, things to avoid, backward-compat constraints.
+
+**What does NOT belong:**
+- Work that is already complete — remove it.
+- Vague items like "improve UX" — make them concrete or leave them out.
+- Duplicates of information already in AGENTS.md (architecture, format specs, security model).
+
+---
+
 ## Repository Layout
 
 ```
@@ -272,19 +297,7 @@ npx clasp push --force         # push dist/ to Apps Script project
 
 ## Apps Script Manifest
 
-```json
-{
-  "timeZone": "Asia/Jerusalem",
-  "exceptionLogging": "STACKDRIVER",
-  "oauthScopes": [
-    "https://www.googleapis.com/auth/spreadsheets.currentonly",
-    "https://www.googleapis.com/auth/script.container.ui"
-  ],
-  "runtimeVersion": "V8"
-}
-```
-
-Minimal scopes: current spreadsheet + container UI only.
+Minimal scopes: current spreadsheet + container UI only. See [appsscript.json](apps-script/src/appsscript.json)
 
 ---
 
@@ -306,7 +319,7 @@ Minimal scopes: current spreadsheet + container UI only.
 ## Deferred / Known Gaps
 
 - **Onboarding slides** — still describe the pre-shared key flow; need updating for the ECDH first-run wizard
-- **WebAuthn PRF unlock** — planned but not implemented; Apps Script iframe headers (`allow="publickey-credentials-*"`) would need to be set by Google. Current unlock is PBKDF2 password + optional `PasswordCredential` autofill.
+- **WebAuthn PRF unlock** — partial: `PasswordCredential` store/autofill implemented; WebAuthn PRF and cross-browser form-submit fallback still TODO (see `feat/passkey-unlock` in TASKS.md)
 - **PRF key rotation** — deferred pending WebAuthn iframe support
 - **Add/remove recipient on existing cells** — not yet exposed in UI; re-encryption on remove and cheap add-only re-wrap on add are both described in plan
 - **Group membership resolution in picker** — groups defined but picker doesn't yet expand groups to individual recipients
