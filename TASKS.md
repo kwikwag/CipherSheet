@@ -86,8 +86,32 @@ Browsers that don't implement `PasswordCredential` but do watch for form-submit 
 ```
 After setting `unlockPassword`, set `#pwSaveInput.value = password` and call `document.getElementById('pwSaveForm').requestSubmit()`, intercepting `submit` with `e.preventDefault()`.
 
-**c) WebAuthn PRF attempt (likely no-op in iframe)**
-During keypair setup, attempt a WebAuthn `create` with `extensions: { prf: {} }`. It will throw a `SecurityError` in the Apps Script iframe. Catch it silently. If it succeeds (future Google change), store the `credentialId` alongside the IDB entry and use PRF output as the unlock password. Show a non-blocking tooltip if unavailable.
+**c) WebAuthn PRF unlock — two viable paths**
+
+The Apps Script sidebar iframe does not carry `allow="publickey-credentials-create publickey-credentials-get"`, so WebAuthn throws `SecurityError` immediately. Two options to be implemented together - we need to figure the best course of action for the specific browser context and try them one by one starting with the most seamless:
+
+**c1 — Same-project web app popup (implementable today)**
+
+A single Apps Script project can be deployed as both an add-on *and* a web app. Adding a `doGet()` handler to `Code.ts` and a new `prf-popup.html` template requires no new project or repo — just a second deployment entry in the Apps Script console and the same `clasp push`.
+
+The popup is a top-level window (not an iframe), so the browser's Permissions Policy allows WebAuthn there.
+
+Flow:
+1. During keypair setup, open the web app URL as a small popup: `const popup = window.open(WEB_APP_URL + '?action=prf-enroll', 'prf', 'width=500,height=300')`.
+2. `prf-popup.html` calls `navigator.credentials.create({ publicKey: { …, extensions: { prf: {} } } })` with `rpId: 'script.google.com'` and a challenge derived from the session.
+3. On success, the popup calls `window.opener.postMessage({ type: 'prf-result', credentialId, prfOutput }, origin)` and closes.
+4. The sidebar receives the message, validates origin, uses `prfOutput` as the AES-KW key to wrap the ECDH private key in IDB (replacing or supplementing the PBKDF2-based wrap). Stores `credentialId`.
+5. On subsequent unlocks, open the popup with `action=prf-get`, pass the stored `credentialId`, get `prfOutput`, unwrap the private key — no password needed.
+
+**Notes:**
+- Validate `event.origin === WEB_APP_ORIGIN` in the `message` listener before using PRF output.
+- `rpId: 'script.google.com'` is shared across all Apps Script web apps, but credentials are scoped to the user's authenticator and `credentialId`, so cross-app confusion is not a practical risk.
+- The web app deployment must be set to run as the user and accessible to the relevant Google accounts.
+- `WEB_APP_URL` can be injected by `Code.ts` at sidebar render time (like `FEEDBACK_URL`), so it tracks the correct deployment automatically.
+
+**c2 — Forward-compatible iframe probe (zero-effort, future-facing)**
+
+Keep a `try/catch` block around a direct `navigator.credentials.create(…, { extensions: { prf: {} } })` call in the sidebar. It throws `SecurityError` immediately today. If Google ever adds the iframe permission header (a one-line change on their side), the block will silently start working without any change to this codebase. Store `credentialId` in IDB alongside the keypair entry and gate the use path on its presence. Show a non-blocking tooltip ("Unlock with passkey") only when `credentialId` is set.
 
 ---
 
