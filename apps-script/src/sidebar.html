@@ -523,6 +523,7 @@ let ownEmail       = '';
 let setupPassword  = null;  // set during keypair generation, cleared after display
 let defaultKeyType = 'ecdh'; // loaded from document settings at init
 let emailReady     = Promise.resolve(); // resolves when ownEmail is set
+let keyInStorage   = false;            // true when IDB has a stored keypair
 
 // ── Encoding helpers ───────────────────────────────────────────
 const buf2b64    = b => btoa(String.fromCharCode(...new Uint8Array(b)));
@@ -1101,6 +1102,7 @@ function clearPresharedKey() {
 // ── Key section display ────────────────────────────────────────
 async function showKeyState() {
   const entry = await idbGet(IDB_ECDH_KEY).catch(() => null);
+  keyInStorage = !!entry;
 
   if (ecdhPrivKey) {
     // Unlocked
@@ -1370,6 +1372,10 @@ function renderField(data) {
 
   if (!canEncrypt()) {
     field.value = ''; field.classList.add('blurred'); field.disabled = true;
+    const verb = keyInStorage ? 'Unlock' : 'Generate';
+    encOv.querySelector('.ov-text').textContent   = verb + ' key to decrypt';
+    plainOv.querySelector('.ov-text').textContent = verb + ' key to encrypt';
+    plainOv.querySelector('.ov-icon').textContent = keyInStorage ? '🔓' : '🔑';
     if (isEnc) encOv.classList.add('visible');
     else       plainOv.classList.add('visible');
   }
