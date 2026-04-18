@@ -37,6 +37,16 @@ interface OkResponse {
   ok: true;
 }
 
+interface PublicKeyEntry {
+  email: string;
+  publicKey: string;
+}
+
+interface GroupEntry {
+  name: string;
+  emailHashes: string[];
+}
+
 interface SetEncryptedCellValueResponse extends OkResponse {
   cellRef: string;
 }
@@ -45,6 +55,7 @@ interface DocumentSettings {
   editWarningEnabled: boolean;
   noteEnabled: boolean;
   revertOnEditEnabled: boolean;
+  defaultKeyType: 'ecdh' | 'preshared';
 }
 
 interface CommonTemplateVars {
@@ -75,6 +86,8 @@ interface DecryptConfirmTemplate
 }
 
 const VAULT_PFX_TRIGGER = '\uD83D\uDD10'; // 🔐
+const PK_PREFIX  = 'pk:';
+const GRP_PREFIX = 'grp:';
 const PROTECTION_DESC_PREFIX = 'CipherSheet:';
 const SETTINGS_KEY = 'CIPHERSHEET_SETTINGS';
 const APP_VERSION = '1.0.0';
@@ -86,12 +99,15 @@ const PRIVACY_URL =
   'https://kwikwag.github.io/CipherSheet/privacy';
 
 const CACHE_TTL = 60; // intent key TTL (seconds)
-const HEARTBEAT_TTL = 4; // alive key TTL — must be > heartbeat interval (2s)
+// HEARTBEAT_TTL must be strictly greater than the modal's heartbeat interval (2 s).
+// If it were ≤ 2 s the key could expire between beats, causing a false "modal closed" read.
+const HEARTBEAT_TTL = 4;
 
 const DEFAULT_SETTINGS: DocumentSettings = {
   editWarningEnabled: true,
   noteEnabled: true,
   revertOnEditEnabled: false,
+  defaultKeyType: 'ecdh',
 };
 
 const VALID_DECRYPT_INTENTS: ReadonlySet<DecryptIntent> = new Set([
@@ -219,6 +235,8 @@ function getSelectedCellValue(): SelectedCellValue {
   const cell = sheet.getActiveRange().getCell(1, 1);
 
   return {
+    // Must use getValue(), not getDisplayValue(). getDisplayValue() returns "🔒 Encrypted"
+    // for encrypted cells because of the custom number format applied by setEncryptedCellValue.
     value: String(cell.getValue()),
     cellRef: cell.getA1Notation(),
     sheetName: sheet.getName()
@@ -235,6 +253,10 @@ function setEncryptedCellValue(
   const sheet = getSheetOrThrow(sheetName);
   const range = sheet.getRange(cellRef);
   range.setValue(ciphertext);
+  // 4-section number format: positive;negative;zero;text. The cell value is a string,
+  // so the text (4th) section applies and renders the literal "🔒 Encrypted" regardless
+  // of what the raw string contains. getValue() still returns the actual ciphertext.
+  range.setNumberFormat(';;;"🔒 Encrypted"');
 
   const settings = getDocumentSettings();
 
@@ -358,6 +380,8 @@ function recordDecryptIntent(
 
   const cache = CacheService.getUserCache();
   cache.put(intentKey_(cellRef, sheetName), intent, CACHE_TTL);
+  // Proactively remove the heartbeat key so the sidebar detects modal closure immediately
+  // rather than waiting up to HEARTBEAT_TTL seconds for the key to expire on its own.
   cache.remove(aliveKey_(cellRef, sheetName));
   return { ok: true };
 }
@@ -376,6 +400,7 @@ function pollDecryptIntent(
   const intentVal = cache.get(intentKey);
 
   if (intentVal !== null) {
+    // Remove immediately so subsequent polls don't see the same intent twice.
     cache.remove(intentKey);
     if (isDecryptIntent(intentVal)) {
       return { intent: intentVal };
@@ -406,6 +431,9 @@ function revealCell(plaintext: string, cellRef: string, sheetName: string): OkRe
 
   removeWarningProtection_(sheet, range);
   range.setValue(plaintext);
+  // Reset to plain-text format (@). Without this the cell would still display "🔒 Encrypted"
+  // because the custom number format from setEncryptedCellValue persists on the range.
+  range.setNumberFormat('@');
   removeVaultNote_(range);
 
   return { ok: true };
@@ -419,6 +447,7 @@ function clearVaultCell(cellRef: string, sheetName: string): OkResponse {
 
   removeWarningProtection_(sheet, range);
   range.clearContent();
+  range.setNumberFormat('@');
   removeVaultNote_(range);
 
   return { ok: true };
@@ -499,16 +528,62 @@ function setDocumentSettings(settings: Partial<DocumentSettings>): OkResponse {
 function normalizeDocumentSettings(
   settings: Partial<DocumentSettings> | null | undefined
 ): DocumentSettings {
+  const raw = settings?.defaultKeyType;
   return {
     editWarningEnabled:
       settings?.editWarningEnabled ?? DEFAULT_SETTINGS.editWarningEnabled,
     noteEnabled: settings?.noteEnabled ?? DEFAULT_SETTINGS.noteEnabled,
-    revertOnEditEnabled: settings?.revertOnEditEnabled ?? DEFAULT_SETTINGS.revertOnEditEnabled
+    revertOnEditEnabled: settings?.revertOnEditEnabled ?? DEFAULT_SETTINGS.revertOnEditEnabled,
+    defaultKeyType:
+      raw === 'ecdh' || raw === 'preshared' ? raw : DEFAULT_SETTINGS.defaultKeyType,
   };
 }
 
 function isDecryptIntent(value: unknown): value is DecryptIntent {
   return typeof value === 'string' && VALID_DECRYPT_INTENTS.has(value as DecryptIntent);
+}
+
+// ── Public key registry ───────────────────────────────────────────
+
+function getCurrentUserEmail(): string {
+  return Session.getActiveUser().getEmail();
+}
+
+function storePublicKey(base64SPKI: string): OkResponse {
+  // Email is derived server-side, never from the client parameter.
+  // If the client supplied the email, any user could register a key under a different identity.
+  const email = Session.getActiveUser().getEmail();
+  if (!email) throw new Error('Cannot determine user email — please re-authorize the add-on.');
+  PropertiesService.getDocumentProperties().setProperty(PK_PREFIX + email, base64SPKI);
+  return { ok: true };
+}
+
+function listPublicKeys(): PublicKeyEntry[] {
+  const props = PropertiesService.getDocumentProperties().getProperties();
+  return Object.keys(props)
+    .filter(k => k.startsWith(PK_PREFIX))
+    .map(k => ({ email: k.slice(PK_PREFIX.length), publicKey: props[k] }));
+}
+
+// ── Group management ──────────────────────────────────────────────
+
+function storeGroupDefinition(name: string, emailHashes: string[]): OkResponse {
+  if (!name || name.startsWith('@')) throw new Error('Invalid group name');
+  PropertiesService.getDocumentProperties().setProperty(
+    GRP_PREFIX + name, JSON.stringify(emailHashes)
+  );
+  return { ok: true };
+}
+
+function listGroups(): GroupEntry[] {
+  const props = PropertiesService.getDocumentProperties().getProperties();
+  return Object.keys(props)
+    .filter(k => k.startsWith(GRP_PREFIX))
+    .map(k => {
+      let emailHashes: string[] = [];
+      try { emailHashes = JSON.parse(props[k]); } catch (_) {}
+      return { name: k.slice(GRP_PREFIX.length), emailHashes };
+    });
 }
 
 function showSettings(): void {

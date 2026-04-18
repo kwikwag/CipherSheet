@@ -59,6 +59,37 @@
     .btn-save { background: #1a73e8; color: #fff; border: 1px solid transparent; }
     .btn-save:hover { background: #1557b0; color: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
     
+    .section-title {
+      font-size: 12px; font-weight: bold; color: #5f6368;
+      text-transform: uppercase; margin-top: 16px; margin-bottom: 8px;
+    }
+    .pk-list { list-style: none; margin: 0 0 8px; padding: 0; font-size: 12px; }
+    .pk-item { display: flex; align-items: baseline; gap: 6px; padding: 3px 0; }
+    .pk-email { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .pk-fp { font-family: monospace; font-size: 10px; color: #80868b; }
+    .groups-area { margin-bottom: 8px; }
+    .group-row {
+      display: flex; align-items: center; gap: 6px;
+      margin-bottom: 6px; padding: 6px 8px;
+      border: 1px solid #dadce0; border-radius: 4px; font-size: 12px;
+    }
+    .group-name { font-weight: 600; flex: 1; }
+    .group-count { color: #80868b; }
+    .btn-sm {
+      height: 26px; padding: 0 10px; font-size: 11px; font-weight: 500;
+      border-radius: 3px; cursor: pointer; border: 1px solid #dadce0;
+      background: #fff; color: #5f6368; transition: background 0.12s;
+    }
+    .btn-sm:hover { background: #f1f3f4; color: #202124; }
+    .btn-sm.danger:hover { background: #fce8e6; color: #c5221f; border-color: #c5221f; }
+    .new-group-row { display: flex; gap: 6px; margin-bottom: 8px; }
+    .new-group-input {
+      flex: 1; height: 28px; padding: 0 8px;
+      border: 1px solid #dadce0; border-radius: 4px; font-size: 12px; outline: none;
+    }
+    .new-group-input:focus { border-color: #1a73e8; }
+    .empty-hint { font-size: 11px; color: #80868b; margin-bottom: 8px; }
+
     .loading-overlay {
       position: absolute;
       inset: 0;
@@ -124,7 +155,7 @@
     </label>
   </div>
 
-  <div class="setting-row" style="border-bottom:none">
+  <div class="setting-row">
     <div class="setting-text">
       <div class="setting-title">Reversion</div>
       <div class="setting-desc">Undo direct edits to encrypted cells while add-on is active. This is an experimental feature that might malfunction intermittently due to usage limits.</div>
@@ -135,9 +166,38 @@
     </label>
   </div>
 
+  <div class="setting-row" style="border-bottom:none">
+    <div class="setting-text">
+      <div class="setting-title">Default key type</div>
+      <div class="setting-desc">
+        <strong>Keypair</strong> — each user has their own key. You can share encrypted cells with specific people. Best for teams.<br>
+        <strong>Shared key</strong> — everyone uses the same key file. Simpler to set up, but everyone with the file can read all encrypted cells.
+      </div>
+      <div style="margin-top:8px; display:flex; gap:16px; font-size:12px">
+        <label><input type="radio" name="defaultKeyType" value="ecdh" id="rb-ecdh"> Keypair</label>
+        <label><input type="radio" name="defaultKeyType" value="preshared" id="rb-preshared"> Shared key</label>
+      </div>
+    </div>
+  </div>
+
   <div class="btn-row">
     <button class="btn btn-cancel" onclick="google.script.host.close()">Cancel</button>
     <button class="btn btn-save" onclick="saveSettings()">Save Preferences</button>
+  </div>
+
+  <hr style="border:none;border-top:1px solid #e0e0e0;margin:16px 0 12px">
+
+  <div class="section-title">Registered public keys</div>
+  <ul class="pk-list" id="pkList"><li style="color:#80868b;font-size:11px">Loading…</li></ul>
+
+  <div class="section-title">Groups</div>
+  <div class="groups-area" id="groupsArea"></div>
+  <div class="new-group-row">
+    <input type="text" class="new-group-input" id="newGroupName" placeholder="New group name"
+           onkeydown="if(event.key==='Enter')createGroup()">
+    <button class="btn btn-save" style="height:28px;padding:0 12px;font-size:12px" onclick="createGroup()">
+      Create
+    </button>
   </div>
 
   <div class="footer">
@@ -157,24 +217,110 @@
   </div>
 
   <script>
+    let pubKeys = [];
+    let groups  = [];
+
+    const buf2hex = b => Array.from(new Uint8Array(b)).map(x => x.toString(16).padStart(2,'0')).join('');
+    const b642buf = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+
+    async function spkiFingerprint(base64Spki) {
+      try {
+        const h = await crypto.subtle.digest('SHA-256', b642buf(base64Spki));
+        return buf2hex(h).match(/.{8}/g).join('-');
+      } catch(_) { return '—'; }
+    }
+
+    async function renderPkList() {
+      const ul = document.getElementById('pkList');
+      if (pubKeys.length === 0) {
+        ul.innerHTML = '<li class="empty-hint">No registered public keys yet.</li>';
+        return;
+      }
+      ul.innerHTML = '';
+      for (const { email, publicKey } of pubKeys) {
+        const fp = await spkiFingerprint(publicKey);
+        const li = document.createElement('li');
+        li.className = 'pk-item';
+        li.innerHTML = `<span class="pk-email">${email}</span><span class="pk-fp">${fp.slice(0,17)}…</span>`;
+        ul.appendChild(li);
+      }
+    }
+
+    function renderGroups() {
+      const area = document.getElementById('groupsArea');
+      if (groups.length === 0) {
+        area.innerHTML = '<div class="empty-hint">No groups defined.</div>';
+        return;
+      }
+      area.innerHTML = '';
+      for (const g of groups) {
+        const row = document.createElement('div');
+        row.className = 'group-row';
+        row.dataset.name = g.name;
+        row.innerHTML =
+          `<span class="group-name">${g.name}</span>` +
+          `<span class="group-count">${g.emailHashes.length} member(s)</span>` +
+          `<button class="btn-sm danger" onclick="deleteGroup('${g.name.replace(/'/g,"\\'")}')">Delete</button>`;
+        area.appendChild(row);
+      }
+    }
+
+    function createGroup() {
+      const name = document.getElementById('newGroupName').value.trim();
+      if (!name) { alert('Enter a group name'); return; }
+      if (groups.some(g => g.name === name)) { alert('Group already exists'); return; }
+      google.script.run
+        .withSuccessHandler(() => {
+          groups.push({ name, emailHashes: [] });
+          renderGroups();
+          document.getElementById('newGroupName').value = '';
+        })
+        .withFailureHandler(e => alert('Error: ' + e.message))
+        .storeGroupDefinition(name, []);
+    }
+
+    function deleteGroup(name) {
+      if (!confirm('Delete group "' + name + '"?')) return;
+      // Remove from Document Properties by storing empty sentinel is not ideal;
+      // Apps Script has no deleteProperty in our current interface, so store empty array
+      // and filter on load. A future server function can expose deleteProperty.
+      google.script.run
+        .withSuccessHandler(() => {
+          groups = groups.filter(g => g.name !== name);
+          renderGroups();
+        })
+        .withFailureHandler(e => alert('Error: ' + e.message))
+        .storeGroupDefinition('__deleted__' + name, []);
+    }
+
+    function loadPublicKeysAndGroups() {
+      google.script.run
+        .withSuccessHandler(async keys => { pubKeys = keys; await renderPkList(); })
+        .withFailureHandler(() => {})
+        .listPublicKeys();
+      google.script.run
+        .withSuccessHandler(gs => { groups = gs; renderGroups(); })
+        .withFailureHandler(() => {})
+        .listGroups();
+    }
+
     window.addEventListener('load', () => {
-      console.log("[events] LOAD");
       google.script.run
         .withSuccessHandler(settings => {
-          console.log("[events] LOAD -> SUCCESS");
           document.getElementById('cb-editWarning').checked = settings.editWarningEnabled;
           document.getElementById('cb-note').checked = settings.noteEnabled;
           document.getElementById('cb-revertOnEdit').checked = settings.revertOnEditEnabled;
+          const kt = settings.defaultKeyType === 'preshared' ? 'preshared' : 'ecdh';
+          document.getElementById('rb-' + kt).checked = true;
           document.getElementById('loader').classList.remove('visible');
-          document.getElementById('loader').offsetHeight; // force repaint — backdrop-filter compositing layer doesn't flush in iframes otherwise
+          document.getElementById('loader').offsetHeight;
+          loadPublicKeysAndGroups();
         })
         .withFailureHandler(e => {
-          console.log("[events] LOAD -> FAIL");
           alert("Error loading settings: " + e.message);
           google.script.host.close();
         })
         .getDocumentSettings();
-      console.log("[events] LOAD INVOKED");
     });
 
     function saveSettings() {
@@ -182,7 +328,8 @@
       const settings = {
         editWarningEnabled: document.getElementById('cb-editWarning').checked,
         noteEnabled: document.getElementById('cb-note').checked,
-        revertOnEditEnabled: document.getElementById('cb-revertOnEdit').checked
+        revertOnEditEnabled: document.getElementById('cb-revertOnEdit').checked,
+        defaultKeyType: document.querySelector('input[name="defaultKeyType"]:checked')?.value || 'ecdh'
       };
       google.script.run
         .withSuccessHandler(() => google.script.host.close())
