@@ -1,38 +1,50 @@
 import { createTheme } from '@mui/material/styles';
 
+// Brand greens derived from logo gradient: #056A46 → #19B457
+// Neutrals derived from logo background: #032C36 (deep teal-black)
+
 export const theme = createTheme({
   palette: {
     mode: 'light',
     primary: {
-      main: '#1B6EF3',
-      contrastText: '#ffffff',
-    },
-    secondary: {
-      main: '#7C5EFC',
-    },
-    success: {
-      main: '#1E8C45',
-      light: '#E6F4EA',
-    },
-    warning: {
-      main: '#E37400',
-      light: '#FEF7E0',
+      main: '#0E8040',   // darkened from #19B457 to guarantee ≥4.5:1 on white
+      dark: '#096B34',
+      light: '#D6F5E3',
+      contrastText: '#FFFFFF',
     },
     error: {
-      main: '#C5221F',
-      light: '#FCE8E6',
+      main: '#BA1A1A',
+      light: '#FFDAD6',
+      dark: '#410002',
+      contrastText: '#FFFFFF',
     },
-    info: {
-      main: '#1B6EF3',
-      light: '#E8F0FE',
+    warning: {
+      main: '#B45309',
+      light: '#FEF3C7',
+      dark: '#431407',
+      contrastText: '#FFFFFF',
+    },
+    // success = primary (key active) — same brand green
+    success: {
+      main: '#0E8040',
+      light: '#D6F5E3',
+      dark: '#056A46',
+      contrastText: '#FFFFFF',
     },
     background: {
       default: '#FFFFFF',
-      paper: '#F8F9FF',
+      paper: '#F4F8F6',  // very subtly teal-tinted white; used for header/footer
     },
     text: {
-      primary: '#1F1F1F',
-      secondary: '#5F6368',
+      primary: '#032C36',
+      secondary: '#4D7066',  // readable teal-green; enough contrast on both white and paper
+    },
+    divider: '#D0DDD9',
+    action: {
+      // MD3: disabled content = onSurface @ 38%, disabled container = onSurface @ 12%
+      // #32514A is dark enough for 4.5:1 on #E8EFED (light teal-gray container)
+      disabled: '#32514A',
+      disabledBackground: '#E8EFED',
     },
   },
   shape: {
@@ -66,8 +78,27 @@ export const theme = createTheme({
           fontWeight: 600,
           minHeight: 32,
           padding: '4px 16px',
+          backgroundImage: 'none',  // override Google Apps Script iframe's injected gradient
+          transition: 'background-color 0.15s, color 0.15s, border-color 0.15s',
         },
         sizeSmall: { minHeight: 28, padding: '2px 12px' },
+        // MD3 outlined: primary label + visible outline border (not divider-light)
+        outlined: {
+          borderColor: '#79918C',   // mid-tone teal — MD3 "outline" role, visible on white
+          '&:hover': {
+            borderColor: '#0E8040',
+            backgroundColor: 'rgba(14, 128, 64, 0.08)',
+          },
+        },
+      },
+    },
+    MuiIconButton: {
+      styleOverrides: {
+        root: {
+          borderRadius: 12,
+          transition: 'background-color 0.15s, color 0.15s',
+        },
+        sizeSmall: { padding: 4 },
       },
     },
     MuiTextField: {
@@ -80,18 +111,15 @@ export const theme = createTheme({
     },
     MuiChip: {
       styleOverrides: {
+        // Pill shape for interactive chips (cell ref, recipient summary)
+        // Rectangle with radius for label chips (tech spec badges)
         root: { borderRadius: 8, fontSize: '0.6875rem' },
+        sizeSmall: { height: 22 },
       },
     },
     MuiPaper: {
       styleOverrides: {
         rounded: { borderRadius: 12 },
-      },
-    },
-    MuiAlert: {
-      styleOverrides: {
-        root: { borderRadius: 8, padding: '4px 12px' },
-        message: { fontSize: '0.75rem' },
       },
     },
     MuiCheckbox: {
@@ -115,14 +143,9 @@ export const theme = createTheme({
         root: { borderRadius: 4 },
       },
     },
-    MuiIconButton: {
-      styleOverrides: {
-        sizeSmall: { padding: 4 },
-      },
-    },
     MuiDivider: {
       styleOverrides: {
-        root: { borderColor: 'rgba(0,0,0,0.08)' },
+        root: { borderColor: 'var(--mui-palette-divider)' },
       },
     },
   },

@@ -1,6 +1,5 @@
-import { Box, IconButton, InputAdornment, TextField, Typography } from '@mui/material';
+import { Box, Button, InputAdornment, IconButton, TextField, Typography } from '@mui/material';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
-import CloseIcon from '@mui/icons-material/Close';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { useApp } from '../../context/AppContext';
 
@@ -19,17 +18,8 @@ export function PasswordSetupBox() {
     <Box sx={{
       mx: 1.5, mt: 1, p: 1.5, borderRadius: 2,
       bgcolor: 'warning.light',
-      border: '1px solid', borderColor: 'warning.main',
-      position: 'relative',
+      borderLeft: '3px solid', borderLeftColor: 'warning.main',
     }}>
-      <IconButton
-        size="small"
-        onClick={() => setSetupPassword(null)}
-        sx={{ position: 'absolute', top: 4, right: 4, p: 0.25 }}
-      >
-        <CloseIcon sx={{ fontSize: 14 }} />
-      </IconButton>
-
       <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'flex-start', mb: 1 }}>
         <WarningAmberIcon sx={{ fontSize: 16, color: 'warning.dark', mt: 0.25, flexShrink: 0 }} />
         <Typography variant="caption" sx={{ color: 'warning.dark', fontWeight: 600 }}>
@@ -41,17 +31,33 @@ export function PasswordSetupBox() {
         value={setupPassword}
         size="small"
         fullWidth
-        inputProps={{ readOnly: true, style: { fontFamily: 'monospace', fontSize: '0.6875rem' } }}
-        InputProps={{
-          endAdornment: (
-            <InputAdornment position="end">
-              <IconButton size="small" onClick={copy} edge="end">
-                <ContentCopyIcon sx={{ fontSize: 14 }} />
-              </IconButton>
-            </InputAdornment>
-          ),
+        slotProps={{
+          htmlInput: { readOnly: true, style: { fontFamily: 'monospace', fontSize: '0.6875rem' } },
+          input: {
+            endAdornment: (
+              <InputAdornment position="end" sx={{ mr: -1.75, ml: 0, my: 0, height: '100%' }}>
+                <IconButton
+                  onClick={copy}
+                  sx={{ borderRadius: 0, width: 36, height: 30, p: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                >
+                  <ContentCopyIcon sx={{ fontSize: 14 }} />
+                </IconButton>
+              </InputAdornment>
+            ),
+          },
         }}
+        sx={{ '& .MuiOutlinedInput-root': { overflow: 'hidden' } }}
       />
+
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
+        <Button
+          size="small"
+          onClick={() => setSetupPassword(null)}
+          sx={{ color: 'warning.dark', fontSize: '0.6875rem' }}
+        >
+          Got it
+        </Button>
+      </Box>
     </Box>
   );
 }

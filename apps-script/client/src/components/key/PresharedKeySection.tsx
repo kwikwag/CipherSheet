@@ -1,4 +1,5 @@
 import { Box, Button, Chip, Table, TableBody, TableCell, TableRow, Typography } from '@mui/material';
+import VpnKeyIcon from '@mui/icons-material/VpnKey';
 import { useApp } from '../../context/AppContext';
 import { usePresharedKey } from '../../hooks/usePresharedKey';
 import { fingerprint } from '../../utils/crypto';
@@ -22,27 +23,24 @@ export function PresharedKeySection() {
   return (
     <Box sx={{ px: 1.5, pb: 1 }}>
       <Box sx={{
-        borderRadius: 2,
-        bgcolor: 'info.light',
-        border: '1px solid',
-        borderColor: 'primary.main',
+        borderRadius: 1.5,
+        bgcolor: 'background.paper',
+        borderLeft: '3px solid',
+        borderLeftColor: 'primary.main',
         p: 1.5,
         mb: 1,
       }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-          <Box sx={{
-            width: 8, height: 8, borderRadius: '50%',
-            bgcolor: 'primary.main', flexShrink: 0,
-          }} />
-          <Typography variant="caption" sx={{ fontWeight: 700, color: 'primary.main', letterSpacing: 0.5 }}>
-            PRE-SHARED KEY
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 1 }}>
+          <VpnKeyIcon sx={{ fontSize: 15, color: 'primary.main' }} />
+          <Typography variant="subtitle2" sx={{ color: 'text.primary' }}>
+            Pre-shared key
           </Typography>
           <Chip
             label="AES-256-GCM"
             size="small"
             sx={{
-              ml: 'auto', fontSize: '0.625rem', height: 18,
-              bgcolor: 'primary.main', color: '#fff', fontWeight: 700,
+              ml: 'auto', height: 18, fontSize: '0.625rem', fontWeight: 600,
+              bgcolor: 'primary.light', color: 'success.dark',
             }}
           />
         </Box>
@@ -59,14 +57,8 @@ export function PresharedKeySection() {
         </Table>
       </Box>
 
-      <Button
-        variant="outlined"
-        size="small"
-        onClick={clearPresharedKey}
-        color="inherit"
-        sx={{ fontSize: '0.6875rem' }}
-      >
-        Unload
+      <Button variant="outlined" size="small" onClick={clearPresharedKey} sx={{ fontSize: '0.6875rem' }}>
+        Unload key
       </Button>
     </Box>
   );

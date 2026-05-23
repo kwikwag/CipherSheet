@@ -11,8 +11,7 @@ import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { useApp } from '../../context/AppContext';
 import { useKeyOps } from '../../hooks/useKeyOps';
-import { idbGet } from '../../utils/idb';
-import { IDB_ECDH_KEY } from '../../utils/idb';
+import { idbGet, IDB_ECDH_KEY } from '../../utils/idb';
 import type { IdbEcdhEntry } from '../../types';
 
 export function KeyLocked() {
@@ -75,37 +74,30 @@ export function KeyLocked() {
         onChange={e => setPassword(e.target.value)}
         onKeyDown={e => e.key === 'Enter' && handleUnlock()}
         autoComplete="current-password"
-        inputProps={{ id: 'ciphersheet-password-input' }}
-        InputProps={{
-          endAdornment: (
-            <InputAdornment position="end">
-              <IconButton size="small" onClick={() => setShowPw(!showPw)} edge="end">
-                {showPw ? <VisibilityOffIcon sx={{ fontSize: 16 }} /> : <VisibilityIcon sx={{ fontSize: 16 }} />}
-              </IconButton>
-            </InputAdornment>
-          ),
+        slotProps={{
+          htmlInput: { id: 'ciphersheet-password-input' },
+          input: {
+            endAdornment: (
+              <InputAdornment position="end" sx={{ mr: -1.75, ml: 0, my: 0, height: '100%' }}>
+                <IconButton
+                  onClick={() => setShowPw(!showPw)}
+                  sx={{ borderRadius: 0, width: 36, height: 30, p: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                >
+                  {showPw ? <VisibilityOffIcon sx={{ fontSize: 16 }} /> : <VisibilityIcon sx={{ fontSize: 16 }} />}
+                </IconButton>
+              </InputAdornment>
+            ),
+          },
         }}
-        sx={{ mb: 1 }}
+        sx={{ mb: 1, '& .MuiOutlinedInput-root': { overflow: 'hidden' } }}
       />
 
       <Box sx={{ display: 'flex', gap: 1 }}>
-        <Button
-          variant="contained"
-          size="small"
-          startIcon={<LockOpenIcon />}
-          onClick={handleUnlock}
-          sx={{ flex: 1 }}
-        >
+        <Button variant="contained" size="small" startIcon={<LockOpenIcon />} onClick={handleUnlock} sx={{ flex: 1 }}>
           Unlock
         </Button>
         {hasPasskey && passkeyUrl && (
-          <Button
-            variant="outlined"
-            size="small"
-            startIcon={<KeyIcon />}
-            onClick={unlockWithPasskey}
-            sx={{ flex: 1 }}
-          >
+          <Button variant="outlined" size="small" startIcon={<KeyIcon />} onClick={unlockWithPasskey} sx={{ flex: 1 }}>
             Passkey
           </Button>
         )}
@@ -123,7 +115,7 @@ export function KeyLocked() {
       <Collapse in={showForget}>
         <Box sx={{
           mt: 0.5, p: 1, borderRadius: 1,
-          bgcolor: 'error.light', border: '1px solid', borderColor: 'error.main',
+          bgcolor: 'error.light', borderLeft: '3px solid', borderLeftColor: 'error.main',
         }}>
           <Box sx={{ display: 'flex', gap: 0.5, mb: 0.5 }}>
             <WarningAmberIcon sx={{ fontSize: 14, color: 'error.main', mt: 0.2 }} />

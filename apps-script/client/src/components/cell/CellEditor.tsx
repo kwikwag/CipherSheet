@@ -134,7 +134,7 @@ export function CellEditor({ selectedRecipients }: CellEditorProps) {
             variant="outlined"
             size="small"
             onClick={requestUnprotect}
-            sx={{ flex: 1, borderRadius: 20 }}
+            sx={{ flex: 1 }}
           >
             Unprotect
           </Button>
@@ -144,7 +144,7 @@ export function CellEditor({ selectedRecipients }: CellEditorProps) {
           size="small"
           onClick={handleProtect}
           disabled={!canEncrypt}
-          sx={{ flex: 1, borderRadius: 20 }}
+          sx={{ flex: 1 }}
         >
           {cellIsEncrypted && canEncrypt ? 'Update' : 'Protect'}
         </Button>

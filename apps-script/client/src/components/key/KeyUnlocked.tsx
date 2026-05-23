@@ -16,8 +16,8 @@ export function KeyUnlocked() {
       <Box sx={{
         borderRadius: 2,
         bgcolor: 'success.light',
-        border: '1px solid',
-        borderColor: 'success.main',
+        borderLeft: '3px solid',
+        borderLeftColor: 'success.main',
         p: 1.5,
         mb: 1,
       }}>
@@ -35,7 +35,7 @@ export function KeyUnlocked() {
             size="small"
             sx={{
               ml: 'auto', fontSize: '0.625rem', height: 18,
-              bgcolor: 'success.main', color: '#fff', fontWeight: 700,
+              bgcolor: 'success.main', color: 'primary.contrastText', fontWeight: 700,
             }}
           />
         </Box>
@@ -62,23 +62,11 @@ export function KeyUnlocked() {
       </Box>
 
       <Box sx={{ display: 'flex', gap: 1 }}>
-        <Button
-          variant="outlined"
-          size="small"
-          startIcon={<LockIcon />}
-          onClick={lockEcdh}
-          sx={{ flex: 1 }}
-        >
+        <Button variant="outlined" size="small" startIcon={<LockIcon />} onClick={lockEcdh} sx={{ flex: 1 }}>
           Lock
         </Button>
         {passkeyUrl && (
-          <Button
-            variant="outlined"
-            size="small"
-            startIcon={<KeyIcon />}
-            onClick={tryPrfEnroll}
-            sx={{ flex: 1, fontSize: '0.6875rem' }}
-          >
+          <Button variant="outlined" size="small" startIcon={<KeyIcon />} onClick={tryPrfEnroll} sx={{ flex: 1, fontSize: '0.6875rem' }}>
             Enable passkey
           </Button>
         )}

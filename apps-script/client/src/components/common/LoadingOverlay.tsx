@@ -7,7 +7,7 @@ export function LoadingOverlay() {
     <>
       <Backdrop
         open={loading}
-        sx={{ position: 'absolute', zIndex: 1000, bgcolor: 'rgba(255,255,255,0.6)' }}
+        sx={{ position: 'absolute', zIndex: 1000, bgcolor: 'background.default', opacity: 0.6 }}
       />
       {loading && (
         <Box
