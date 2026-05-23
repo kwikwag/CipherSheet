@@ -153,7 +153,9 @@ function buildAddonMenu(e?: AddonOpenEvent): void {
     menu
       .addItem('Open Vault', 'showSidebar')
       .addSeparator()
-      .addItem('How to use', 'showOnboarding');
+      .addItem('How to use', 'showOnboarding')
+      .addSeparator()
+      .addItem('Reset metadata', 'resetDocumentMetadata');
   }
   menu.addToUi();
 }
@@ -592,6 +594,28 @@ function listGroups(): GroupEntry[] {
     } catch (_) {}
   }
   return result;
+}
+
+// ── Reset metadata ────────────────────────────────────────────────
+// Removes all non-sheet-stored data written by the add-on: document settings,
+// registered public keys (pk:*), and group entries (grp:*). Does NOT touch
+// cell values, number formats, or range protections — those are sheet-stored.
+
+function resetDocumentMetadata(): void {
+  const confirmed = showSheetConfirm(
+    '🔐 Reset CipherSheet Metadata',
+    'This will permanently delete all CipherSheet metadata for this document:\n\n' +
+      '• Settings\n' +
+      '• Registered public keys\n' +
+      '• Recipient groups\n\n' +
+      'Encrypted cell contents are NOT affected.\n\n' +
+      'Continue?'
+  );
+  if (!confirmed) return;
+
+  PropertiesService.getDocumentProperties().deleteAllProperties();
+
+  showSheetAlert('🔐 CipherSheet', 'Metadata cleared.');
 }
 
 function showSettings(): void {
