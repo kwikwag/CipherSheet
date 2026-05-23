@@ -1,4 +1,5 @@
 import { Box, Link, Typography } from '@mui/material';
+import { gasRun } from '../../utils/gas';
 
 export function Footer() {
   const cfg = window.CS_CONFIG;
@@ -15,8 +16,16 @@ export function Footer() {
         {cfg?.appVersion ? ` · v${cfg.appVersion}` : ''}
       </Typography>
       <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+        <Link
+          href="#"
+          variant="caption"
+          underline="hover"
+          color="text.secondary"
+          onClick={(e) => { e.preventDefault(); gasRun('showOnboarding'); }}
+        >
+          How to use
+        </Link>
         {[
-          { label: 'How to use', href: 'https://kwikwag.github.io/CipherSheet/' },
           cfg?.feedbackUrl ? { label: 'Feedback', href: cfg.feedbackUrl } : null,
           cfg?.donateUrl ? { label: 'Donate', href: cfg.donateUrl } : null,
           cfg?.privacyUrl ? { label: 'Privacy', href: cfg.privacyUrl } : null,

@@ -9,11 +9,11 @@
 <body>
 <script>
 window.CS_CONFIG = {
-  feedbackUrl:     '<?= feedbackUrl ?>',
-  donateUrl:       '<?= donateUrl ?>',
-  privacyUrl:      '<?= privacyUrl ?>',
-  passkeyPopupUrl: '<?= passkeyPopupUrl ?>',
-  appVersion:      '<?= appVersion ?>',
+  feedbackUrl:     <?!= JSON.stringify(feedbackUrl) ?>,
+  donateUrl:       <?!= JSON.stringify(donateUrl) ?>,
+  privacyUrl:      <?!= JSON.stringify(privacyUrl) ?>,
+  passkeyPopupUrl: <?!= JSON.stringify(passkeyPopupUrl) ?>,
+  appVersion:      <?!= JSON.stringify(appVersion) ?>,
 };
 </script>
 <div id="root"></div>
