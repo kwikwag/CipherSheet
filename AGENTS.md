@@ -87,6 +87,9 @@ apps-script/
         useCellOps.ts    # Cell refresh, encrypt, decrypt, unprotect polling
         useCacheOps.ts   # Public key cache + group cache refresh
         useInitApp.ts    # App initialization (email, settings, key state, cell)
+      settings/
+        SettingsApp.tsx  # Settings panel (toggles, public keys, groups) — React/MUI
+        main.tsx         # Entry: mounts SettingsApp into #root
       components/
         cell/            # CellMeta (header chip), CellEditor (textarea + overlays)
         key/             # KeySection, KeySetup, KeyLocked, KeyUnlocked, PresharedKeySection, PasswordSetupBox
@@ -273,9 +276,9 @@ Thin shell that composes the sidebar via `<?!= include() ?>` directives and inje
 
 | Key | Value shape |
 |---|---|
-| `'ecdh'` | `{ wrapped: Uint8Array, iv: Uint8Array, salt: Uint8Array, publicKeySpki: Uint8Array, publicKeyFp: string, credentialId?: number[], prfWrappedPassword?: Uint8Array, prfPasswordIv?: Uint8Array }` |
+| `'ecdh'` | `{ wrapped: Uint8Array, iv: Uint8Array, salt: Uint8Array, publicKeySpki: Uint8Array, credentialId?: number[], prfWrappedPassword?: Uint8Array, prfPasswordIv?: Uint8Array }` |
 
-The `wrapped` field is the PBKDF2+AES-GCM encrypted JWK of the ECDH private key. `publicKeySpki`, `publicKeyFp`, and optional passkey metadata are stored unencrypted so the locked UI can show the fingerprint and start PRF unlock; `prfWrappedPassword` contains only the generated unlock password encrypted under a PRF-derived AES-GCM key.
+The `wrapped` field is the PBKDF2+AES-GCM encrypted JWK of the ECDH private key. `publicKeySpki` and optional passkey metadata are stored unencrypted so the locked UI can start PRF unlock; `prfWrappedPassword` contains only the generated unlock password encrypted under a PRF-derived AES-GCM key. `publicKeyFp` is no longer persisted — fingerprint is derived on demand via `fingerprint(publicKeySpki)`.
 
 **Extractable key audit:**
 
@@ -327,8 +330,8 @@ npx clasp push --force         # push dist/ to Apps Script project
 1. Deletes `apps-script/dist/` and `apps-script/dist-client/`
 2. Runs `tsc` with `tsconfig.apps-script.json` (compiles `server/Code.ts` → `dist/Code.js`)
 3. Copies non-TS files from `server/` → `dist/` (HTML, JSON, assets)
-4. Runs Vite with `client/vite.config.ts` → `dist-client/sidebar.js` (IIFE bundle)
-5. Wraps `dist-client/sidebar.js` as `<script>…</script>` → `dist/sidebar-script.html`
+4. Runs Vite twice (via `BUILD_ENTRY=sidebar` then `BUILD_ENTRY=settings`) → `dist-client/sidebar.js` + `dist-client/settings.js` (IIFE bundles)
+5. Wraps each JS bundle as `<script>…</script>` → `dist/sidebar-script.html` + `dist/settings-script.html`
 6. Deletes intermediate `dist-client/`
 
 ### Dev server
