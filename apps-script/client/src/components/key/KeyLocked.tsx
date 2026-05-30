@@ -11,26 +11,15 @@ import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { useApp } from '../../context/AppContext';
 import { useKeyOps } from '../../hooks/useKeyOps';
-import { idbGet, IDB_ECDH_KEY } from '../../utils/idb';
-import type { IdbEcdhEntry } from '../../types';
 
 export function KeyLocked() {
-  const { showToast } = useApp();
+  const { ecdhFp, keyHasPasskey, showToast } = useApp();
   const { unlockWithPassword, unlockWithPasskey, forgetKey } = useKeyOps();
   const [password, setPassword] = useState('');
   const [showPw, setShowPw] = useState(false);
   const [showForget, setShowForget] = useState(false);
-  const [fp, setFp] = useState('');
-  const [hasPasskey, setHasPasskey] = useState(false);
 
-  useState(() => {
-    idbGet<IdbEcdhEntry>(IDB_ECDH_KEY).then(entry => {
-      if (entry) {
-        setFp(entry.publicKeyFp || '');
-        setHasPasskey(!!(entry.credentialId && entry.prfWrappedPassword));
-      }
-    });
-  });
+  const passkeyUrl = window.CS_CONFIG?.passkeyPopupUrl;
 
   const handleUnlock = async () => {
     if (!password) { showToast('Enter the unlock password', 'warning'); return; }
@@ -43,8 +32,6 @@ export function KeyLocked() {
     setShowForget(false);
   };
 
-  const passkeyUrl = window.CS_CONFIG?.passkeyPopupUrl;
-
   return (
     <Box sx={{ px: 1.5, pt: 1.5, pb: 1 }}>
       {/* Header */}
@@ -54,53 +41,61 @@ export function KeyLocked() {
           bgcolor: 'warning.main', flexShrink: 0,
         }} />
         <Typography variant="subtitle2" sx={{ color: 'warning.main' }}>Keypair locked</Typography>
-        {fp && (
+        {ecdhFp && (
           <Chip
             icon={<FingerprintIcon sx={{ fontSize: '0.75rem !important' }} />}
-            label={fp.slice(0, 9) + '…'}
+            label={ecdhFp.slice(0, 9) + '…'}
             size="small"
             sx={{ ml: 'auto', fontSize: '0.6875rem', height: 20 }}
           />
         )}
       </Box>
 
-      {/* Password input */}
-      <TextField
-        fullWidth
-        size="small"
-        type={showPw ? 'text' : 'password'}
-        placeholder="Unlock password"
-        value={password}
-        onChange={e => setPassword(e.target.value)}
-        onKeyDown={e => e.key === 'Enter' && handleUnlock()}
-        autoComplete="current-password"
-        slotProps={{
-          htmlInput: { id: 'ciphersheet-password-input' },
-          input: {
-            endAdornment: (
-              <InputAdornment position="end" sx={{ mr: -1.75, ml: 0, my: 0, height: '100%' }}>
-                <IconButton
-                  onClick={() => setShowPw(!showPw)}
-                  sx={{ borderRadius: 0, width: 36, height: 30, p: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                >
-                  {showPw ? <VisibilityOffIcon sx={{ fontSize: 16 }} /> : <VisibilityIcon sx={{ fontSize: 16 }} />}
-                </IconButton>
-              </InputAdornment>
-            ),
-          },
-        }}
-        sx={{ mb: 1, '& .MuiOutlinedInput-root': { overflow: 'hidden' } }}
-      />
-
-      <Box sx={{ display: 'flex', gap: 1 }}>
-        <Button variant="contained" size="small" startIcon={<LockOpenIcon />} onClick={handleUnlock} sx={{ flex: 1 }}>
-          Unlock
-        </Button>
-        {hasPasskey && passkeyUrl && (
-          <Button variant="outlined" size="small" startIcon={<KeyIcon />} onClick={unlockWithPasskey} sx={{ flex: 1 }}>
-            Passkey
+      {/* Password input — wrapped in a form so browsers offer to save/fill credentials */}
+      <Box
+        component="form"
+        onSubmit={e => { e.preventDefault(); handleUnlock(); }}
+        sx={{ mb: 1 }}
+      >
+        {/* Visually hidden username field — display:none is ignored by many browsers for autofill */}
+        <input type="text" name="username" autoComplete="username" value={ecdhFp ?? ''} readOnly
+          style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', width: 0, height: 0 }} />
+        <TextField
+          fullWidth
+          size="small"
+          type={showPw ? 'text' : 'password'}
+          placeholder="Unlock password"
+          value={password}
+          onChange={e => setPassword(e.target.value)}
+          autoComplete="current-password"
+          slotProps={{
+            htmlInput: { id: 'ciphersheet-password-input', name: 'password' },
+            input: {
+              endAdornment: (
+                <InputAdornment position="end" sx={{ mr: -1.75, ml: 0, my: 0, height: '100%' }}>
+                  <IconButton
+                    onClick={() => setShowPw(!showPw)}
+                    type="button"
+                    sx={{ borderRadius: 0, width: 36, height: 30, p: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  >
+                    {showPw ? <VisibilityOffIcon sx={{ fontSize: 16 }} /> : <VisibilityIcon sx={{ fontSize: 16 }} />}
+                  </IconButton>
+                </InputAdornment>
+              ),
+            },
+          }}
+          sx={{ mb: 1, '& .MuiOutlinedInput-root': { overflow: 'hidden' } }}
+        />
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button type="submit" variant="contained" size="small" startIcon={<LockOpenIcon />} sx={{ flex: 1 }}>
+            Unlock
           </Button>
-        )}
+          {keyHasPasskey && passkeyUrl && (
+            <Button type="button" variant="outlined" size="small" startIcon={<KeyIcon />} onClick={unlockWithPasskey} sx={{ flex: 1 }}>
+              Passkey
+            </Button>
+          )}
+        </Box>
       </Box>
 
       {/* Forget key */}

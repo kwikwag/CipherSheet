@@ -14,6 +14,13 @@ export interface CellData {
   sheetName: string;
 }
 
+export interface CellViewState {
+  cell: CellData | null;
+  plaintext: string;
+  decrypted: boolean;
+  decryptError: string | null;
+}
+
 export interface PubKeyCacheEntry {
   email: string;
   pubKey: CryptoKey;
@@ -31,7 +38,6 @@ export interface IdbEcdhEntry {
   iv: Uint8Array;
   salt: Uint8Array;
   publicKeySpki: Uint8Array;
-  publicKeyFp: string;
   credentialId?: number[];
   prfWrappedPassword?: Uint8Array;
   prfPasswordIv?: Uint8Array;

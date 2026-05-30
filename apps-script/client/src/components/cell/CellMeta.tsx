@@ -8,7 +8,8 @@ import { useCellOps } from '../../hooks/useCellOps';
 import { gasRun } from '../../utils/gas';
 
 export function CellMeta() {
-  const { currentCell, showToast } = useApp();
+  const { cellView, showToast } = useApp();
+  const { cell: currentCell } = cellView;
   const { refreshCell } = useCellOps();
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
 

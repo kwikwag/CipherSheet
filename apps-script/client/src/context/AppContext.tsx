@@ -2,7 +2,7 @@ import React, {
   createContext, useCallback, useContext, useMemo, useRef, useState
 } from 'react';
 import type {
-  CellData, GroupEntry, KeyType, PubKeyCacheEntry, ToastSeverity, ToastState
+  CellViewState, GroupEntry, KeyType, PubKeyCacheEntry, ToastSeverity, ToastState
 } from '../types';
 
 interface AppState {
@@ -12,7 +12,8 @@ interface AppState {
   unlockPassword: string | null;
   ecdhFp: string | null;
   keyInStorage: boolean;
-  currentCell: CellData | null;
+  keyHasPasskey: boolean;
+  cellView: CellViewState;
   ownEmail: string;
   defaultKeyType: KeyType;
   pubKeyCache: PubKeyCacheEntry[];
@@ -29,7 +30,8 @@ interface AppContextValue extends AppState {
   setUnlockPassword: (pw: string | null) => void;
   setEcdhFp: (fp: string | null) => void;
   setKeyInStorage: (v: boolean) => void;
-  setCurrentCell: React.Dispatch<React.SetStateAction<CellData | null>>;
+  setKeyHasPasskey: (v: boolean) => void;
+  setCellView: React.Dispatch<React.SetStateAction<CellViewState>>;
   setOwnEmail: (email: string) => void;
   setDefaultKeyType: (t: KeyType) => void;
   setPubKeyCache: (cache: PubKeyCacheEntry[]) => void;
@@ -45,6 +47,7 @@ interface AppContextValue extends AppState {
   pollTimerRef: React.MutableRefObject<ReturnType<typeof setInterval> | null>;
   // Password manager form refs
   pwSaveFormRef: React.RefObject<HTMLFormElement | null>;
+  pwSaveUsernameRef: React.RefObject<HTMLInputElement | null>;
   pwSaveInputRef: React.RefObject<HTMLInputElement | null>;
 }
 
@@ -59,7 +62,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [unlockPassword, setUnlockPassword] = useState<string | null>(null);
   const [ecdhFp, setEcdhFp] = useState<string | null>(null);
   const [keyInStorage, setKeyInStorage] = useState(false);
-  const [currentCell, setCurrentCell] = useState<CellData | null>(null);
+  const [keyHasPasskey, setKeyHasPasskey] = useState(false);
+  const [cellView, setCellView] = useState<CellViewState>({
+    cell: null, plaintext: '', decrypted: false, decryptError: null,
+  });
   const [ownEmail, setOwnEmail] = useState('');
   const [defaultKeyType, setDefaultKeyType] = useState<KeyType>('ecdh');
   const [pubKeyCache, setPubKeyCache] = useState<PubKeyCacheEntry[]>([]);
@@ -70,6 +76,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pwSaveFormRef = useRef<HTMLFormElement | null>(null);
+  const pwSaveUsernameRef = useRef<HTMLInputElement | null>(null);
   const pwSaveInputRef = useRef<HTMLInputElement | null>(null);
 
   const showToast = useCallback((
@@ -83,8 +90,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const dismissToast = useCallback(() => setToast(null), []);
 
   const canEncrypt = ecdhPrivKey !== null || presharedKey !== null;
-  const cellIsEncrypted = currentCell
-    ? String(currentCell.value ?? '').startsWith(VAULT_PFX)
+  const cellIsEncrypted = cellView.cell
+    ? String(cellView.cell.value ?? '').startsWith(VAULT_PFX)
     : false;
 
   const value = useMemo<AppContextValue>(() => ({
@@ -94,7 +101,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     unlockPassword, setUnlockPassword,
     ecdhFp, setEcdhFp,
     keyInStorage, setKeyInStorage,
-    currentCell, setCurrentCell,
+    keyHasPasskey, setKeyHasPasskey,
+    cellView, setCellView,
     ownEmail, setOwnEmail,
     defaultKeyType, setDefaultKeyType,
     pubKeyCache, setPubKeyCache,
@@ -103,11 +111,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     loading, setLoading,
     toast, showToast, dismissToast,
     canEncrypt, cellIsEncrypted,
-    pollTimerRef, pwSaveFormRef, pwSaveInputRef,
+    pollTimerRef, pwSaveFormRef, pwSaveUsernameRef, pwSaveInputRef,
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [
-    ecdhPrivKey, ecdhPubKey, presharedKey, unlockPassword, ecdhFp, keyInStorage,
-    currentCell, ownEmail, defaultKeyType, pubKeyCache, groupCache,
+    ecdhPrivKey, ecdhPubKey, presharedKey, unlockPassword, ecdhFp, keyInStorage, keyHasPasskey,
+    cellView, ownEmail, defaultKeyType, pubKeyCache, groupCache,
     setupPassword, loading, toast, canEncrypt, cellIsEncrypted,
     showToast, dismissToast,
   ]);

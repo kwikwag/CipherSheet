@@ -6,7 +6,7 @@ import { useApp } from '../../context/AppContext';
 import { useKeyOps } from '../../hooks/useKeyOps';
 
 export function KeyUnlocked() {
-  const { ownEmail, ecdhFp } = useApp();
+  const { ownEmail, ecdhFp, keyHasPasskey } = useApp();
   const { lockEcdh, tryPrfEnroll } = useKeyOps();
 
   const passkeyUrl = window.CS_CONFIG?.passkeyPopupUrl;
@@ -67,7 +67,7 @@ export function KeyUnlocked() {
         </Button>
         {passkeyUrl && (
           <Button variant="outlined" size="small" startIcon={<KeyIcon />} onClick={tryPrfEnroll} sx={{ flex: 1, fontSize: '0.6875rem' }}>
-            Enable passkey
+            {keyHasPasskey ? 'Re-enroll passkey' : 'Enable passkey'}
           </Button>
         )}
       </Box>

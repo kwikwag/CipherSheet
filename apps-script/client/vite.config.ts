@@ -5,18 +5,28 @@ import { fileURLToPath } from 'url';
 
 const clientDir = fileURLToPath(new URL('.', import.meta.url));
 
+// BUILD_ENTRY is set by build-apps-script.mjs when invoking multiple builds.
+// Defaults to 'sidebar' for `vite dev` / manual invocations.
+const entryName  = process.env.BUILD_ENTRY ?? 'sidebar';
+const entryPaths: Record<string, string> = {
+  sidebar:  'src/main.tsx',
+  settings: 'src/settings/main.tsx',
+};
+const entryFile = entryPaths[entryName];
+if (!entryFile) throw new Error(`Unknown BUILD_ENTRY: ${entryName}`);
+
 export default defineConfig({
   root: clientDir,
   plugins: [react()],
   build: {
     outDir: resolve(clientDir, '../dist-client'),
-    emptyOutDir: true,
+    emptyOutDir: process.env.BUILD_CLEAN === '1',
     rollupOptions: {
-      input: resolve(clientDir, 'src/main.tsx'),
+      input: resolve(clientDir, entryFile),
       output: {
         format: 'iife',
-        entryFileNames: 'sidebar.js',
-        name: 'CipherSheetApp',
+        entryFileNames: `${entryName}.js`,
+        name: `CipherSheet_${entryName}`,
         inlineDynamicImports: true,
       },
     },

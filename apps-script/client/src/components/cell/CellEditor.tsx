@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { Box, Button, TextField, Typography } from '@mui/material';
+import { Alert, Box, Button, TextField, Typography } from '@mui/material';
 import LockIcon from '@mui/icons-material/Lock';
 import LockOpenIcon from '@mui/icons-material/LockOpen';
 import KeyIcon from '@mui/icons-material/Key';
@@ -17,7 +17,7 @@ export function CellEditor({ selectedRecipients }: CellEditorProps) {
     canEncrypt, cellIsEncrypted, keyInStorage, presharedKey,
     ecdhPrivKey, pubKeyCache,
   } = useApp();
-  const { plaintext, setPlaintext, encryptAndSave, requestUnprotect } = useCellOps();
+  const { plaintext, setPlaintext, decryptError, encryptAndSave, requestUnprotect } = useCellOps();
   const { loadKeyFile } = useKeyOps();
   const { activatePresharedKey } = usePresharedKey();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -126,6 +126,12 @@ export function CellEditor({ selectedRecipients }: CellEditorProps) {
         style={{ display: 'none' }}
         onChange={handleFileChange}
       />
+
+      {decryptError && (
+        <Alert severity="error" sx={{ mt: 1, fontSize: '0.75rem', py: 0.25 }}>
+          {decryptError}
+        </Alert>
+      )}
 
       {/* Action buttons */}
       <Box sx={{ display: 'flex', gap: 1, mt: 1, mb: 0.5 }}>

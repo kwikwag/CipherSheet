@@ -15,25 +15,24 @@ export function useKeyOps() {
     ecdhPrivKey, unlockPassword, ecdhFp,
     ownEmail, defaultKeyType,
     setEcdhPrivKey, setEcdhPubKey, setUnlockPassword, setEcdhFp,
-    setKeyInStorage, setSetupPassword, setLoading,
-    showToast, pwSaveFormRef, pwSaveInputRef,
+    setKeyInStorage, setKeyHasPasskey, setSetupPassword, setLoading,
+    showToast, pwSaveFormRef, pwSaveUsernameRef, pwSaveInputRef,
   } = useApp();
 
   // ── Shared password-manager save helper ────────────────────────
-  const triggerPasswordSave = useCallback((password: string) => {
+  const triggerPasswordSave = useCallback((username: string, password: string) => {
+    const usernameInput = pwSaveUsernameRef.current;
     const input = pwSaveInputRef.current;
     const form = pwSaveFormRef.current;
     if (input && form) {
+      if (usernameInput) usernameInput.value = username;
       input.value = password;
       form.requestSubmit();
     }
-  }, [pwSaveFormRef, pwSaveInputRef]);
+  }, [pwSaveFormRef, pwSaveUsernameRef, pwSaveInputRef]);
 
-  // ── Core: import ECDH JWK → store + activate ──────────────────
-  const importEcdhFromJwk = useCallback(async (
-    jwk: JsonWebKey,
-    { isNewKey = false }: { isNewKey?: boolean } = {}
-  ) => {
+  // ── Core: generate ECDH keypair → encrypt → store + activate ───
+  const importEcdhFromJwk = useCallback(async (jwk: JsonWebKey) => {
     const pubJwk: JsonWebKey = { kty: jwk.kty, crv: jwk.crv, x: jwk.x, y: jwk.y };
     const pubKey = await crypto.subtle.importKey(
       'jwk', pubJwk, { name: 'ECDH', namedCurve: 'P-256' }, true, []
@@ -44,25 +43,23 @@ export function useKeyOps() {
     const jwkBytes = new TextEncoder().encode(JSON.stringify(jwk));
     const { wrapped, iv, salt } = await wrapData(jwkBytes, password);
 
-    let credentialId: number[] | null = null;
-    try {
-      // Forward-compatible PRF probe — throws SecurityError in iframe today
-      const challenge = crypto.getRandomValues(new Uint8Array(32));
-      const cred = await navigator.credentials.create({ publicKey: {
-        challenge, rp: { name: 'CipherSheet' },
-        user: { id: new TextEncoder().encode(fp), name: ownEmail || 'user', displayName: 'CipherSheet' },
-        pubKeyCredParams: [{ type: 'public-key', alg: -7 }],
-        authenticatorSelection: { userVerification: 'required' },
-        extensions: { prf: {} },
-      }});
-      if (cred) credentialId = Array.from(new Uint8Array((cred as PublicKeyCredential).rawId));
-    } catch { /* expected in iframe */ }
-
-    await idbPut<IdbEcdhEntry>(IDB_ECDH_KEY, {
-      wrapped, iv, salt, publicKeySpki: spki, publicKeyFp: fp,
-      ...(credentialId ? { credentialId } : {}),
-    });
+    const entry: IdbEcdhEntry = { wrapped, iv, salt, publicKeySpki: spki };
+    await idbPut<IdbEcdhEntry>(IDB_ECDH_KEY, entry);
     setKeyInStorage(true);
+    setKeyHasPasskey(false);
+
+    const fpShort = fp.replace(/-/g, '').slice(0, 8);
+    downloadJson({
+      type: 'CipherSheet-ECDH-P256',
+      version: 1,
+      created: new Date().toISOString(),
+      appVersion: window.CS_CONFIG?.appVersion ?? '',
+      fingerprint: fp,
+      wrapped: buf2b64(wrapped.buffer as ArrayBuffer),
+      iv: buf2b64(iv.buffer as ArrayBuffer),
+      salt: buf2b64(salt.buffer as ArrayBuffer),
+      publicKeySpki: buf2b64(spki.buffer as ArrayBuffer),
+    }, `ciphersheet-${fpShort}.ciphersheet-key`);
 
     const privKey = await crypto.subtle.importKey(
       'jwk', jwk, { name: 'ECDH', namedCurve: 'P-256' }, false, ['deriveBits']
@@ -74,24 +71,20 @@ export function useKeyOps() {
 
     if (window.PasswordCredential) {
       try {
-        const cred = new window.PasswordCredential({ id: 'ciphersheet-key', password, name: 'CipherSheet Keypair' });
+        const cred = new window.PasswordCredential({ id: fp, password, name: 'CipherSheet Keypair' });
         await navigator.credentials.store(cred);
       } catch { /* ignore */ }
     }
-    triggerPasswordSave(password);
+    triggerPasswordSave(fp, password);
 
     try {
       await gasRun('storePublicKey', buf2b64(spki.buffer as ArrayBuffer));
     } catch { /* non-fatal */ }
 
     setSetupPassword(password);
-    showToast(
-      isNewKey ? 'Keypair generated! Save the unlock password below.' : 'Keypair imported! Save the unlock password.',
-      'warning',
-      true
-    );
-  }, [ownEmail, setEcdhPrivKey, setEcdhPubKey, setEcdhFp, setUnlockPassword,
-      setKeyInStorage, setSetupPassword, showToast, triggerPasswordSave]);
+    showToast('Keypair generated! Save the unlock password below.', 'warning', true);
+  }, [setEcdhPrivKey, setEcdhPubKey, setEcdhFp, setUnlockPassword,
+      setKeyInStorage, setKeyHasPasskey, setSetupPassword, showToast, triggerPasswordSave]);
 
   // ── Generate new ECDH keypair ──────────────────────────────────
   const setupNewKeypair = useCallback(async () => {
@@ -101,8 +94,7 @@ export function useKeyOps() {
         { name: 'ECDH', namedCurve: 'P-256' }, true, ['deriveBits']
       );
       const jwk = await crypto.subtle.exportKey('jwk', keyPair.privateKey);
-      downloadJson({ type: 'CipherSheet-ECDH-P256', version: 1, jwk }, 'ciphersheet.ciphersheet-key');
-      await importEcdhFromJwk(jwk, { isNewKey: true });
+      await importEcdhFromJwk(jwk);
     } catch (e) {
       showToast('Setup failed: ' + (e as Error).message, 'error');
     } finally {
@@ -136,6 +128,15 @@ export function useKeyOps() {
     }
   }, [defaultKeyType, setupNewKeypair, generatePresharedKey]);
 
+  // ── Sync key-in-storage state ──────────────────────────────────
+  const syncKeyInStorage = useCallback(async () => {
+    const entry = await idbGet<IdbEcdhEntry>(IDB_ECDH_KEY).catch(() => null);
+    setKeyInStorage(!!entry);
+    setKeyHasPasskey(!!(entry?.credentialId && entry?.prfWrappedPassword));
+    setEcdhFp(entry ? await fingerprint(new Uint8Array(entry.publicKeySpki)) : null);
+    return entry ?? null;
+  }, [setKeyInStorage, setKeyHasPasskey, setEcdhFp]);
+
   // ── Load key from file ─────────────────────────────────────────
   const loadKeyFile = useCallback(async (
     file: File,
@@ -146,28 +147,30 @@ export function useKeyOps() {
       let obj: Record<string, unknown> | null = null;
       try { obj = JSON.parse(text.trim()); } catch { /* not JSON */ }
 
-      if (obj?.type === 'CipherSheet-ECDH-P256') {
-        const jwk = (obj.jwk as JsonWebKey) ?? (obj.d ? obj as unknown as JsonWebKey : null);
-        if (!jwk) throw new Error('Unrecognized .ciphersheet-key format');
-        await importEcdhFromJwk(jwk);
+      if (obj?.type === 'CipherSheet-ECDH-P256' && obj?.version === 1) {
+        if (!obj.wrapped || !obj.iv || !obj.salt || !obj.publicKeySpki)
+          throw new Error('Incomplete key file — required fields missing');
+        const entry: IdbEcdhEntry = {
+          wrapped: b642buf(obj.wrapped as string),
+          iv: b642buf(obj.iv as string),
+          salt: b642buf(obj.salt as string),
+          publicKeySpki: b642buf(obj.publicKeySpki as string),
+        };
+        await idbPut<IdbEcdhEntry>(IDB_ECDH_KEY, entry);
+        await syncKeyInStorage();
+        showToast('Key imported — enter your password to unlock', 'info');
       } else if (obj?.type === 'CipherSheet-AES256') {
         if (!obj.key) throw new Error('Missing key field in .ciphersheet-key');
         const bytes = b642buf(obj.key as string);
         if (bytes.length !== 32) throw new Error('Expected 256-bit key');
         await onPresharedBytes(bytes);
-      } else if (obj?.jwk || obj?.d) {
-        await importEcdhFromJwk((obj.jwk ?? obj) as JsonWebKey);
       } else {
-        let bytes: Uint8Array | null = null;
-        if (obj?.key) { bytes = b642buf(obj.key as string); }
-        else if (!obj) { try { bytes = b642buf(text.trim()); } catch { /* ignore */ } }
-        if (!bytes || bytes.length !== 32) throw new Error('Unrecognized key file format — expected .ciphersheet-key');
-        await onPresharedBytes(bytes);
+        throw new Error('Unrecognized key file format — expected .ciphersheet-key');
       }
     } catch (e) {
       showToast('Could not load key: ' + (e as Error).message, 'error');
     }
-  }, [importEcdhFromJwk, showToast]);
+  }, [syncKeyInStorage, showToast]);
 
   // ── Unlock with password ───────────────────────────────────────
   const doUnlockWithPassword = useCallback(async (password: string) => {
@@ -187,7 +190,7 @@ export function useKeyOps() {
 
     setEcdhPrivKey(privKey);
     setEcdhPubKey(pubKey);
-    setEcdhFp(entry.publicKeyFp || null);
+    setEcdhFp(await fingerprint(spki));
     setUnlockPassword(password);
     showToast('Key unlocked', 'success');
   }, [setEcdhPrivKey, setEcdhPubKey, setEcdhFp, setUnlockPassword, showToast]);
@@ -215,19 +218,13 @@ export function useKeyOps() {
   const forgetKey = useCallback(async () => {
     await idbDelete(IDB_ECDH_KEY);
     setKeyInStorage(false);
+    setKeyHasPasskey(false);
     setEcdhPrivKey(null);
     setEcdhPubKey(null);
     setUnlockPassword(null);
     setEcdhFp(null);
     showToast('Keypair deleted');
-  }, [setKeyInStorage, setEcdhPrivKey, setEcdhPubKey, setUnlockPassword, setEcdhFp, showToast]);
-
-  // ── Sync key-in-storage state ──────────────────────────────────
-  const syncKeyInStorage = useCallback(async () => {
-    const entry = await idbGet<IdbEcdhEntry>(IDB_ECDH_KEY).catch(() => null);
-    setKeyInStorage(!!entry);
-    return entry ?? null;
-  }, [setKeyInStorage]);
+  }, [setKeyInStorage, setKeyHasPasskey, setEcdhPrivKey, setEcdhPubKey, setUnlockPassword, setEcdhFp, showToast]);
 
   // ── PRF passkey enroll ─────────────────────────────────────────
   const tryPrfEnroll = useCallback(async () => {
@@ -265,13 +262,14 @@ export function useKeyOps() {
             prfPasswordIv: iv,
           });
         }
+        setKeyHasPasskey(true);
         showToast('Passkey unlock enabled!', 'success');
       }
     } catch (e) {
       const msg = (e as Error).message;
       if (msg !== 'Passkey popup was closed') showToast('Passkey setup failed: ' + msg, 'error');
     }
-  }, [ecdhPrivKey, ecdhFp, unlockPassword, ownEmail, showToast]);
+  }, [ecdhPrivKey, ecdhFp, unlockPassword, ownEmail, setKeyHasPasskey, showToast]);
 
   // ── PRF passkey unlock ─────────────────────────────────────────
   const unlockWithPasskey = useCallback(async () => {

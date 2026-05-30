@@ -80,20 +80,31 @@ for (const file of walk(SERVER_DIR)) {
   cpSync(file, dest);
 }
 
-// ── 3. Build client with Vite ───────────────────────────────────
+// ── 3. Build client entries with Vite ──────────────────────────
 const viteCli = 'node_modules/vite/bin/vite.js';
 if (!existsSync(viteCli)) {
   throw new Error('Vite is not installed. Run: npm install');
 }
-execFileSync(process.execPath, [viteCli, 'build', '--config', join(CLIENT_DIR, 'vite.config.ts')], {
-  stdio: 'inherit',
-  env: { ...process.env, NODE_ENV: 'production' },
-});
+const viteArgs = [viteCli, 'build', '--config', join(CLIENT_DIR, 'vite.config.ts')];
+const entries = ['sidebar', 'settings'];
+for (const [i, entry] of entries.entries()) {
+  execFileSync(process.execPath, viteArgs, {
+    stdio: 'inherit',
+    env: {
+      ...process.env,
+      NODE_ENV: 'production',
+      BUILD_ENTRY: entry,
+      BUILD_CLEAN: i === 0 ? '1' : '0',
+    },
+  });
+}
 
-// ── 4. Wrap sidebar.js as sidebar-script.html ───────────────────
-const sidebarJs   = join(DIST_CLIENT, 'sidebar.js');
-const sidebarHtml = join(DIST_DIR, 'sidebar-script.html');
-writeFileSync(sidebarHtml, `<script>\n${escapeDoubleSlashInTemplateLiterals(readFileSync(sidebarJs, 'utf8'))}</script>\n`);
+// ── 4. Wrap JS bundles as includable HTML script files ──────────
+for (const name of ['sidebar', 'settings']) {
+  const js   = join(DIST_CLIENT, `${name}.js`);
+  const html = join(DIST_DIR, `${name}-script.html`);
+  writeFileSync(html, `<script>\n${escapeDoubleSlashInTemplateLiterals(readFileSync(js, 'utf8'))}</script>\n`);
+}
 
 // ── 5. Clean up intermediate client dist ───────────────────────
 rmSync(DIST_CLIENT, { recursive: true, force: true });

@@ -26,13 +26,13 @@ export function useInitApp() {
         .then(s => { if (s?.defaultKeyType) setDefaultKeyType(s.defaultKeyType); })
         .catch(() => {});
 
-      await syncKeyInStorage();
+      const entry = await syncKeyInStorage();
       await refreshCell();
       refreshPubKeyCache();
       refreshGroupCache();
 
       // Try silent PasswordCredential autofill
-      if (window.PasswordCredential) {
+      if (window.PasswordCredential && entry) {
         try {
           const cred = await navigator.credentials.get({ password: true, mediation: 'silent' } as CredentialRequestOptions);
           const pw = cred && (cred as unknown as { password?: string }).password;

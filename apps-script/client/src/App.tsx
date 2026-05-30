@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useApp } from './context/AppContext';
 import { Box, CssBaseline } from '@mui/material';
 import { AppProvider } from './context/AppContext';
 import { useInitApp } from './hooks/useInitApp';
@@ -50,19 +51,16 @@ function AppInner() {
 function PasswordManagerForm() {
   // This invisible form exists solely to trigger browser password-save suggestions
   // when we programmatically set its value and submit.
+  const { pwSaveFormRef, pwSaveUsernameRef, pwSaveInputRef } = useApp();
   return (
     <Box
       component="form"
-      id="pwSaveForm"
+      ref={pwSaveFormRef}
       sx={{ display: 'none' }}
       onSubmit={e => e.preventDefault()}
     >
-      <input
-        id="pwSaveInput"
-        type="password"
-        name="password"
-        autoComplete="current-password"
-      />
+      <input ref={pwSaveUsernameRef} type="text" name="username" autoComplete="username" />
+      <input ref={pwSaveInputRef} type="password" name="password" autoComplete="current-password" />
     </Box>
   );
 }
