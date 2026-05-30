@@ -115,12 +115,12 @@ export function KeyLocked() {
           <Box sx={{ display: 'flex', gap: 0.5, mb: 0.5 }}>
             <WarningAmberIcon sx={{ fontSize: 14, color: 'error.main', mt: 0.2 }} />
             <Typography variant="caption" color="error.main">
-              This will delete the stored keypair. Encrypted cells using this key will be unrecoverable.
+              This will unload the stored keypair. Make sure you have it saved and the password stored securely, otherwise encrypted cells using this key will be unrecoverable.
             </Typography>
           </Box>
           <Box sx={{ display: 'flex', gap: 1 }}>
             <Button size="small" color="error" variant="contained" onClick={handleForget} sx={{ fontSize: '0.6875rem' }}>
-              Delete keypair
+              Forget keypair
             </Button>
             <Button size="small" onClick={() => setShowForget(false)} sx={{ fontSize: '0.6875rem' }}>
               Cancel

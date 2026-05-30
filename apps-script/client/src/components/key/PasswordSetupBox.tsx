@@ -23,7 +23,7 @@ export function PasswordSetupBox() {
       <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'flex-start', mb: 1 }}>
         <WarningAmberIcon sx={{ fontSize: 16, color: 'warning.dark', mt: 0.25, flexShrink: 0 }} />
         <Typography variant="caption" sx={{ color: 'warning.dark', fontWeight: 600 }}>
-          Save this unlock password — you'll need it to use your keypair on this device.
+          Save this unlock password — you'll need it to use your keypair. We recommend you use a password manager.
         </Typography>
       </Box>
 
