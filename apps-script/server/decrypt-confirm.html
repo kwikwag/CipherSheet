@@ -223,9 +223,9 @@
     return el;
   }
 
-  function setSubels(el, subEls) {
+  function setSubEls(el, subEls) {
     el.innerHTML = '';
-    subEls.forEach(subEl => el.appendChild(subEls));
+    subEls.forEach(subEl => el.appendChild(subEl));
   }
 
   if (KEY_LOADED) {

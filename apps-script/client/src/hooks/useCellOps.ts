@@ -120,10 +120,12 @@ export function useCellOps() {
     if (!currentCell || !cellIsEncrypted) return;
     const raw = String(currentCell.value ?? '');
     const keyLoaded = raw.startsWith(ENCRYPTED_PFX) && getPayloadType(raw) === TYPE_ECDH && ecdhPrivKey !== null;
+    const privKey = ecdhPrivKey;
+    const email = ownEmail;
     startLoading('cell');
     try {
       await gasRun('openDecryptConfirm', currentCell.cellRef, currentCell.sheetName, keyLoaded);
-      startPolling(currentCell.cellRef, currentCell.sheetName);
+      startPolling(currentCell.cellRef, currentCell.sheetName, raw, privKey, email);
     } catch (e) {
       showToast('Could not open dialog: ' + (e as Error).message, 'error');
       stopLoading('cell');
@@ -137,7 +139,7 @@ export function useCellOps() {
     }
   }, [pollTimerRef]);
 
-  const startPolling = useCallback((cellRef: string, sheetName: string) => {
+  const startPolling = useCallback((cellRef: string, sheetName: string, encryptedRaw: string, privKey: CryptoKey | null, email: string) => {
     let attempts = 0;
     let graceRemaining = 15;
 
@@ -154,7 +156,7 @@ export function useCellOps() {
         }
         stopPolling();
         const intent = result?.intent ?? (result?.closed ? 'cancel' : null);
-        if (intent === 'reveal') await doReveal(cellRef, sheetName);
+        if (intent === 'reveal') await doReveal(cellRef, sheetName, encryptedRaw, privKey, email);
         else if (intent === 'clear') await doClear(cellRef, sheetName);
         else stopLoading('cell');
       } catch { /* ignore poll errors */ }
@@ -162,10 +164,9 @@ export function useCellOps() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pollTimerRef, stopPolling, stopLoading]);
 
-  const doReveal = useCallback(async (cellRef: string, sheetName: string) => {
+  const doReveal = useCallback(async (cellRef: string, sheetName: string, encryptedRaw: string, privKey: CryptoKey | null, email: string) => {
     try {
-      const raw = String(currentCell?.value ?? '');
-      const pt = await decrypt(raw, ecdhPrivKey!, ownEmail);
+      const pt = await decrypt(encryptedRaw, privKey!, email);
       await gasRun('revealCell', pt, cellRef, sheetName);
       setCellView(prev => ({ ...prev, cell: prev.cell ? { ...prev.cell, value: pt } : null, plaintext: pt, decrypted: false }));
       showToast('Cell revealed', 'warning', true);
@@ -174,7 +175,7 @@ export function useCellOps() {
     } finally {
       stopLoading('cell');
     }
-  }, [currentCell, ecdhPrivKey, ownEmail, setCellView, startLoading, stopLoading, showToast]);
+  }, [ecdhPrivKey, ownEmail, setCellView, stopLoading, showToast]);
 
   const doClear = useCallback(async (cellRef: string, sheetName: string) => {
     try {
