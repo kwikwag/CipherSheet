@@ -29,6 +29,8 @@
 
   <p>This Privacy Policy applies to the CipherSheet Google Sheets add-on and the CipherSheet website. It explains how CipherSheet accesses, uses, stores, and shares Google user data.</p>
 
+  <p>CipherSheet's use and transfer of information received from Google APIs adheres to the <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener">Google API Services User Data Policy</a>, including the <a href="https://developers.google.com/terms/api-services-user-data-policy#limited-use" target="_blank" rel="noopener">Limited Use</a> requirements.</p>
+
   <h2>Who We Are</h2>
   <p>CipherSheet is an independent open-source project. Project homepage: <a href="https://kwikwag.github.io/CipherSheet/" target="_blank" rel="noopener">https://kwikwag.github.io/CipherSheet/</a>.</p>
 
@@ -62,6 +64,7 @@
     <li>We do not use Google user data for advertising (including targeted or interest-based advertising).</li>
     <li>We do not transfer Google user data to data brokers, information resellers, or for credit or lending purposes.</li>
     <li>We do not use Google user data to train generalized AI/ML models.</li>
+    <li>We do not allow humans to read your Google user data, except: (a) with your affirmative agreement for specific data; (b) where necessary for security purposes (such as investigating abuse); (c) to comply with applicable law; or (d) where the data has been aggregated and anonymized so it can no longer identify an individual user. In practice, because CipherSheet runs entirely in your browser and operates no backend service, no CipherSheet developer ever has access to your spreadsheet content, keys, or other Google user data.</li>
   </ul>
 
   <h2>Sharing and Disclosure</h2>
@@ -78,6 +81,7 @@
     <li>CipherSheet does not store spreadsheet content or Google user data on CipherSheet-owned servers.</li>
     <li>Your private encryption key is generated and stored locally by your browser. It is never transmitted to any server. Your ECDH public key is stored in spreadsheet document properties so collaborators can encrypt data for you.</li>
     <li>Temporary cache entries used for confirmation flow are short-lived and expire automatically.</li>
+    <li>Passkey (WebAuthn PRF) unlock runs in a popup served from CipherSheet's own GitHub Pages site (<code>kwikwag.github.io/CipherSheet</code>). This popup exchanges only the data needed to unlock your local key and never receives your spreadsheet content or any Google user data.</li>
   </ul>
   <p>You can delete data by clearing relevant cells, removing document properties, or deleting the spreadsheet file. Uninstalling the add-on does not automatically delete existing spreadsheet data.</p>
 
@@ -95,6 +99,9 @@
   <ul>
     <li>Removed reference to "Reveal" (write-back) feature — the UI entry point for that path has been removed; plaintext is only shown in-sidebar.</li>
     <li>Clarified that the ECDH public key is stored in document properties for collaborator use, while the private key remains local.</li>
+    <li>Added an explicit commitment to the Google API Services User Data Policy, including the Limited Use requirements.</li>
+    <li>Added an explicit statement on the limited circumstances under which humans may access Google user data.</li>
+    <li>Clarified that passkey unlock runs in a popup on CipherSheet's own site and handles no Google user data.</li>
   </ul>
 
   <h2>Contact Us</h2>

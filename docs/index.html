@@ -5,8 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CipherSheet | Client-Side Encryption for Google Sheets</title>
   <meta property="og:title" content="CipherSheet | Client-Side Encryption for Google Sheets">
-  <meta property="og:image" content="branding/store-tile.png">
+  <meta property="og:description" content="Encrypt individual cells in Google Sheets with AES-256-GCM. Your key never leaves your browser — the cloud only ever sees ciphertext. Share secrets with your team, zero-knowledge.">
+  <meta property="og:image" content="https://kwikwag.github.io/CipherSheet/branding/store-tile.png">
+  <meta property="og:url" content="https://kwikwag.github.io/CipherSheet/">
   <meta property="og:type" content="website">
+  <meta name="description" content="Encrypt individual cells in Google Sheets with AES-256-GCM. Your key never leaves your browser — the cloud only ever sees ciphertext. Share secrets with your team, zero-knowledge.">
+  <meta name="twitter:card" content="summary_large_image">
   <link rel="icon" type="image/svg+xml" href="branding/logo.svg">
   <link rel="icon" type="image/png" sizes="32x32" href="branding/logo-32.png">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -31,6 +35,7 @@
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
     
+    html, body { overflow-x: hidden; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       line-height: 1.6;
@@ -41,15 +46,23 @@
     header {
       background: #fff; border-bottom: 1px solid var(--border-color);
       padding: 1rem 6.5rem 1rem 2rem; display: flex; justify-content: space-between; align-items: center;
-      position: sticky; top: 0; z-index: 100;
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
     }
+    body { padding-top: 80px; }
+    #how-it-works, #security, #permissions { scroll-margin-top: 90px; }
     
-    .logo { display: inline-flex; align-items: center; text-decoration: none; color: #082c2eff; font-family: 'DejaVu Serif', Georgia, 'Times New Roman', Times, serif; }
+    .logo { display: inline-flex; align-items: center; text-decoration: none; color: #082c2eff; font-family: 'DejaVu Serif', Georgia, 'Times New Roman', Times, serif; font-size: 1.5rem; }
     .logo b { font-family: 'Google Sans', Arial, Helvetica, sans-serif; color: #189a54ff; font-weight: bold; font-style: normal; }
-    .logo img { height: 32px; width: auto; display: block; margin-right: 8px; }
+    .logo img { height: 48px; width: auto; display: block; margin-right: 10px; }
     .nav-links { display: flex; gap: 1.5rem; }
     .nav-links a { color: var(--text-light); text-decoration: none; font-size: 0.95rem; font-weight: 500;}
     .nav-links a:hover { color: var(--primary); }
+    .nav-toggle {
+      display: none; background: none; border: 0; cursor: pointer;
+      padding: 0.4rem; border-radius: 6px; color: var(--text-main);
+    }
+    .nav-toggle:hover { background: var(--bg-color); }
+    .nav-toggle svg { display: block; width: 26px; height: 26px; fill: currentColor; }
     .github-corner {
       position: fixed;
       top: 0;
@@ -82,8 +95,19 @@
     }
     @media (max-width: 640px) {
       header { padding-right: 4.75rem; }
-      .nav-links { gap: 0.9rem; }
-      .nav-links a { font-size: 0.88rem; }
+      .nav-toggle { display: inline-flex; }
+      .nav-links {
+        display: none; position: absolute; top: 100%; right: 0; left: 0;
+        flex-direction: column; gap: 0; background: #fff;
+        border-bottom: 1px solid var(--border-color);
+        box-shadow: 0 8px 16px rgba(0,0,0,0.08);
+      }
+      .nav-links.open { display: flex; }
+      .nav-links a {
+        padding: 0.85rem 2rem; font-size: 0.95rem;
+        border-top: 1px solid var(--border-color);
+      }
+      .nav-links a:hover { background: var(--bg-color); }
       .github-corner svg { width: 64px; height: 64px; }
       .github-corner:hover .octo-arm { animation: none; }
       .github-corner .octo-arm { animation: octocat-wave 560ms ease-in-out; }
@@ -117,16 +141,37 @@
     
     /* ── Slideshow (CSS-only approximation or flex-grid) ── */
     .features-grid {
-      display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      display: grid; grid-template-columns: repeat(3, 1fr);
       gap: 2rem; margin-top: 3rem;
+    }
+    @media (max-width: 720px) {
+      .features-grid { grid-template-columns: 1fr; }
     }
     
     .feature-card {
-      background: #fff; padding: 2rem; border-radius: 8px;
+      background: #fff; padding: 2rem; border-radius: 12px;
       box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 1px solid var(--border-color);
+      border-top: 4px solid var(--primary);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
     }
-    .feature-card h3 { font-size: 1.25rem; margin-bottom: 1rem; color: var(--text-main); }
+    .feature-card:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(5,106,70,0.12); }
+    .feature-icon {
+      width: 48px; height: 48px; border-radius: 12px;
+      display: inline-flex; align-items: center; justify-content: center;
+      background: #e8f5ee; margin-bottom: 1rem; font-size: 1.5rem;
+    }
+    .feature-icon svg { width: 26px; height: 26px; fill: var(--primary); }
+    .feature-card h3 { font-size: 1.25rem; margin-bottom: 0.75rem; color: var(--text-main); }
+    .feature-card h3 .step-num { color: var(--primary); font-weight: 700; }
     .feature-card p { color: var(--text-light); font-size: 0.95rem; }
+
+    /* ── Use-case banner ── */
+    .usecase {
+      background: linear-gradient(135deg, #056a46 0%, #189a54 100%);
+      color: #fff; border-radius: 12px; padding: 2.5rem 3rem; margin-top: 3rem;
+    }
+    .usecase h3 { color: #fff; font-size: 1.5rem; margin-bottom: 0.75rem; }
+    .usecase p { color: rgba(255,255,255,0.92); font-size: 1.05rem; margin: 0; }
     
     /* ── Security & Permissions ── */
     .info-section {
@@ -136,6 +181,44 @@
     .info-section h3 { font-size: 1.5rem; margin-bottom: 1rem; color: var(--text-main); }
     .info-section p, .info-section ul { color: var(--text-light); margin-bottom: 1rem; }
     .info-section ul { padding-left: 2rem; }
+
+    /* ── Full-width privacy band ── */
+    .privacy-band {
+      background: radial-gradient(circle at 20% 0%, #0b3d2c 0%, #082c2e 55%, #061f21 100%);
+      color: #e8f5ee;
+      padding: 5rem 2rem;
+      text-align: center;
+    }
+    .privacy-band .inner { max-width: 1000px; margin: 0 auto; }
+    .privacy-band h2 { color: #fff; margin-bottom: 0.75rem; }
+    .privacy-band .lede {
+      font-size: 1.2rem; color: rgba(232,245,238,0.85);
+      max-width: 680px; margin: 0 auto 3rem;
+    }
+    .privacy-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem; text-align: left;
+    }
+    @media (max-width: 720px) {
+      .privacy-grid { grid-template-columns: 1fr; }
+    }
+    .privacy-pillar {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 12px; padding: 1.75rem;
+    }
+    .privacy-pillar .p-icon {
+      width: 40px; height: 40px; margin-bottom: 0.9rem;
+      display: inline-flex; align-items: center; justify-content: center;
+    }
+    .privacy-pillar .p-icon svg { width: 30px; height: 30px; fill: #4dd39a; }
+    .privacy-pillar h4 { font-size: 1.1rem; color: #fff; margin-bottom: 0.5rem; }
+    .privacy-pillar p { font-size: 0.95rem; color: rgba(232,245,238,0.82); margin: 0; }
+    .privacy-pillar a { color: #7fe3b4; }
+    .privacy-warn {
+      margin-top: 2rem; font-size: 0.95rem;
+      color: rgba(232,245,238,0.7);
+    }
     
     footer {
       text-align: center; padding: 3rem 2rem; background: #fff;
@@ -165,19 +248,22 @@
     <a class="logo" href="index.html" aria-label="CipherSheet Home">
       <img src="branding/logo.svg" alt="CipherSheet"> Cipher<b>Sheet</b>
     </a>
-    <div class="nav-links">
+    <button class="nav-toggle" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="nav-links">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </button>
+    <nav class="nav-links" id="nav-links">
       <a href="#how-it-works">How it works</a>
       <a href="#security">Security</a>
       <a href="#permissions">Permissions</a>
       <a href="donate.html">Donate</a>
       <a href="https://docs.google.com/forms/d/e/1FAIpQLScRT2LRVGqDcpENJ2fYaqIOr0fE9XUsEk9tJLZUtSa4i4dleQ/viewform" target="_blank">Contact</a>
-    </div>
+    </nav>
   </header>
 
   <main>
     <section class="hero">
       <img class="hero-store-tile" src="branding/store-tile-transparent.svg" alt="CipherSheet marketplace tile">
-      <p>Secure specific cells with military-grade AES-256-GCM encryption. The key never leaves your browser, the cloud only sees ciphertext.</p>
+      <p>Encrypt individual cells with strong, standards-based AES-256-GCM encryption. Your key never leaves your browser — the cloud only ever sees ciphertext.</p>
       <a href="https://workspace.google.com/marketplace/app/ciphersheet/1069746286788" target="_blank" class="install-btn">Install from Google Workspace Marketplace</a>
     </section>
 
@@ -185,42 +271,74 @@
       <h2 id="how-it-works">How to Use CipherSheet</h2>
       <div class="features-grid">
         <div class="feature-card">
-          <h3>1. Generate a Key</h3>
-          <p>Click <strong>Generate key</strong> in the add-on sidebar. A personal keypair is created in your browser. Save the unlock password shown — it cannot be recovered. Optionally set up a passkey for easier access.</p>
+          <div class="feature-icon" aria-hidden="true">
+            <svg viewBox="0 0 375.184 375.184"><path d="M285.344 97.751c0-53.9-43.852-97.751-97.752-97.751S89.84 43.851 89.84 97.751c0 46.506 32.648 85.527 76.227 95.358v160.549c0 11.869 9.656 21.525 21.525 21.525s21.525-9.656 21.525-21.525v-6.908h28.975c8.271 0 15-6.383 15-14.228 0-7.846-6.729-14.229-15-14.229h-.58c-2.757 0-5-2.243-5-5v-7.96c0-2.757 2.243-5 5-5h.58c8.271 0 15-6.383 15-14.229s-6.729-14.229-15-14.229h-28.975V193.11c43.579-9.832 76.227-48.852 76.227-95.359m-97.752 55.021c-30.387 0-55.021-24.634-55.021-55.021s24.634-55.021 55.021-55.021 55.021 24.634 55.021 55.021-24.634 55.021-55.021 55.021"/></svg>
+          </div>
+          <h3><span class="step-num">1.</span> Generate a Key</h3>
+          <p>Click <strong>Generate key</strong> in the sidebar. A personal keypair is created right in your browser — your public key is registered so teammates can encrypt for you, while your private key never leaves your device.</p>
         </div>
         <div class="feature-card">
-          <h3>2. Load & Protect</h3>
-          <p>Select any cell, type your sensitive data into the CipherSheet text field, and click <strong>Protect</strong>. The cell is instantly replaced with ciphertext directly in the spreadsheet.</p>
+          <div class="feature-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M18 8h-1V6A5 5 0 0 0 7 6v2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V10a2 2 0 0 0-2-2M9 6a3 3 0 0 1 6 0v2H9zm4 9.72V18a1 1 0 0 1-2 0v-2.28a2 2 0 1 1 2 0"/></svg>
+          </div>
+          <h3><span class="step-num">2.</span> Protect Values</h3>
+          <p>Select a cell, type your sensitive data into the CipherSheet box, pick recipients from your list of collaborators, and click <strong>Protect</strong>. The cell becomes ciphertext instantly — only the recipients you chose can read it, each from their own sidebar.</p>
         </div>
         <div class="feature-card">
-          <h3>3. Decrypt on Demand</h3>
-          <p>Collaborators who have generated their own key and are listed as recipients will be able to decrypt the cell in their sidebar.</p>
+          <div class="feature-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M12 2 4 5v6c0 5 3.4 9.7 8 11 4.6-1.3 8-6 8-11V5zm-1.2 13.6-3.1-3.1 1.4-1.4 1.7 1.7 4-4 1.4 1.4z"/></svg>
+          </div>
+          <h3><span class="step-num">3.</span> Secure Your Key</h3>
+          <p>Your private key is locked with a strong, auto-generated password. Save it in your password manager — or enroll a <strong>passkey</strong> for one-tap unlock. Because no one else holds it, lose the password with no passkey and the data is unrecoverable, so keep it safe.</p>
         </div>
-        <div class="feature-card">
-          <h3>4. Revealing & Clearing</h3>
-          <p>No longer a secret? You can "Reveal" the plaintext back into the sheet, or "Clear" the cell to remove the ciphertext without decrypting it.</p>
-        </div>
+      </div>
+
+      <div class="usecase">
+        <h3>Share team secrets without sharing the risk</h3>
+        <p>Keep API keys, passwords, and other sensitive values in the same Sheet your team already works in. Add the teammates who need access as recipients — everyone reads the values they're entitled to, and no one (not even Google) ever sees the plaintext on the server. No separate vault, no copy-pasting between tools.</p>
       </div>
     </div>
 
-    <div class="container">
-      <div class="info-section" id="security">
-        <h3>Honest Security Guarantee</h3>
-        <p>CipherSheet uses a <strong>zero-knowledge architecture for key handling</strong>. This means:</p>
-        <ul>
-          <li><strong>Client-side encryption:</strong> All encryption and decryption occurs locally in your browser using the <a href="https://developer.mozilla.org/en-US/docs/Web/API/Web_Crypto_API" target="_blank" rel="noopener">Web Crypto API</a>.</li>
-          <li><strong>Keys stay with you:</strong> Your private key never leaves your browser. Only your public key is registered in the spreadsheet so collaborators can encrypt for you. The add-on sends only unintelligible ciphertext to Google's servers.</li>
-          <li><strong>Data loss warning:</strong> Because we have no access to your keys, we have no way to recover encrypted data if you lose your unlock password. Keep it in a secure password manager.</li>
-        </ul>
+    <section class="privacy-band" id="security">
+      <div class="inner">
+        <h2>How Your Data Stays Private</h2>
+        <p class="lede">CipherSheet is built on a <strong>zero-knowledge architecture</strong>: your secrets are sealed in your browser before they ever reach the cloud. We couldn't read your data even if we wanted to — and neither can Google.</p>
+        <div class="privacy-grid">
+          <div class="privacy-pillar">
+            <div class="p-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M12 1 3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11z"/></svg>
+            </div>
+            <h4>Encrypted in your browser</h4>
+            <p>All encryption and decryption happen locally via the <a href="https://developer.mozilla.org/en-US/docs/Web/API/Web_Crypto_API" target="_blank" rel="noopener">Web Crypto API</a>. Only ciphertext and public keys are ever sent to Google's servers.</p>
+          </div>
+          <div class="privacy-pillar">
+            <div class="p-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M18 8h-1V6A5 5 0 0 0 7 6v2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V10a2 2 0 0 0-2-2M9 6a3 3 0 0 1 6 0v2H9zm4 9.72V18a1 1 0 0 1-2 0v-2.28a2 2 0 1 1 2 0"/></svg>
+            </div>
+            <h4>Your key stays yours</h4>
+            <p>Your private key never leaves your device. Only your public key is shared, so collaborators can encrypt for you — never decrypt as you.</p>
+          </div>
+          <div class="privacy-pillar">
+            <div class="p-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M12 1.5A8.5 8.5 0 0 0 8.8 17.9l1.7-4.3a3 3 0 1 1 3 0l1.7 4.3A8.5 8.5 0 0 0 12 1.5m-1 12.9L8.3 21a1 1 0 0 0 .94 1.35h5.52A1 1 0 0 0 15.7 21L13 14.4a4.98 4.98 0 0 1-2 0"/></svg>
+            </div>
+            <h4>Truly in your control</h4>
+            <p>No CipherSheet account, no server-side copy of your keys, no backdoor. Open-source and auditable on <a href="https://github.com/kwikwag/CipherSheet" target="_blank" rel="noopener">GitHub</a>.</p>
+          </div>
+        </div>
+        <p class="privacy-warn">⚠️ If you lose your unlock password and passkey, it's effectively impossible to recover your data. Keep your password secure.</p>
       </div>
+    </section>
 
+    <div class="container">
       <div class="info-section" id="permissions">
         <h3>Why We Need Permissions</h3>
-        <p>When you install CipherSheet, Google will ask you to authorize specific permissions to your account. We only ask for what is strictly necessary:</p>
+        <p>When you install CipherSheet, Google asks you to authorize two scopes — the minimum needed, and nothing more:</p>
         <ul>
-          <li><strong>Read & Write to Spreadsheets (<code>https://www.googleapis.com/auth/spreadsheets.currentonly</code>):</strong> We strictly ask for access to the <em>current spreadsheet only</em>. We require this to read the selected cell's value and write the encrypted payload back into the sheet when you click "Protect", and to store your public key in document properties so collaborators can encrypt for you.</li>
-          <li><strong>Display internal add-on UI:</strong> required to create the custom Add-on Sidebar and Menu you see.</li>
+          <li><strong>Current spreadsheet only (<code>auth/spreadsheets.currentonly</code>):</strong> read the selected cell's value, write the encrypted payload back when you click "Protect", and store your public key so collaborators can encrypt for you. CipherSheet can never see your other Sheets or any other Google data.</li>
+          <li><strong>Add-on sidebar &amp; menu (<code>auth/script.container.ui</code>):</strong> show the CipherSheet sidebar, menu, and dialogs inside Google Sheets.</li>
         </ul>
+        <p>Passkey unlock runs in a small popup of static HTML served from CipherSheet's server. It exchanges only the data needed to unlock your key in your browser and never receives your spreadsheet content.</p>
       </div>
     </div>
   </main>
@@ -235,5 +353,23 @@
     </div>
   </footer>
 
+  <script>
+    (function () {
+      const toggle = document.querySelector('.nav-toggle');
+      const nav = document.getElementById('nav-links');
+      if (!toggle || !nav) return;
+      const close = () => { nav.classList.remove('open'); toggle.setAttribute('aria-expanded', 'false'); };
+      toggle.addEventListener('click', function (e) {
+        e.stopPropagation();
+        const open = nav.classList.toggle('open');
+        toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      });
+      // Close when a link is tapped or when clicking outside
+      nav.addEventListener('click', function (e) { if (e.target.tagName === 'A') close(); });
+      document.addEventListener('click', function (e) {
+        if (!nav.contains(e.target) && !toggle.contains(e.target)) close();
+      });
+    })();
+  </script>
 </body>
 </html>

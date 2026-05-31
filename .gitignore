@@ -5,3 +5,4 @@ apps-script/dist/
 .DS_Store
 /AGENTS.local.md
 /apps-script/dist-client
+/.playwright-mcp

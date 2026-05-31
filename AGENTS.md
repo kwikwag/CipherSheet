@@ -266,7 +266,7 @@ Settings toggles (protection, reversion, default key type) + read-only list of r
 
 ### [apps-script/server/onboarding.html](apps-script/server/onboarding.html)
 
-Welcome carousel, 4 slides, screenshot-driven. Currently describes the pre-shared key flow (slides need updating when the ECDH first-run UX is finalised).
+Welcome carousel, 4 slides, screenshot-driven. Describes the ECDH keypair first-run flow (generate key → protect cell → read in sidebar → keep key safe).
 
 ---
 
@@ -340,7 +340,7 @@ Minimal scopes: current spreadsheet + container UI only. See [appsscript.json](a
 
 ## Deferred / Known Gaps
 
-- **Onboarding slides** — still describe the pre-shared key flow; need updating for the ECDH first-run wizard
+- **Onboarding slides** — describe the ECDH keypair first-run flow; screenshots may still need refreshing
 - **PRF key rotation** — not yet exposed; would require enrolling a replacement credential and rewrapping the stored unlock password
 - **Add/remove recipient on existing cells** — not yet exposed in UI; re-encryption on remove and cheap add-only re-wrap on add are both described in plan
 - **Group membership resolution in picker** — groups appear in summary label but picker doesn't expand groups to individual recipients
