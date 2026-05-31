@@ -55,16 +55,19 @@ Prefer editing the existing entry over creating a new paragraph. Keep the file c
 
 ```
 apps-script/
-  server/                # Apps Script server-side source
+  server/                # Apps Script server code + HTML panel shells — copied as-is to dist/
+                         # NOTE: despite the name, also contains the HTML files served to the browser;
+                         # these are thin shells (inject CS_CONFIG, mount #root) not full UI source
     Code.ts              # Server entry point (compiled with tsc, module: none)
     appsscript.json      # Apps Script manifest (oauthScopes, runtimeVersion)
     sidebar.html         # Shell: injects CS_CONFIG, mounts <div id="root">, includes sidebar-script
     decrypt-confirm.html # Consent modal for revealing plaintext
     onboarding.html      # Welcome carousel (4 slides, screenshot-driven)
-    settings.html        # Settings toggles + public key list + group management
+    settings.html        # Settings shell: injects CS_CONFIG, mounts #root, includes settings-script
     downloaded/          # Vendored external CSS (Google Add-on stylesheet)
     imgs-encoded/        # Base64-encoded screenshots included by build
-  client/                # Sidebar React/Vite client source (TypeScript strict)
+  client/                # React/Vite source for sidebar and settings UIs
+                         # Vite compiles this into dist/sidebar-script.html + dist/settings-script.html
     index.html           # Dev server entry (sets mock CS_CONFIG)
     vite.config.ts       # Vite: IIFE output → dist-client/sidebar.js
     tsconfig.json        # Client TypeScript config (strict: true, ES2022)
@@ -192,7 +195,7 @@ Every encrypted cell stores a **self-contained payload** as its value, prefixed 
 
 ## Key Source Files
 
-### [apps-script/src/Code.ts](apps-script/src/Code.ts)
+### [apps-script/server/Code.ts](apps-script/server/Code.ts)
 
 Server-side Apps Script. TypeScript compiled to JS; all Apps Script globals (`SpreadsheetApp`, `PropertiesService`, etc.) are resolved at compile time via `@types/google-apps-script`.
 
@@ -217,60 +220,14 @@ Server-side Apps Script. TypeScript compiled to JS; all Apps Script globals (`Sp
 | `getDocumentSettings()` / `setDocumentSettings()` | JSON settings in Document Properties (`editWarningEnabled`, `revertOnEditEnabled`, `defaultKeyType`) |
 | `navigateToCell(cellRef, sheetName)` | Activates a cell in the sheet UI |
 | `onEdit(e)` | Auto-reverts direct edits to vault cells (requires `revertOnEditEnabled`) |
+| `removePublicKey()` | Deletes the calling user's `pk:<email>` entry from Document Properties |
+| `resetDocumentMetadata()` | Interactively deletes all CipherSheet Document Properties (settings, public keys, groups); does not touch cell values |
 
-### [apps-script/src/sidebar.html](apps-script/src/sidebar.html)
+### [apps-script/server/sidebar.html](apps-script/server/sidebar.html)
 
-Thin shell that composes the sidebar via `<?!= include() ?>` directives and injects template constants (`FEEDBACK_URL`, `DONATE_URL`, `PRIVACY_URL`, `PASSKEY_POPUP_URL`) before loading client code. All cryptographic operations run in [sidebar-script.js](apps-script/src/sidebar-script.js); CSS is in [sidebar-styles.html](apps-script/src/sidebar-styles.html); body HTML is in [sidebar-body.html](apps-script/src/sidebar-body.html).
+Thin shell that injects `CS_CONFIG` (feedback/donate/privacy URLs, app version, initial public keys) and mounts `<div id="root">`, then includes the Vite-built `sidebar-script.html`.
 
-**Client-side state** (in [sidebar-script.js](apps-script/src/sidebar-script.js)):
-
-| Variable | Type | Meaning |
-|---|---|---|
-| `ecdhPrivKey` | `CryptoKey` (non-extractable) | Active ECDH P-256 private key |
-| `ecdhPubKey` | `CryptoKey` | Active ECDH P-256 public key |
-| `presharedKey` | `CryptoKey` (non-extractable) | Active pre-shared AES-256-GCM key |
-| `unlockPassword` | `string` | Auto-generated PBKDF2 password, in memory while unlocked |
-| `pubKeyCache` | `{ email, pubKey, fp }[]` | All registered users' public keys, loaded at init |
-| `ownEmail` | `string` | Current user's email, fetched via `getCurrentUserEmail()` at init |
-| `emailReady` | `Promise<void>` | Resolves when `ownEmail` is set; ECDH paths await this before proceeding |
-| `keyInStorage` | `boolean` | True when an ECDH keypair exists in IndexedDB (may be locked) |
-| `groupCache` | `{ id, emailHashes, label }[]` | Cached group list from server, used for recipient summary labels |
-| `ecdhFp` | `string \| null` | Fingerprint of the active ECDH public key, reused as the passkey user handle |
-
-**Key functions:**
-
-| Function | Purpose |
-|---|---|
-| `setupNewKeypair()` | Generate ECDH P-256 keypair, wrap+store in IndexedDB, download `.ciphersheet-key` backup, register SPKI with server, and run the forward-compatible iframe PRF probe |
-| `generatePresharedKey()` | Generate random 32-byte AES key, download as `.ciphersheet-key`, activate |
-| `generateKey()` | Dispatcher: calls `setupNewKeypair` or `generatePresharedKey` based on `defaultKeyType` setting |
-| `loadKeyFile(file)` | Unified file loader: detects key type from JSON `type` field (`CipherSheet-ECDH-P256` or `CipherSheet-AES256`); falls back to legacy formats |
-| `_importEcdhFromJwk(jwk)` | Core ECDH keypair import: wrap+store in IndexedDB, register SPKI, activate session keys |
-| `_doUnlockWithPassword(pw)` | PBKDF2-unwrap stored keypair, import as non-extractable; uses stored `publicKeySpki` (not exportKey('spki', privateKey)) |
-| `lockEcdh()` | Clear `ecdhPrivKey`, `ecdhPubKey`, `unlockPassword` from memory |
-| `activatePresharedKey(bytes, meta)` | Import pre-shared AES key; validate against current cell |
-| `encryptECDH(plaintext, recipients)` | Type 0x02: generate cell key, encrypt, wrap per recipient with ECDH+HKDF |
-| `decryptECDH(payload)` | Find own recipient entry, ECDH-unwrap cell key, decrypt |
-| `encryptPreshared(plaintext)` | Type 0x01: AES-GCM encrypt with pre-shared key |
-| `decryptPreshared(payload)` | Type 0x01: AES-GCM decrypt with pre-shared key |
-| `decrypt(ciphertextStr)` | Dispatcher: read type byte, call ECDH or pre-shared path |
-| `refreshPubKeyCache()` | Call `listPublicKeys()`, import all SPKI as CryptoKeys |
-| `refreshGroupCache()` | Call `listGroups()`, populate `groupCache` |
-| `encryptAndSave()` | Encrypt (ECDH if available, else pre-shared) → call `setEncryptedCellValue`; fires `upsertGroup` fire-and-forget when >1 recipient |
-| `showKeyState()` | Render key section based on IndexedDB entry + in-memory state; sets `keyInStorage` |
-| `_prfPopupHandshake(action, extraData)` | Open the GitHub Pages PRF popup and exchange `prf-ready` / `prf-start` / result messages over cross-origin `postMessage` with a random channel token |
-| `_storePrfWrap(credentialId, prfOutput, password)` | Wrap the generated ECDH unlock password with a WebAuthn PRF-derived AES-GCM key and store it in IndexedDB |
-| `_prfUserHandle(fp)` | Derive the WebAuthn `user.id` as a 32-byte SHA-256 digest so it stays below the 64-byte limit |
-| `_tryPrfEnroll(password, fp)` / `enablePasskeyUnlock()` | Enroll a passkey for the active ECDH keypair and persist the PRF-wrapped unlock password |
-| `unlockWithPasskey()` | Use the popup PRF flow to unwrap the stored unlock password and unlock the ECDH keypair |
-| `sha256hex(str)` | Sync SHA-256 stub (async workaround) used for email hashing in recipient summary |
-| `computeGroupId(emailHashes)` | First 16 hex chars of SHA-256(sorted hashes joined with `\|`) |
-
-**Key section UI states:**
-- `#ks-setup` — no keys in IndexedDB; shows "Generate key" (dispatches on `defaultKeyType`) + "Import existing key"
-- `#ks-locked` — ECDH keypair stored in IndexedDB but not in memory; shows fingerprint + unlock password input, passkey unlock when enrolled, and "Forget this key" escape hatch
-- `#ks-unlocked` — ECDH keypair active; shows email, fingerprint, optional "Enable passkey unlock", and Lock button
-- `#ks-preshared-loaded` — pre-shared key active; always shown independently below ECDH section
+All client-side state and logic lives in the React client ([apps-script/client/src/](apps-script/client/src/)). Key entry points: [AppContext.tsx](apps-script/client/src/context/AppContext.tsx) for global state, [useKeyOps.ts](apps-script/client/src/hooks/useKeyOps.ts) for key operations, [useCellOps.ts](apps-script/client/src/hooks/useCellOps.ts) for cell encrypt/decrypt/unprotect, [crypto.ts](apps-script/client/src/utils/crypto.ts) for all WebCrypto operations.
 
 **IndexedDB schema** (`CipherSheet` db, `keys` store):
 
@@ -291,7 +248,7 @@ The `wrapped` field is the PBKDF2+AES-GCM encrypted JWK of the ECDH private key.
 | ECDH-derived wrapping key | No (`deriveKey` result) | Ephemeral per-recipient |
 | Pre-shared key | No | Long-lived; resists XSS |
 
-### [apps-script/src/decrypt-confirm.html](apps-script/src/decrypt-confirm.html)
+### [apps-script/server/decrypt-confirm.html](apps-script/server/decrypt-confirm.html)
 
 Consent modal. Displays risk warnings. Requires user to type the cell address to confirm "Reveal". Sends `heartbeatModalAlive` + `recordDecryptIntent` to Apps Script UserCache.
 
@@ -299,11 +256,11 @@ Consent modal. Displays risk warnings. Requires user to type the cell address to
 
 GitHub Pages top-level popup for WebAuthn PRF enrollment and unlock. It waits for `prf-start` over `postMessage`, validates `returnOrigin` and the random channel token, ignores duplicate starts, calls `navigator.credentials.create()` / `navigator.credentials.get()` with PRF eval input, returns `credentialId` and PRF output to the sidebar, then closes.
 
-### [apps-script/src/settings.html](apps-script/src/settings.html)
+### [apps-script/server/settings.html](apps-script/server/settings.html)
 
 Settings toggles (protection, reversion, default key type) + read-only list of registered public keys with fingerprints + implicit group list (auto-populated from encryption activity; user can add labels via inline input saved by `upsertGroup`).
 
-### [apps-script/src/onboarding.html](apps-script/src/onboarding.html)
+### [apps-script/server/onboarding.html](apps-script/server/onboarding.html)
 
 Welcome carousel, 4 slides, screenshot-driven. Currently describes the pre-shared key flow (slides need updating when the ECDH first-run UX is finalised).
 
@@ -351,14 +308,14 @@ GAS calls (`google.script.run`) reject with an error in dev mode.
 
 ### Image pipeline
 1. Put screenshots in `imgs/`
-2. Run `python3 update_images.py` → generates base64 HTML files in `apps-script/src/imgs-encoded/`
+2. Run `python3 update_images.py` → generates base64 HTML files in `apps-script/server/imgs-encoded/`
 3. Build script copies them to `dist/`
 
 ---
 
 ## Apps Script Manifest
 
-Minimal scopes: current spreadsheet + container UI only. See [appsscript.json](apps-script/src/appsscript.json)
+Minimal scopes: current spreadsheet + container UI only. See [appsscript.json](apps-script/server/appsscript.json)
 
 ---
 

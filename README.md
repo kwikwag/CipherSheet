@@ -73,19 +73,12 @@ Website: https://kwikwag.github.io/CipherSheet/
 
 ---
 
-## Files
-
-- `apps-script/src/Code.ts` — Apps Script source in TypeScript
-- `apps-script/src/sidebar.html` — Client-side HTML/CSS/JS with all cryptography
-
----
-
 ## Project Structure
 
 - `docs/` — Static website content served by GitHub Pages.
-- `apps-script/src/Code.ts` — TypeScript source for Apps Script server code.
-- `apps-script/src/` — Apps Script HTML/manifest assets.
-- `apps-script/dist/` — Generated `clasp` push directory.
+- `apps-script/server/` — Apps Script server code (`Code.ts`) and HTML panel shells (sidebar, settings, consent modal, onboarding) copied directly to `dist/`.
+- `apps-script/client/` — React/Vite source for the sidebar and settings UIs; compiled by Vite into `dist/sidebar-script.html` and `dist/settings-script.html`.
+- `apps-script/dist/` — Compiled output pushed to Apps Script via clasp.
 
 ---
 
