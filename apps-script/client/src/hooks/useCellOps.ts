@@ -3,20 +3,20 @@ import { useApp } from '../context/AppContext';
 import {
   decrypt, encryptECDH,
   sha256hex, computeGroupId, VAULT_PFX, getPayloadType,
-  TYPE_ECDH,
+  TYPE_ECDH, parseRecipientHashes,
 } from '../utils/crypto';
 import { gasRun } from '../utils/gas';
-import type { CellData, CellViewState, PubKeyCacheEntry } from '../types';
+import type { CellData, CellViewState } from '../types';
 
 const POLL_MS = 800;
 const POLL_MAX = 75;
 
-const EMPTY_VIEW: CellViewState = { cell: null, plaintext: '', decrypted: false, decryptError: null };
+const EMPTY_VIEW: CellViewState = { cell: null, plaintext: '', decrypted: false, decryptError: null, recipientHashes: new Set() };
 
 export function useCellOps() {
   const {
     ecdhPrivKey, ownEmail, cellView, setCellView,
-    pubKeyCache, noKeyEditors, groupCache, canEncrypt, cellIsEncrypted,
+    editors, groupCache, canEncrypt, cellIsEncrypted,
     startLoading, stopLoading, showToast, pollTimerRef,
   } = useApp();
   const { cell: currentCell, plaintext, decrypted, decryptError } = cellView;
@@ -26,22 +26,23 @@ export function useCellOps() {
     if (!data) { setCellView(EMPTY_VIEW); return; }
     const raw = String(data.value ?? '');
     if (!raw.startsWith(VAULT_PFX) || raw.length <= VAULT_PFX.length) {
-      setCellView({ cell: data, plaintext: raw, decrypted: false, decryptError: null });
+      setCellView({ cell: data, plaintext: raw, decrypted: false, decryptError: null, recipientHashes: new Set() });
       return;
     }
     const type = getPayloadType(raw);
+    const recipientHashes = type === TYPE_ECDH ? parseRecipientHashes(raw) : new Set<string>();
     if (type === TYPE_ECDH && ecdhPrivKey !== null) {
       try {
         const pt = await decrypt(raw, ecdhPrivKey, ownEmail);
-        setCellView({ cell: data, plaintext: pt, decrypted: true, decryptError: null });
+        setCellView({ cell: data, plaintext: pt, decrypted: true, decryptError: null, recipientHashes });
       } catch (e) {
-        setCellView({ cell: data, plaintext: '', decrypted: false, decryptError: classifyDecryptError(e as Error) });
+        setCellView({ cell: data, plaintext: '', decrypted: false, decryptError: classifyDecryptError(e as Error), recipientHashes });
       }
     } else {
       const decryptError = (type === null && ecdhPrivKey !== null)
         ? 'This cell appears corrupted or uses an unrecognized format.'
         : null;
-      setCellView({ cell: data, plaintext: '', decrypted: false, decryptError });
+      setCellView({ cell: data, plaintext: '', decrypted: false, decryptError, recipientHashes });
     }
   }, [ecdhPrivKey, ownEmail, setCellView]);
 
@@ -63,7 +64,7 @@ export function useCellOps() {
   // ── Protect (encrypt and save) ─────────────────────────────────
   const encryptAndSave = useCallback(async (
     text: string,
-    selectedRecipients: PubKeyCacheEntry[]
+    selectedRecipients: { email: string; pubKey: CryptoKey }[]
   ) => {
     if (!canEncrypt) { showToast('No key loaded', 'warning'); return; }
     if (!currentCell) { showToast('Refresh cell selection first', 'warning'); return; }
@@ -88,18 +89,21 @@ export function useCellOps() {
       if (!ecdhPrivKey) { showToast('No key loaded', 'warning'); return; }
       if (selectedRecipients.length === 0) { showToast('Select at least one person', 'warning'); return; }
       const ct = await encryptECDH(text, selectedRecipients);
+      const recipientHashes = new Set(
+        await Promise.all(selectedRecipients.map(r => sha256hex(r.email.toLowerCase())))
+      );
       if (selectedRecipients.length > 1) {
-        const hashes = await Promise.all(
-          selectedRecipients.map(r => sha256hex(r.email.toLowerCase()))
-        );
+        const hashes = [...recipientHashes];
         const groupId = await computeGroupId(hashes);
         gasRun('upsertGroup', groupId, hashes, '').catch(() => { /* fire-and-forget */ });
       }
 
-      await gasRun('setEncryptedCellValue', ct, currentCell.cellRef, currentCell.sheetName);
+      await Promise.all([
+        gasRun('navigateToCell', currentCell.cellRef, currentCell.sheetName).catch(() => {}),
+        gasRun('setEncryptedCellValue', ct, currentCell.cellRef, currentCell.sheetName),
+      ]);
       // We just encrypted `text`, so we know the view state without re-decrypting
-      setCellView({ cell: { ...currentCell, value: ct }, plaintext: text, decrypted: true, decryptError: null });
-      gasRun('navigateToCell', currentCell.cellRef, currentCell.sheetName).catch(() => {});
+      setCellView({ cell: { ...currentCell, value: ct }, plaintext: text, decrypted: true, decryptError: null, recipientHashes });
       showToast('Protected', 'success');
     } catch (e) {
       showToast('Save failed: ' + (e as Error).message, 'error');
@@ -186,12 +190,12 @@ export function useCellOps() {
 
   // ── Recipient summary ──────────────────────────────────────────
   const getRecipientSummary = useCallback(async (selectedEmails: string[]): Promise<string> => {
-    const total = pubKeyCache.length + noKeyEditors.length;
+    const total = editors.filter(e => e.pubKey !== undefined).length;
     const n = selectedEmails.length;
     if (total === 0) return 'No registered users';
     if (n === total) return `Everyone (${total})`;
     if (n === 0) return 'Nobody';
-    if (n === 1) return selectedEmails[0];
+    if (n === 1) return editors.find(e => e.email === selectedEmails[0])?.name ?? selectedEmails[0];
     const hashes = await Promise.all(selectedEmails.map(e => sha256hex(e.toLowerCase())));
     const sorted = [...hashes].sort();
     const match = groupCache.find(g => {
@@ -199,7 +203,7 @@ export function useCellOps() {
       return gh.length === sorted.length && gh.every((h, i) => h === sorted[i]);
     });
     return match?.label || `${n} people`;
-  }, [pubKeyCache, noKeyEditors, groupCache]);
+  }, [editors, groupCache]);
 
   return {
     plaintext, setPlaintext: (v: string) => setCellView(prev => ({ ...prev, plaintext: v })),

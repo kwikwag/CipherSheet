@@ -14,11 +14,11 @@ import { FingerprintChip } from '../common/FingerprintChip';
 export function KeySetup() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { setupNewKeypair, loadKeyFile, removePublicKey } = useKeyOps();
-  const { ownEmail, pubKeyCache, showToast } = useApp();
+  const { ownEmail, editors, showToast } = useApp();
   const [conflict, setConflict] = useState<KeyConflict | null>(null);
   const [showForgetPubKey, setShowForgetPubKey] = useState(false);
 
-  const registeredEntry = pubKeyCache.find(e => e.email === ownEmail);
+  const registeredEntry = editors.find(e => e.email === ownEmail && e.fp);
 
   const handleGenerate = async () => {
     const c = await setupNewKeypair();
@@ -57,7 +57,7 @@ export function KeySetup() {
           Encryption key
         </Typography>
         {registeredEntry && (
-          <FingerprintChip fp={registeredEntry.fp} sx={{ ml: 'auto' }} />
+          <FingerprintChip fp={registeredEntry.fp!} sx={{ ml: 'auto' }} />
         )}
       </Box>
       <Box sx={{ display: 'flex', gap: 1 }}>
@@ -108,7 +108,7 @@ export function KeySetup() {
                 <Typography variant="caption" color="error.main">
                   Your registered public key (fingerprint{' '}
                   <Box component="span" sx={{ fontFamily: 'monospace' }}>
-                    {registeredEntry.fp.slice(0, 9)}…
+                    {registeredEntry.fp!.slice(0, 9)}…
                   </Box>
                   ) will be removed. Other users won't be able to encrypt new values for you until you register a new key.
                 </Typography>

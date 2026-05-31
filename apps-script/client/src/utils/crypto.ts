@@ -159,6 +159,26 @@ export async function encryptECDH(plaintext: string, recipients: Recipient[]): P
   return VAULT_PFX + buf2b64(payload.buffer);
 }
 
+// ── Parse recipient hashes (no decryption) ──────────────────────
+
+export function parseRecipientHashes(raw: string): Set<string> {
+  try {
+    const payload = b642buf(raw.slice(VAULT_PFX.length));
+    const bytes = new Uint8Array(payload);
+    if (bytes[0] !== TYPE_ECDH) return new Set();
+    let off = 1 + IV_LEN;
+    const ctLen = (bytes[off] << 24) | (bytes[off + 1] << 16) | (bytes[off + 2] << 8) | bytes[off + 3];
+    off += 4 + ctLen + 65;
+    const nR = (bytes[off] << 8) | bytes[off + 1]; off += 2;
+    const hashes = new Set<string>();
+    for (let i = 0; i < nR; i++) {
+      hashes.add(buf2hex(bytes.slice(off, off + 32).buffer));
+      off += 92;
+    }
+    return hashes;
+  } catch { return new Set(); }
+}
+
 // ── ECDH decryption ─────────────────────────────────────────────
 
 function arraysEqual(a: Uint8Array, b: Uint8Array): boolean {

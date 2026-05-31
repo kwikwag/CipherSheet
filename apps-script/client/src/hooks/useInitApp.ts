@@ -6,18 +6,22 @@ import { useKeyOps } from './useKeyOps';
 import { gasRun } from '../utils/gas';
 
 export function useInitApp() {
-  const { setOwnEmail, setNoKeyEditors } = useApp();
-  const { seedPubKeyCache, refreshGroupCache } = useCacheOps();
+  const { setOwnEmail } = useApp();
+  const { seedEditors, refreshGroupCache } = useCacheOps();
   const { refreshCell } = useCellOps();
   const { syncKeyInStorage, doUnlockWithPassword } = useKeyOps();
 
   useEffect(() => {
     (async () => {
-      // Seed pub key cache instantly from server-rendered data (no GAS round-trip)
-      const initial = window.CS_CONFIG?.initialPublicKeys;
-      if (initial?.length) await seedPubKeyCache(initial);
-      const noKey = window.CS_CONFIG?.noKeyEditors;
-      if (noKey?.length) setNoKeyEditors(noKey);
+      // Seed editors instantly from server-rendered data (no GAS round-trip)
+      console.log('[CipherSheet] CS_CONFIG:', window.CS_CONFIG);
+      const initial = window.CS_CONFIG?.editors;
+      console.log('[CipherSheet] editors from config:', initial);
+      if (initial?.length) {
+        await seedEditors(initial);
+      } else {
+        console.warn('[CipherSheet] no editors in CS_CONFIG — picker will be hidden');
+      }
 
       // Load email
       gasRun<string>('getCurrentUserEmail')

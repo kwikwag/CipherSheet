@@ -8,6 +8,7 @@ import { useCellOps } from '../../hooks/useCellOps';
 import { useKeyOps } from '../../hooks/useKeyOps';
 import type { KeyConflict } from '../../hooks/useKeyOps';
 import { KeyConflictDialog } from '../key/KeyConflictDialog';
+import { isPubKeyEntry } from '../../types';
 
 interface CellEditorProps {
   selectedRecipients: string[];
@@ -16,7 +17,7 @@ interface CellEditorProps {
 export function CellEditor({ selectedRecipients }: CellEditorProps) {
   const {
     canEncrypt, cellIsEncrypted, keyInStorage,
-    ecdhPrivKey, pubKeyCache,
+    ecdhPrivKey, editors,
   } = useApp();
   const { plaintext, setPlaintext, decryptError, encryptAndSave, requestUnprotect } = useCellOps();
   const { loadKeyFile } = useKeyOps();
@@ -56,7 +57,7 @@ export function CellEditor({ selectedRecipients }: CellEditorProps) {
 
   const handleProtect = () => {
     const recipients = ecdhPrivKey
-      ? pubKeyCache.filter(r => selectedRecipients.includes(r.email))
+      ? editors.filter(isPubKeyEntry).filter(e => selectedRecipients.includes(e.email))
       : [];
     encryptAndSave(plaintext, recipients);
   };

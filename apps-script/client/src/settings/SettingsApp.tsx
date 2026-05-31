@@ -5,31 +5,25 @@ import {
   TextField, Typography,
 } from '@mui/material';
 import { FingerprintChip } from '../components/common/FingerprintChip';
-import type { GroupEntry } from '../types';
+import { EmailLabel } from '../components/common/EmailLabel';
+import type { EditorEntry, GroupEntry, SerializedEditorEntry } from '../types';
+import { fingerprint } from '../utils/crypto';
+import { b642buf } from '../utils/encoding';
 import { gasRun } from '../utils/gas';
 
-interface RawPubKey { email: string; publicKey: string; }
 interface RawGroup  { id: string; emailHashes: string[]; label?: string; }
-
-const buf2hex = (b: ArrayBuffer) =>
-  Array.from(new Uint8Array(b)).map(x => x.toString(16).padStart(2, '0')).join('');
-
-const b64toBuf = (s: string) =>
-  Uint8Array.from(atob(s), c => c.charCodeAt(0)).buffer;
 
 async function spkiFingerprint(base64Spki: string): Promise<string> {
   try {
-    const h = await crypto.subtle.digest('SHA-256', b64toBuf(base64Spki));
-    return buf2hex(h).match(/.{8}/g)!.join('-');
+    return await fingerprint(new Uint8Array(b642buf(base64Spki)));
   } catch { return '—'; }
 }
 
 export function SettingsApp() {
   const [loading, setLoading] = useState(true);
 
-  const [pubKeys, setPubKeys] = useState<{ email: string; fp: string }[]>([]);
+  const [editors, setEditors] = useState<EditorEntry[]>([]);
   const [groups,  setGroups]  = useState<GroupEntry[]>([]);
-  const [noKeyEditors, setNoKeyEditors] = useState<string[]>([]);
 
   useEffect(() => {
     gasRun('getDocumentSettings').then(() => {
@@ -38,21 +32,19 @@ export function SettingsApp() {
       alert('Error loading settings: ' + e.message);
     });
 
-    gasRun<RawPubKey[]>('listPublicKeys').then(async keys => {
-      const resolved = await Promise.all(
-        keys.map(async ({ email, publicKey }) => ({
-          email,
-          fp: await spkiFingerprint(publicKey),
+    gasRun<SerializedEditorEntry[]>('listEditors').then(async entries => {
+      const resolved: EditorEntry[] = await Promise.all(
+        entries.map(async ({ email, name, publicKeyBase64 }) => ({
+          email, name,
+          fp: publicKeyBase64 ? await spkiFingerprint(publicKeyBase64) : undefined,
         }))
       );
-      setPubKeys(resolved);
+      setEditors(resolved);
     }).catch(() => {});
 
     gasRun<RawGroup[]>('listGroups').then(gs => {
       setGroups(gs.map(g => ({ id: g.id, emailHashes: g.emailHashes, label: g.label ?? '' })));
     }).catch(() => {});
-
-    gasRun<string[]>('listEditorsWithoutKeys').then(setNoKeyEditors).catch(() => {});
   }, []);
 
   function saveGroupLabel(id: string, emailHashes: string[], label: string) {
@@ -79,22 +71,22 @@ export function SettingsApp() {
         <Typography variant="overline" color="text.secondary" display="block" sx={{ mb: 0.5 }}>
           Registered public keys
         </Typography>
-        {pubKeys.length === 0 ? (
+        {editors.filter(e => e.fp).length === 0 ? (
           <Typography variant="body2" color="text.disabled">No registered public keys yet.</Typography>
         ) : (
           <List dense disablePadding>
-            {pubKeys.map(({ email, fp }) => (
-              <ListItem key={email} disablePadding sx={{ py: 0.25 }}>
-                <Typography variant="body1" sx={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {email}
-                </Typography>
-                <FingerprintChip fp={fp} sx={{ ml: 1 }} />
+            {editors.filter(e => e.fp).map(editor => (
+              <ListItem key={editor.email} disablePadding sx={{ py: 0.5 }}>
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <EmailLabel editor={editor} />
+                </Box>
+                <FingerprintChip fp={editor.fp!} sx={{ ml: 1, flexShrink: 0 }} />
               </ListItem>
             ))}
           </List>
         )}
 
-        {noKeyEditors.length > 0 && (
+        {editors.filter(e => !e.fp).length > 0 && (
           <>
             <Divider sx={{ my: 1.5 }} />
             <Typography variant="overline" color="text.secondary" display="block" sx={{ mb: 0.5 }}>
@@ -104,11 +96,9 @@ export function SettingsApp() {
               These collaborators have no registered public key — encrypted data cannot be addressed to them until they open CipherSheet and generate one.
             </Typography>
             <List dense disablePadding>
-              {noKeyEditors.map(email => (
-                <ListItem key={email} disablePadding sx={{ py: 0.25 }}>
-                  <Typography variant="body1" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {email}
-                  </Typography>
+              {editors.filter(e => !e.fp).map(editor => (
+                <ListItem key={editor.email} disablePadding sx={{ py: 0.5 }}>
+                  <EmailLabel editor={editor} disabled />
                 </ListItem>
               ))}
             </List>

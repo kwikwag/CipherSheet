@@ -8,7 +8,8 @@ import { idbGet, idbPut, idbDelete, IDB_ECDH_KEY } from '../utils/idb';
 import { buf2b64, b642buf, buf2b64url } from '../utils/encoding';
 import { gasRun } from '../utils/gas';
 import { downloadJson } from '../utils/download';
-import type { IdbEcdhEntry, PubKeyCacheEntry } from '../types';
+import type { EditorEntry, IdbEcdhEntry } from '../types';
+import { isPubKeyEntry } from '../types';
 
 export interface KeyConflict {
   registeredFp: string;
@@ -20,11 +21,16 @@ export interface KeyConflict {
 export function useKeyOps() {
   const {
     ecdhPrivKey, unlockPassword, ecdhFp,
-    ownEmail, pubKeyCache,
+    ownEmail, editors,
     setEcdhPrivKey, setEcdhPubKey, setUnlockPassword, setEcdhFp,
     setKeyInStorage, setKeyHasPasskey, setSetupPassword, startLoading, stopLoading,
-    setPubKeyCache, showToast, pwSaveFormRef, pwSaveUsernameRef, pwSaveInputRef,
+    setEditors, showToast, pwSaveFormRef, pwSaveUsernameRef, pwSaveInputRef,
   } = useApp();
+
+  const updateOwnEntry = useCallback((patch: Partial<EditorEntry>) => {
+    if (!ownEmail) return;
+    setEditors(editors.map(e => e.email === ownEmail ? { ...e, ...patch } : e));
+  }, [ownEmail, editors, setEditors]);
 
   // ── Targeted pub key cache updates ────────────────────────────
   const cacheUpsertOwn = useCallback(async (spki: Uint8Array) => {
@@ -34,15 +40,13 @@ export function useKeyOps() {
         'spki', spki as unknown as ArrayBuffer, { name: 'ECDH', namedCurve: 'P-256' }, true, []
       );
       const fp = await fingerprint(spki);
-      const entry: PubKeyCacheEntry = { email: ownEmail, pubKey, fp };
-      setPubKeyCache([...pubKeyCache.filter(e => e.email !== ownEmail), entry]);
+      updateOwnEntry({ pubKey, fp });
     } catch { /* non-fatal */ }
-  }, [ownEmail, pubKeyCache, setPubKeyCache]);
+  }, [ownEmail, updateOwnEntry]);
 
   const cacheRemoveOwn = useCallback(() => {
-    if (!ownEmail) return;
-    setPubKeyCache(pubKeyCache.filter(e => e.email !== ownEmail));
-  }, [ownEmail, pubKeyCache, setPubKeyCache]);
+    updateOwnEntry({ pubKey: undefined, fp: undefined });
+  }, [updateOwnEntry]);
 
   // ── Shared password-manager save helper ────────────────────────
   const triggerPasswordSave = useCallback((username: string, password: string) => {
@@ -113,8 +117,9 @@ export function useKeyOps() {
   // ── Registered fingerprint for own email (null if not registered) ─
   const getRegisteredFp = useCallback((): string | null => {
     if (!ownEmail) return null;
-    return pubKeyCache.find(e => e.email === ownEmail)?.fp ?? null;
-  }, [ownEmail, pubKeyCache]);
+    const own = editors.find(e => e.email === ownEmail);
+    return (own && isPubKeyEntry(own)) ? own.fp : null;
+  }, [ownEmail, editors]);
 
   // ── Generate new ECDH keypair ──────────────────────────────────
   const setupNewKeypair = useCallback(async (): Promise<KeyConflict | null> => {
@@ -384,7 +389,7 @@ function prfPopupHandshake(action: string, extraData: Record<string, unknown>): 
       '?action=' + encodeURIComponent(action) +
       '&channel=' + encodeURIComponent(channel) +
       '&returnOrigin=' + encodeURIComponent(window.location.origin);
-    const popup = window.open(url, 'ciphersheet-prf', 'width=480,height=480,toolbar=no,menubar=no');
+    const popup = window.open(url, 'ciphersheet-prf', 'width=480,height=640,toolbar=no,menubar=no');
     if (!popup) { reject(new Error('Popup was blocked — allow popups for this site')); return; }
 
     const timeout = setTimeout(() => { cleanup(); reject(new Error('Passkey timed out')); }, 90000);

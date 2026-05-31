@@ -17,12 +17,33 @@ export interface CellViewState {
   plaintext: string;
   decrypted: boolean;
   decryptError: string | null;
+  recipientHashes: Set<string>;
 }
 
-export interface PubKeyCacheEntry {
+export interface SerializedEditorEntry {
   email: string;
+  name?: string;
+  publicKeyBase64?: string;
+}
+
+export interface EditorEntry {
+  email: string;
+  name?: string;
+  pubKey?: CryptoKey;
+  fp?: string;
+}
+
+export interface PubKeyEntry extends EditorEntry {
   pubKey: CryptoKey;
   fp: string;
+}
+
+export function isPubKeyEntry(e: EditorEntry): e is PubKeyEntry {
+  return e.pubKey !== undefined && e.fp !== undefined;
+}
+
+export function editorDisplayName(e: EditorEntry): string {
+  return e.name || e.email;
 }
 
 export interface GroupEntry {
@@ -46,19 +67,13 @@ export interface DocumentSettings {
   revertOnEditEnabled?: boolean;
 }
 
-export interface InitialPublicKeyEntry {
-  email: string;
-  publicKey: string; // base64 SPKI
-}
-
 export interface CsConfig {
   feedbackUrl: string;
   donateUrl: string;
   privacyUrl: string;
   passkeyPopupUrl: string;
   appVersion: string;
-  initialPublicKeys: InitialPublicKeyEntry[];
-  noKeyEditors: string[];
+  editors: SerializedEditorEntry[];
 }
 
 declare global {

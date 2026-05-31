@@ -37,9 +37,10 @@ interface OkResponse {
   ok: true;
 }
 
-interface PublicKeyEntry {
+interface SerializedEditorEntry {
   email: string;
-  publicKey: string;
+  name?: string;
+  publicKeyBase64?: string;
 }
 
 interface GroupEntry {
@@ -68,8 +69,7 @@ interface SidebarTemplate
   extends GoogleAppsScript.HTML.HtmlTemplate,
     CommonTemplateVars {
   passkeyPopupUrl: string;
-  initialPublicKeys: string; // JSON-serialized PublicKeyEntry[]
-  noKeyEditors: string;      // JSON-serialized string[]
+  editors: string; // JSON-serialized SerializedEditorEntry[]
 }
 
 interface OnboardingTemplate
@@ -186,8 +186,7 @@ function showSidebar(): void {
   const tpl = HtmlService.createTemplateFromFile('sidebar') as SidebarTemplate;
   applyCommonTemplateVars(tpl);
   tpl.passkeyPopupUrl = getPasskeyPopupUrl();
-  tpl.initialPublicKeys = JSON.stringify(listPublicKeys());
-  tpl.noKeyEditors = JSON.stringify(listEditorsWithoutKeys());
+  tpl.editors = JSON.stringify(listEditors());
 
   const html = tpl
     .evaluate()
@@ -562,11 +561,22 @@ function removePublicKey(): OkResponse {
   return { ok: true };
 }
 
-function listPublicKeys(): PublicKeyEntry[] {
+function listEditors(): SerializedEditorEntry[] {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const editorEmails = new Set<string>(ss.getEditors().map(u => u.getEmail()).filter(Boolean));
   const props = PropertiesService.getDocumentProperties().getProperties();
-  return Object.keys(props)
-    .filter(k => k.startsWith(PK_PREFIX))
-    .map(k => ({ email: k.slice(PK_PREFIX.length), publicKey: props[k] }));
+  const keyByEmail = new Map<string, string>(
+    Object.keys(props)
+      .filter(k => k.startsWith(PK_PREFIX))
+      .map(k => [k.slice(PK_PREFIX.length), props[k]] as [string, string])
+  );
+  const all = new Set([...editorEmails, ...keyByEmail.keys()]);
+  return [...all].map(email => {
+    const entry: SerializedEditorEntry = { email };
+    const publicKeyBase64 = keyByEmail.get(email);
+    if (publicKeyBase64) entry.publicKeyBase64 = publicKeyBase64;
+    return entry;
+  });
 }
 
 // ── Group management ──────────────────────────────────────────────
@@ -601,17 +611,6 @@ function listGroups(): GroupEntry[] {
   return result;
 }
 
-function listEditorsWithoutKeys(): string[] {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const editors = ss.getEditors().map(u => u.getEmail()).filter(Boolean);
-  const props = PropertiesService.getDocumentProperties().getProperties();
-  const withKeys = new Set(
-    Object.keys(props)
-      .filter(k => k.startsWith(PK_PREFIX))
-      .map(k => k.slice(PK_PREFIX.length))
-  );
-  return editors.filter(e => !withKeys.has(e));
-}
 
 // ── Reset metadata ────────────────────────────────────────────────
 // Removes all non-sheet-stored data written by the add-on: document settings,

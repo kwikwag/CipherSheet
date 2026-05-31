@@ -2,7 +2,7 @@ import React, {
   createContext, useCallback, useContext, useMemo, useRef, useState
 } from 'react';
 import type {
-  CellViewState, GroupEntry, PubKeyCacheEntry, ToastSeverity, ToastState
+  CellViewState, EditorEntry, GroupEntry, ToastSeverity, ToastState
 } from '../types';
 
 export type LoadingPart = 'cell' | 'key';
@@ -16,8 +16,7 @@ interface AppState {
   keyHasPasskey: boolean;
   cellView: CellViewState;
   ownEmail: string;
-  pubKeyCache: PubKeyCacheEntry[];
-  noKeyEditors: string[];
+  editors: EditorEntry[];
   groupCache: GroupEntry[];
   setupPassword: string | null;
   loadingSet: Set<LoadingPart>;
@@ -33,8 +32,7 @@ interface AppContextValue extends AppState {
   setKeyHasPasskey: (v: boolean) => void;
   setCellView: React.Dispatch<React.SetStateAction<CellViewState>>;
   setOwnEmail: (email: string) => void;
-  setPubKeyCache: (cache: PubKeyCacheEntry[]) => void;
-  setNoKeyEditors: (emails: string[]) => void;
+  setEditors: (editors: EditorEntry[]) => void;
   setGroupCache: (cache: GroupEntry[]) => void;
   setSetupPassword: (pw: string | null) => void;
   startLoading: (part: LoadingPart) => void;
@@ -64,11 +62,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [keyInStorage, setKeyInStorage] = useState(false);
   const [keyHasPasskey, setKeyHasPasskey] = useState(false);
   const [cellView, setCellView] = useState<CellViewState>({
-    cell: null, plaintext: '', decrypted: false, decryptError: null,
+    cell: null, plaintext: '', decrypted: false, decryptError: null, recipientHashes: new Set(),
   });
   const [ownEmail, setOwnEmail] = useState('');
-  const [pubKeyCache, setPubKeyCache] = useState<PubKeyCacheEntry[]>([]);
-  const [noKeyEditors, setNoKeyEditors] = useState<string[]>([]);
+  const [editors, setEditors] = useState<EditorEntry[]>([]);
   const [groupCache, setGroupCache] = useState<GroupEntry[]>([]);
   const [setupPassword, setSetupPassword] = useState<string | null>(null);
   const [loadingSet, setLoadingSet] = useState<Set<LoadingPart>>(new Set());
@@ -110,8 +107,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     keyHasPasskey, setKeyHasPasskey,
     cellView, setCellView,
     ownEmail, setOwnEmail,
-    pubKeyCache, setPubKeyCache,
-    noKeyEditors, setNoKeyEditors,
+    editors, setEditors,
     groupCache, setGroupCache,
     setupPassword, setSetupPassword,
     loadingSet, startLoading, stopLoading,
@@ -121,7 +117,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [
     ecdhPrivKey, ecdhPubKey, unlockPassword, ecdhFp, keyInStorage, keyHasPasskey,
-    cellView, ownEmail, pubKeyCache, noKeyEditors, groupCache,
+    cellView, ownEmail, editors, groupCache,
     setupPassword, loadingSet, toast, canEncrypt, cellIsEncrypted,
     showToast, dismissToast, startLoading, stopLoading,
   ]);
