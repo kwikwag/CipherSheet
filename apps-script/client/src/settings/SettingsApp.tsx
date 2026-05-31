@@ -169,7 +169,7 @@ export function SettingsApp() {
         </Typography>
         {groups.length === 0 ? (
           <Typography variant="caption" color="text.disabled">
-            Groups appear here automatically when you protect a cell shared with multiple people.
+            Groups are automatically created when you protect a cell shared with multiple people.
           </Typography>
         ) : (
           <Stack spacing={1}>
