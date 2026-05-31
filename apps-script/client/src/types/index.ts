@@ -49,12 +49,18 @@ export interface DocumentSettings {
   defaultKeyType?: KeyType;
 }
 
+export interface InitialPublicKeyEntry {
+  email: string;
+  publicKey: string; // base64 SPKI
+}
+
 export interface CsConfig {
   feedbackUrl: string;
   donateUrl: string;
   privacyUrl: string;
   passkeyPopupUrl: string;
   appVersion: string;
+  initialPublicKeys: InitialPublicKeyEntry[];
 }
 
 declare global {

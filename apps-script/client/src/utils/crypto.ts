@@ -211,9 +211,14 @@ export async function decryptECDH(
   const wrapCt = new Uint8Array(48) as Uint8Array<ArrayBuffer>;
   wrapCt.set(myEntry.wrappedKey, 0);
   wrapCt.set(myEntry.wrapTag, 32);
-  const cellKeyRaw = await crypto.subtle.decrypt(
-    { name: 'AES-GCM', iv: myEntry.wrapIv, tagLength: 128 }, wrapKey, wrapCt
-  );
+  let cellKeyRaw: ArrayBuffer;
+  try {
+    cellKeyRaw = await crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv: myEntry.wrapIv, tagLength: 128 }, wrapKey, wrapCt
+    );
+  } catch {
+    throw new Error('This cell was encrypted with your old key — ask a collaborator to re-encrypt it for your current key');
+  }
   const cellKey = await crypto.subtle.importKey('raw', cellKeyRaw, { name: 'AES-GCM' }, false, ['decrypt']);
   const aad = new Uint8Array([TYPE_ECDH]) as Uint8Array<ArrayBuffer>;
   const pt = await crypto.subtle.decrypt(

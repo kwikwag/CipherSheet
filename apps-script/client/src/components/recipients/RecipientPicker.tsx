@@ -6,6 +6,7 @@ import {
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import GroupIcon from '@mui/icons-material/Group';
 import { useApp } from '../../context/AppContext';
+import { useCacheOps } from '../../hooks/useCacheOps';
 import { useCellOps } from '../../hooks/useCellOps';
 
 interface RecipientPickerProps {
@@ -16,6 +17,7 @@ interface RecipientPickerProps {
 export function RecipientPicker({ selectedEmails, onSelectionChange }: RecipientPickerProps) {
   const { ecdhPrivKey, cellIsEncrypted, pubKeyCache } = useApp();
   const { getRecipientSummary } = useCellOps();
+  const { refreshPubKeyCache } = useCacheOps();
   const [open, setOpen] = useState(false);
   const [summary, setSummary] = useState('');
 
@@ -50,7 +52,7 @@ export function RecipientPicker({ selectedEmails, onSelectionChange }: Recipient
           display: 'flex', alignItems: 'center', gap: 0.5,
           cursor: 'pointer', userSelect: 'none',
         }}
-        onClick={() => setOpen(!open)}
+        onClick={() => { if (!open) refreshPubKeyCache(); setOpen(!open); }}
       >
         <GroupIcon sx={{ fontSize: 14, color: 'text.secondary' }} />
         <Typography variant="caption" color="text.secondary">Visible to:</Typography>

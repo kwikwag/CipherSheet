@@ -69,6 +69,7 @@ interface SidebarTemplate
   extends GoogleAppsScript.HTML.HtmlTemplate,
     CommonTemplateVars {
   passkeyPopupUrl: string;
+  initialPublicKeys: string; // JSON-serialized PublicKeyEntry[]
 }
 
 interface OnboardingTemplate
@@ -186,6 +187,7 @@ function showSidebar(): void {
   const tpl = HtmlService.createTemplateFromFile('sidebar') as SidebarTemplate;
   applyCommonTemplateVars(tpl);
   tpl.passkeyPopupUrl = getPasskeyPopupUrl();
+  tpl.initialPublicKeys = JSON.stringify(listPublicKeys());
 
   const html = tpl
     .evaluate()
@@ -554,6 +556,13 @@ function storePublicKey(base64SPKI: string): OkResponse {
   const email = Session.getActiveUser().getEmail();
   if (!email) throw new Error('Cannot determine user email — please re-authorize the add-on.');
   PropertiesService.getDocumentProperties().setProperty(PK_PREFIX + email, base64SPKI);
+  return { ok: true };
+}
+
+function removePublicKey(): OkResponse {
+  const email = Session.getActiveUser().getEmail();
+  if (!email) throw new Error('Cannot determine user email — please re-authorize the add-on.');
+  PropertiesService.getDocumentProperties().deleteProperty(PK_PREFIX + email);
   return { ok: true };
 }
 

@@ -10,12 +10,16 @@ export function useInitApp() {
   const {
     setOwnEmail, setDefaultKeyType,
   } = useApp();
-  const { refreshPubKeyCache, refreshGroupCache } = useCacheOps();
+  const { seedPubKeyCache, refreshGroupCache } = useCacheOps();
   const { refreshCell } = useCellOps();
   const { syncKeyInStorage, doUnlockWithPassword } = useKeyOps();
 
   useEffect(() => {
     (async () => {
+      // Seed pub key cache instantly from server-rendered data (no GAS round-trip)
+      const initial = window.CS_CONFIG?.initialPublicKeys;
+      if (initial?.length) await seedPubKeyCache(initial);
+
       // Load email
       gasRun<string>('getCurrentUserEmail')
         .then(email => setOwnEmail(email || ''))
@@ -28,7 +32,6 @@ export function useInitApp() {
 
       const entry = await syncKeyInStorage();
       await refreshCell();
-      refreshPubKeyCache();
       refreshGroupCache();
 
       // Try silent PasswordCredential autofill

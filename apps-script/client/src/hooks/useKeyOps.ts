@@ -8,16 +8,41 @@ import { idbGet, idbPut, idbDelete, IDB_ECDH_KEY } from '../utils/idb';
 import { buf2b64, b642buf, buf2b64url } from '../utils/encoding';
 import { gasRun } from '../utils/gas';
 import { downloadJson } from '../utils/download';
-import type { IdbEcdhEntry } from '../types';
+import type { IdbEcdhEntry, PubKeyCacheEntry } from '../types';
+
+export interface KeyConflict {
+  registeredFp: string;
+  incomingFp: string;
+  isGenerate: boolean;
+  proceed: () => Promise<void>;
+}
 
 export function useKeyOps() {
   const {
     ecdhPrivKey, unlockPassword, ecdhFp,
-    ownEmail, defaultKeyType,
+    ownEmail, defaultKeyType, pubKeyCache,
     setEcdhPrivKey, setEcdhPubKey, setUnlockPassword, setEcdhFp,
     setKeyInStorage, setKeyHasPasskey, setSetupPassword, setLoading,
-    showToast, pwSaveFormRef, pwSaveUsernameRef, pwSaveInputRef,
+    setPubKeyCache, showToast, pwSaveFormRef, pwSaveUsernameRef, pwSaveInputRef,
   } = useApp();
+
+  // ── Targeted pub key cache updates ────────────────────────────
+  const cacheUpsertOwn = useCallback(async (spki: Uint8Array) => {
+    if (!ownEmail) return;
+    try {
+      const pubKey = await crypto.subtle.importKey(
+        'spki', spki as unknown as ArrayBuffer, { name: 'ECDH', namedCurve: 'P-256' }, true, []
+      );
+      const fp = await fingerprint(spki);
+      const entry: PubKeyCacheEntry = { email: ownEmail, pubKey, fp };
+      setPubKeyCache([...pubKeyCache.filter(e => e.email !== ownEmail), entry]);
+    } catch { /* non-fatal */ }
+  }, [ownEmail, pubKeyCache, setPubKeyCache]);
+
+  const cacheRemoveOwn = useCallback(() => {
+    if (!ownEmail) return;
+    setPubKeyCache(pubKeyCache.filter(e => e.email !== ownEmail));
+  }, [ownEmail, pubKeyCache, setPubKeyCache]);
 
   // ── Shared password-manager save helper ────────────────────────
   const triggerPasswordSave = useCallback((username: string, password: string) => {
@@ -77,30 +102,57 @@ export function useKeyOps() {
     }
     triggerPasswordSave(fp, password);
 
-    try {
-      await gasRun('storePublicKey', buf2b64(spki.buffer as ArrayBuffer));
-    } catch { /* non-fatal */ }
+    await gasRun('storePublicKey', buf2b64(spki.buffer as ArrayBuffer));
+    await cacheUpsertOwn(spki);
 
     setSetupPassword(password);
     showToast('Keypair generated! Save the unlock password below.', 'warning', true);
   }, [setEcdhPrivKey, setEcdhPubKey, setEcdhFp, setUnlockPassword,
-      setKeyInStorage, setKeyHasPasskey, setSetupPassword, showToast, triggerPasswordSave]);
+      setKeyInStorage, setKeyHasPasskey, setSetupPassword, showToast, triggerPasswordSave, cacheUpsertOwn]);
+
+  // ── Registered fingerprint for own email (null if not registered) ─
+  const getRegisteredFp = useCallback((): string | null => {
+    if (!ownEmail) return null;
+    return pubKeyCache.find(e => e.email === ownEmail)?.fp ?? null;
+  }, [ownEmail, pubKeyCache]);
 
   // ── Generate new ECDH keypair ──────────────────────────────────
-  const setupNewKeypair = useCallback(async () => {
+  const setupNewKeypair = useCallback(async (): Promise<KeyConflict | null> => {
     setLoading(true);
     try {
       const keyPair = await crypto.subtle.generateKey(
         { name: 'ECDH', namedCurve: 'P-256' }, true, ['deriveBits']
       );
       const jwk = await crypto.subtle.exportKey('jwk', keyPair.privateKey);
+      const pubJwk: JsonWebKey = { kty: jwk.kty, crv: jwk.crv, x: jwk.x, y: jwk.y };
+      const pubKey = await crypto.subtle.importKey(
+        'jwk', pubJwk, { name: 'ECDH', namedCurve: 'P-256' }, true, []
+      );
+      const spki = new Uint8Array(await crypto.subtle.exportKey('spki', pubKey));
+      const incomingFp = await fingerprint(spki);
+      const registeredFp = getRegisteredFp();
+      if (registeredFp && registeredFp !== incomingFp) {
+        return {
+          registeredFp,
+          incomingFp,
+          isGenerate: true,
+          proceed: async () => {
+            setLoading(true);
+            try { await importEcdhFromJwk(jwk); }
+            catch (e) { showToast('Setup failed: ' + (e as Error).message, 'error'); }
+            finally { setLoading(false); }
+          },
+        };
+      }
       await importEcdhFromJwk(jwk);
+      return null;
     } catch (e) {
       showToast('Setup failed: ' + (e as Error).message, 'error');
+      return null;
     } finally {
       setLoading(false);
     }
-  }, [setLoading, importEcdhFromJwk, showToast]);
+  }, [setLoading, importEcdhFromJwk, showToast, getRegisteredFp]);
 
   // ── Generate pre-shared key ────────────────────────────────────
   const generatePresharedKey = useCallback(async () => {
@@ -119,12 +171,13 @@ export function useKeyOps() {
     }
   }, [setLoading, showToast]);
 
-  const generateKey = useCallback(async (onPresharedBytes?: (b: Uint8Array) => Promise<void>) => {
+  const generateKey = useCallback(async (onPresharedBytes?: (b: Uint8Array) => Promise<void>): Promise<KeyConflict | null> => {
     if (defaultKeyType === 'preshared') {
       const bytes = await generatePresharedKey();
       if (bytes && onPresharedBytes) await onPresharedBytes(bytes);
+      return null;
     } else {
-      await setupNewKeypair();
+      return await setupNewKeypair();
     }
   }, [defaultKeyType, setupNewKeypair, generatePresharedKey]);
 
@@ -141,7 +194,7 @@ export function useKeyOps() {
   const loadKeyFile = useCallback(async (
     file: File,
     onPresharedBytes: (b: Uint8Array) => Promise<void>
-  ) => {
+  ): Promise<KeyConflict | null> => {
     try {
       const text = await file.text();
       let obj: Record<string, unknown> | null = null;
@@ -156,21 +209,38 @@ export function useKeyOps() {
           salt: b642buf(obj.salt as string),
           publicKeySpki: b642buf(obj.publicKeySpki as string),
         };
-        await idbPut<IdbEcdhEntry>(IDB_ECDH_KEY, entry);
-        await syncKeyInStorage();
-        showToast('Key imported — enter your password to unlock', 'info');
+        const incomingFp = await fingerprint(new Uint8Array(entry.publicKeySpki));
+        const registeredFp = getRegisteredFp();
+        const doImport = async () => {
+          try {
+            await idbPut<IdbEcdhEntry>(IDB_ECDH_KEY, entry);
+            await syncKeyInStorage();
+            await gasRun('storePublicKey', buf2b64(entry.publicKeySpki.buffer as ArrayBuffer));
+            await cacheUpsertOwn(new Uint8Array(entry.publicKeySpki));
+            showToast('Key imported — enter your password to unlock', 'info');
+          } catch (e) {
+            showToast('Could not load key: ' + (e as Error).message, 'error');
+          }
+        };
+        if (registeredFp && registeredFp !== incomingFp) {
+          return { registeredFp, incomingFp, isGenerate: false, proceed: doImport };
+        }
+        await doImport();
+        return null;
       } else if (obj?.type === 'CipherSheet-AES256') {
         if (!obj.key) throw new Error('Missing key field in .ciphersheet-key');
         const bytes = b642buf(obj.key as string);
         if (bytes.length !== 32) throw new Error('Expected 256-bit key');
         await onPresharedBytes(bytes);
+        return null;
       } else {
         throw new Error('Unrecognized key file format — expected .ciphersheet-key');
       }
     } catch (e) {
       showToast('Could not load key: ' + (e as Error).message, 'error');
+      return null;
     }
-  }, [syncKeyInStorage, showToast]);
+  }, [syncKeyInStorage, showToast, getRegisteredFp, cacheUpsertOwn]);
 
   // ── Unlock with password ───────────────────────────────────────
   const doUnlockWithPassword = useCallback(async (password: string) => {
@@ -215,7 +285,7 @@ export function useKeyOps() {
   }, [setEcdhPrivKey, setEcdhPubKey, setUnlockPassword, showToast]);
 
   // ── Forget key ─────────────────────────────────────────────────
-  const forgetKey = useCallback(async () => {
+  const forgetKey = useCallback(async (alsoRemoveFromDoc = false) => {
     await idbDelete(IDB_ECDH_KEY);
     setKeyInStorage(false);
     setKeyHasPasskey(false);
@@ -223,8 +293,12 @@ export function useKeyOps() {
     setEcdhPubKey(null);
     setUnlockPassword(null);
     setEcdhFp(null);
-    showToast('Keypair deleted');
-  }, [setKeyInStorage, setKeyHasPasskey, setEcdhPrivKey, setEcdhPubKey, setUnlockPassword, setEcdhFp, showToast]);
+    if (alsoRemoveFromDoc) {
+      await gasRun('removePublicKey');
+      cacheRemoveOwn();
+    }
+    showToast('Keypair forgotten');
+  }, [setKeyInStorage, setKeyHasPasskey, setEcdhPrivKey, setEcdhPubKey, setUnlockPassword, setEcdhFp, cacheRemoveOwn, showToast]);
 
   // ── PRF passkey enroll ─────────────────────────────────────────
   const tryPrfEnroll = useCallback(async () => {
@@ -300,10 +374,16 @@ export function useKeyOps() {
   }, [setLoading, doUnlockWithPassword, showToast]);
 
 
+  // ── Remove public key from document properties ─────────────────
+  const removePublicKey = useCallback(async () => {
+    await gasRun('removePublicKey');
+    cacheRemoveOwn();
+  }, [cacheRemoveOwn]);
+
   return {
     setupNewKeypair, generatePresharedKey, generateKey,
     loadKeyFile, unlockWithPassword, doUnlockWithPassword,
-    lockEcdh, forgetKey, syncKeyInStorage,
+    lockEcdh, forgetKey, removePublicKey, syncKeyInStorage,
     tryPrfEnroll, unlockWithPasskey,
   };
 }

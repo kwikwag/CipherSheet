@@ -6,7 +6,9 @@ import KeyIcon from '@mui/icons-material/Key';
 import { useApp } from '../../context/AppContext';
 import { useCellOps } from '../../hooks/useCellOps';
 import { useKeyOps } from '../../hooks/useKeyOps';
+import type { KeyConflict } from '../../hooks/useKeyOps';
 import { usePresharedKey } from '../../hooks/usePresharedKey';
+import { KeyConflictDialog } from '../key/KeyConflictDialog';
 
 interface CellEditorProps {
   selectedRecipients: string[];
@@ -22,11 +24,17 @@ export function CellEditor({ selectedRecipients }: CellEditorProps) {
   const { activatePresharedKey } = usePresharedKey();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [conflict, setConflict] = useState<KeyConflict | null>(null);
+
+  const handleLoadKeyFile = async (file: File) => {
+    const c = await loadKeyFile(file, activatePresharedKey);
+    if (c) setConflict(c);
+  };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = '';
-    if (file) await loadKeyFile(file, activatePresharedKey);
+    if (file) await handleLoadKeyFile(file);
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -38,7 +46,14 @@ export function CellEditor({ selectedRecipients }: CellEditorProps) {
     setIsDragOver(false);
     if (canEncrypt) return;
     const file = e.dataTransfer.files[0];
-    if (file) await loadKeyFile(file, activatePresharedKey);
+    if (file) await handleLoadKeyFile(file);
+  };
+
+  const handleConflictConfirm = async () => {
+    if (!conflict) return;
+    const proceed = conflict.proceed;
+    setConflict(null);
+    await proceed();
   };
 
   const handleProtect = () => {
@@ -155,6 +170,11 @@ export function CellEditor({ selectedRecipients }: CellEditorProps) {
           {cellIsEncrypted && canEncrypt ? 'Update' : 'Protect'}
         </Button>
       </Box>
+      <KeyConflictDialog
+        conflict={conflict}
+        onConfirm={handleConflictConfirm}
+        onClose={() => setConflict(null)}
+      />
     </Box>
   );
 }
