@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import {
-  Box, Button, CircularProgress, Divider, FormControlLabel, Link,
-  List, ListItem, Radio, RadioGroup, Stack, Switch,
+  Box, CircularProgress, Divider, Link,
+  List, ListItem, Stack,
   TextField, Typography,
 } from '@mui/material';
-import type { DocumentSettings, GroupEntry, KeyType } from '../types';
+import type { GroupEntry } from '../types';
 import { gasRun } from '../utils/gas';
 
 interface RawPubKey { email: string; publicKey: string; }
@@ -25,20 +25,12 @@ async function spkiFingerprint(base64Spki: string): Promise<string> {
 
 export function SettingsApp() {
   const [loading, setLoading] = useState(true);
-  const [saving,  setSaving]  = useState(false);
-
-  const [editWarning,  setEditWarning]  = useState(false);
-  const [revertOnEdit, setRevertOnEdit] = useState(false);
-  const [keyType,      setKeyType]      = useState<KeyType>('ecdh');
 
   const [pubKeys, setPubKeys] = useState<{ email: string; fp: string }[]>([]);
   const [groups,  setGroups]  = useState<GroupEntry[]>([]);
 
   useEffect(() => {
-    gasRun<DocumentSettings>('getDocumentSettings').then(s => {
-      setEditWarning(s.editWarningEnabled ?? false);
-      setRevertOnEdit(s.revertOnEditEnabled ?? false);
-      setKeyType(s.defaultKeyType ?? 'ecdh');
+    gasRun('getDocumentSettings').then(() => {
       setLoading(false);
     }).catch(e => {
       alert('Error loading settings: ' + e.message);
@@ -58,24 +50,6 @@ export function SettingsApp() {
       setGroups(gs.map(g => ({ id: g.id, emailHashes: g.emailHashes, label: g.label ?? '' })));
     }).catch(() => {});
   }, []);
-
-  function save() {
-    setSaving(true);
-    gasRun('setDocumentSettings', {
-      editWarningEnabled: editWarning,
-      revertOnEditEnabled: revertOnEdit,
-      defaultKeyType: keyType,
-    } satisfies DocumentSettings)
-      .then(() => { if (window.google) window.google.script.host.close(); })
-      .catch(e => {
-        alert('Error: ' + e.message);
-        setSaving(false);
-      });
-  }
-
-  function cancel() {
-    if (window.google) window.google.script.host.close();
-  }
 
   function saveGroupLabel(id: string, emailHashes: string[], label: string) {
     gasRun('upsertGroup', id, emailHashes, label).catch(e => {
@@ -98,49 +72,7 @@ export function SettingsApp() {
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
       <Box sx={{ flex: 1, px: 2, pt: 1.5, pb: 1 }}>
 
-        <SettingRow
-          title="Protect with warning"
-          desc="Warn users before editing using Sheets data protection."
-          control={
-            <Switch checked={editWarning} onChange={e => setEditWarning(e.target.checked)} size="small" />
-          }
-        />
-
-        <SettingRow
-          title="Reversion"
-          desc="Undo direct edits to encrypted cells while add-on is active. Experimental — may malfunction due to usage limits."
-          control={
-            <Switch checked={revertOnEdit} onChange={e => setRevertOnEdit(e.target.checked)} size="small" />
-          }
-        />
-
-        <SettingRow
-          title="Default key type"
-          desc={
-            <>
-              <strong>Keypair</strong> — each user has their own key; share with specific people. Best for teams.<br />
-              <strong>Shared key</strong> — everyone uses the same key file. Simpler, but anyone with the file can read all cells.
-            </>
-          }
-          noBorder
-        >
-          <RadioGroup row value={keyType} onChange={e => setKeyType(e.target.value as KeyType)} sx={{ mt: 0.5 }}>
-            <FormControlLabel value="ecdh"      control={<Radio size="small" />} label={<Typography variant="body2">Keypair</Typography>} />
-            <FormControlLabel value="preshared" control={<Radio size="small" />} label={<Typography variant="body2">Shared key</Typography>} />
-          </RadioGroup>
-        </SettingRow>
-
-        <Stack direction="row" justifyContent="flex-end" spacing={1} sx={{ mt: 1.5 }}>
-          <Button variant="outlined" size="small" onClick={cancel} disabled={saving}>
-            Cancel
-          </Button>
-          <Button variant="contained" size="small" onClick={save} disabled={saving}>
-            {saving ? <CircularProgress size={14} color="inherit" sx={{ mr: 0.75 }} /> : null}
-            Save Preferences
-          </Button>
-        </Stack>
-
-        <Divider sx={{ my: 1.5 }} />
+        <Divider sx={{ mb: 1.5 }} />
 
         <Typography variant="overline" color="text.secondary" display="block" sx={{ mb: 0.5 }}>
           Registered public keys
@@ -208,33 +140,6 @@ export function SettingsApp() {
           {cfg?.privacyUrl && <>{' · '}<Link href={cfg.privacyUrl} target="_blank" rel="noopener" variant="caption" color="text.secondary" underline="hover">Privacy</Link></>}
         </Typography>
       </Box>
-    </Box>
-  );
-}
-
-function SettingRow({
-  title, desc, control, children, noBorder = false,
-}: {
-  title: string;
-  desc: React.ReactNode;
-  control?: React.ReactNode;
-  children?: React.ReactNode;
-  noBorder?: boolean;
-}) {
-  return (
-    <Box sx={{
-      display: 'flex', alignItems: 'flex-start', gap: 1.5,
-      pb: 1.5, mb: 1.5,
-      ...(noBorder ? {} : { borderBottom: '1px solid', borderColor: 'divider' }),
-    }}>
-      <Box sx={{ flex: 1 }}>
-        <Typography variant="subtitle2">{title}</Typography>
-        <Typography variant="caption" color="text.secondary" component="div" sx={{ mt: 0.25 }}>
-          {desc}
-        </Typography>
-        {children}
-      </Box>
-      {control && <Box sx={{ flexShrink: 0, mt: 0.25 }}>{control}</Box>}
     </Box>
   );
 }

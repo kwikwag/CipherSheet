@@ -107,7 +107,7 @@ const CACHE_TTL = 60; // intent key TTL (seconds)
 const HEARTBEAT_TTL = 4;
 
 const DEFAULT_SETTINGS: DocumentSettings = {
-  editWarningEnabled: true,
+  editWarningEnabled: false,
   revertOnEditEnabled: false,
   defaultKeyType: 'ecdh',
 };
