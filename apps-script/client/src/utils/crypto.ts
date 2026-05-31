@@ -3,7 +3,6 @@ import { buf2b64, buf2hex, b642buf, buf2b64url } from './encoding';
 export { buf2b64url };
 export const VAULT_PFX = '\uD83D\uDD10'; // 🔐
 export const TYPE_ECDH = 0x02;
-export const TYPE_PRESHARED = 0x01;
 export const IV_LEN = 12;
 export const PRF_EVAL_INPUT = new TextEncoder().encode('CipherSheet unlock key v1');
 
@@ -227,60 +226,19 @@ export async function decryptECDH(
   return new TextDecoder().decode(pt);
 }
 
-// ── Pre-shared key crypto (type 0x01) ───────────────────────────
-
-export async function encryptPreshared(plaintext: string, presharedKey: CryptoKey): Promise<string> {
-  const iv = crypto.getRandomValues(new Uint8Array(IV_LEN));
-  const aad = new Uint8Array([TYPE_PRESHARED]) as Uint8Array<ArrayBuffer>;
-  const ct = new Uint8Array(await crypto.subtle.encrypt(
-    { name: 'AES-GCM', iv, tagLength: 128, additionalData: aad },
-    presharedKey, new TextEncoder().encode(plaintext)
-  ));
-  const ctLen = ct.byteLength;
-  const payload = new Uint8Array(1 + IV_LEN + 4 + ctLen);
-  let off = 0;
-  payload[off++] = TYPE_PRESHARED;
-  payload.set(iv, off); off += IV_LEN;
-  payload[off++] = (ctLen >> 24) & 0xff;
-  payload[off++] = (ctLen >> 16) & 0xff;
-  payload[off++] = (ctLen >> 8) & 0xff;
-  payload[off++] = ctLen & 0xff;
-  payload.set(ct, off);
-  return VAULT_PFX + buf2b64(payload.buffer);
-}
-
-export async function decryptPreshared(payload: Uint8Array<ArrayBuffer>, presharedKey: CryptoKey): Promise<string> {
-  let off = 1;
-  const iv = payload.slice(off, off + IV_LEN); off += IV_LEN;
-  const ctLen = (payload[off] << 24) | (payload[off + 1] << 16) | (payload[off + 2] << 8) | payload[off + 3];
-  off += 4;
-  const ct = payload.slice(off, off + ctLen);
-  const aad = new Uint8Array([TYPE_PRESHARED]) as Uint8Array<ArrayBuffer>;
-  const pt = await crypto.subtle.decrypt(
-    { name: 'AES-GCM', iv, tagLength: 128, additionalData: aad }, presharedKey, ct
-  );
-  return new TextDecoder().decode(pt);
-}
-
-// ── Unified decrypt dispatcher ──────────────────────────────────
+// ── Unified decrypt ─────────────────────────────────────────────
 
 export async function decrypt(
   ciphertextStr: string,
-  ecdhPrivKey: CryptoKey | null,
-  presharedKey: CryptoKey | null,
+  ecdhPrivKey: CryptoKey,
   ownEmail: string
 ): Promise<string> {
   if (!ciphertextStr.startsWith(VAULT_PFX)) throw new Error('not a vault value');
   const raw = b642buf(ciphertextStr.slice(VAULT_PFX.length));
   const type = raw[0];
   if (type === TYPE_ECDH) {
-    if (!ecdhPrivKey) throw new Error('ECDH key not loaded');
     if (!ownEmail) throw new Error('Own email not available — please refresh');
     return decryptECDH(raw, ecdhPrivKey, ownEmail);
-  }
-  if (type === TYPE_PRESHARED) {
-    if (!presharedKey) throw new Error('Pre-shared key not loaded');
-    return decryptPreshared(raw, presharedKey);
   }
   throw new Error(
     'Unknown encryption type (0x' + type.toString(16).toUpperCase() +
@@ -294,26 +252,5 @@ export function getPayloadType(ciphertextStr: string): number | null {
     return b642buf(ciphertextStr.slice(VAULT_PFX.length))[0];
   } catch {
     return null;
-  }
-}
-
-export async function validatePresharedKey(keyBytes: Uint8Array, cellValue: string): Promise<boolean> {
-  const type = getPayloadType(cellValue);
-  if (type !== TYPE_PRESHARED) return true;
-  try {
-    const payload = b642buf(cellValue.slice(VAULT_PFX.length));
-    const candidate = await crypto.subtle.importKey('raw', u8(keyBytes), { name: 'AES-GCM' }, false, ['decrypt']);
-    let off = 1;
-    const iv = payload.slice(off, off + IV_LEN); off += IV_LEN;
-    const ctLen = (payload[off] << 24) | (payload[off + 1] << 16) | (payload[off + 2] << 8) | payload[off + 3];
-    off += 4;
-    const ct = payload.slice(off, off + ctLen);
-    await crypto.subtle.decrypt(
-      { name: 'AES-GCM', iv, tagLength: 128, additionalData: new Uint8Array([TYPE_PRESHARED]) as Uint8Array<ArrayBuffer> },
-      candidate, ct
-    );
-    return true;
-  } catch {
-    return false;
   }
 }

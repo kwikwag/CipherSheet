@@ -8,14 +8,12 @@ import UploadFileIcon from '@mui/icons-material/UploadFile';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { useKeyOps } from '../../hooks/useKeyOps';
 import type { KeyConflict } from '../../hooks/useKeyOps';
-import { usePresharedKey } from '../../hooks/usePresharedKey';
 import { useApp } from '../../context/AppContext';
 import { KeyConflictDialog } from './KeyConflictDialog';
 
 export function KeySetup() {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { generateKey, loadKeyFile, removePublicKey } = useKeyOps();
-  const { activatePresharedKey } = usePresharedKey();
+  const { setupNewKeypair, loadKeyFile, removePublicKey } = useKeyOps();
   const { ownEmail, pubKeyCache, showToast } = useApp();
   const [conflict, setConflict] = useState<KeyConflict | null>(null);
   const [showForgetPubKey, setShowForgetPubKey] = useState(false);
@@ -23,9 +21,7 @@ export function KeySetup() {
   const registeredEntry = pubKeyCache.find(e => e.email === ownEmail);
 
   const handleGenerate = async () => {
-    const c = await generateKey(async (bytes) => {
-      await activatePresharedKey(bytes);
-    });
+    const c = await setupNewKeypair();
     if (c) setConflict(c);
   };
 
@@ -33,7 +29,7 @@ export function KeySetup() {
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) return;
-    const c = await loadKeyFile(file, activatePresharedKey);
+    const c = await loadKeyFile(file);
     if (c) setConflict(c);
   };
 

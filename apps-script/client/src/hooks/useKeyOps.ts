@@ -20,7 +20,7 @@ export interface KeyConflict {
 export function useKeyOps() {
   const {
     ecdhPrivKey, unlockPassword, ecdhFp,
-    ownEmail, defaultKeyType, pubKeyCache,
+    ownEmail, pubKeyCache,
     setEcdhPrivKey, setEcdhPubKey, setUnlockPassword, setEcdhFp,
     setKeyInStorage, setKeyHasPasskey, setSetupPassword, startLoading, stopLoading,
     setPubKeyCache, showToast, pwSaveFormRef, pwSaveUsernameRef, pwSaveInputRef,
@@ -154,32 +154,6 @@ export function useKeyOps() {
     }
   }, [startLoading, stopLoading, importEcdhFromJwk, showToast, getRegisteredFp]);
 
-  // ── Generate pre-shared key ────────────────────────────────────
-  const generatePresharedKey = useCallback(async () => {
-    startLoading('key');
-    try {
-      const keyBytes = crypto.getRandomValues(new Uint8Array(32));
-      downloadJson({ type: 'CipherSheet-AES256', version: 1, key: buf2b64(keyBytes.buffer) }, 'ciphersheet.ciphersheet-key');
-      // activatePresharedKey is in usePresharedKey hook; call it here via shared logic
-      // Return the bytes so the caller can activate
-      return keyBytes;
-    } catch (e) {
-      showToast('Setup failed: ' + (e as Error).message, 'error');
-      return null;
-    } finally {
-      stopLoading('key');
-    }
-  }, [startLoading, stopLoading, showToast]);
-
-  const generateKey = useCallback(async (onPresharedBytes?: (b: Uint8Array) => Promise<void>): Promise<KeyConflict | null> => {
-    if (defaultKeyType === 'preshared') {
-      const bytes = await generatePresharedKey();
-      if (bytes && onPresharedBytes) await onPresharedBytes(bytes);
-      return null;
-    } else {
-      return await setupNewKeypair();
-    }
-  }, [defaultKeyType, setupNewKeypair, generatePresharedKey]);
 
   // ── Sync key-in-storage state ──────────────────────────────────
   const syncKeyInStorage = useCallback(async () => {
@@ -191,51 +165,41 @@ export function useKeyOps() {
   }, [setKeyInStorage, setKeyHasPasskey, setEcdhFp]);
 
   // ── Load key from file ─────────────────────────────────────────
-  const loadKeyFile = useCallback(async (
-    file: File,
-    onPresharedBytes: (b: Uint8Array) => Promise<void>
-  ): Promise<KeyConflict | null> => {
+  const loadKeyFile = useCallback(async (file: File): Promise<KeyConflict | null> => {
     try {
       const text = await file.text();
       let obj: Record<string, unknown> | null = null;
       try { obj = JSON.parse(text.trim()); } catch { /* not JSON */ }
 
-      if (obj?.type === 'CipherSheet-ECDH-P256' && obj?.version === 1) {
-        if (!obj.wrapped || !obj.iv || !obj.salt || !obj.publicKeySpki)
-          throw new Error('Incomplete key file — required fields missing');
-        const entry: IdbEcdhEntry = {
-          wrapped: b642buf(obj.wrapped as string),
-          iv: b642buf(obj.iv as string),
-          salt: b642buf(obj.salt as string),
-          publicKeySpki: b642buf(obj.publicKeySpki as string),
-        };
-        const incomingFp = await fingerprint(new Uint8Array(entry.publicKeySpki));
-        const registeredFp = getRegisteredFp();
-        const doImport = async () => {
-          try {
-            await idbPut<IdbEcdhEntry>(IDB_ECDH_KEY, entry);
-            await syncKeyInStorage();
-            await gasRun('storePublicKey', buf2b64(entry.publicKeySpki.buffer as ArrayBuffer));
-            await cacheUpsertOwn(new Uint8Array(entry.publicKeySpki));
-            showToast('Key imported — enter your password to unlock', 'info');
-          } catch (e) {
-            showToast('Could not load key: ' + (e as Error).message, 'error');
-          }
-        };
-        if (registeredFp && registeredFp !== incomingFp) {
-          return { registeredFp, incomingFp, isGenerate: false, proceed: doImport };
-        }
-        await doImport();
-        return null;
-      } else if (obj?.type === 'CipherSheet-AES256') {
-        if (!obj.key) throw new Error('Missing key field in .ciphersheet-key');
-        const bytes = b642buf(obj.key as string);
-        if (bytes.length !== 32) throw new Error('Expected 256-bit key');
-        await onPresharedBytes(bytes);
-        return null;
-      } else {
+      if (obj?.type !== 'CipherSheet-ECDH-P256' || obj?.version !== 1)
         throw new Error('Unrecognized key file format — expected .ciphersheet-key');
+      if (!obj.wrapped || !obj.iv || !obj.salt || !obj.publicKeySpki)
+        throw new Error('Incomplete key file — required fields missing');
+
+      const entry: IdbEcdhEntry = {
+        wrapped: b642buf(obj.wrapped as string),
+        iv: b642buf(obj.iv as string),
+        salt: b642buf(obj.salt as string),
+        publicKeySpki: b642buf(obj.publicKeySpki as string),
+      };
+      const incomingFp = await fingerprint(new Uint8Array(entry.publicKeySpki));
+      const registeredFp = getRegisteredFp();
+      const doImport = async () => {
+        try {
+          await idbPut<IdbEcdhEntry>(IDB_ECDH_KEY, entry);
+          await syncKeyInStorage();
+          await gasRun('storePublicKey', buf2b64(entry.publicKeySpki.buffer as ArrayBuffer));
+          await cacheUpsertOwn(new Uint8Array(entry.publicKeySpki));
+          showToast('Key imported — enter your password to unlock', 'info');
+        } catch (e) {
+          showToast('Could not load key: ' + (e as Error).message, 'error');
+        }
+      };
+      if (registeredFp && registeredFp !== incomingFp) {
+        return { registeredFp, incomingFp, isGenerate: false, proceed: doImport };
       }
+      await doImport();
+      return null;
     } catch (e) {
       showToast('Could not load key: ' + (e as Error).message, 'error');
       return null;
@@ -392,7 +356,7 @@ export function useKeyOps() {
   }, [cacheRemoveOwn]);
 
   return {
-    setupNewKeypair, generatePresharedKey, generateKey,
+    setupNewKeypair,
     loadKeyFile, unlockWithPassword, doUnlockWithPassword,
     lockEcdh, forgetKey, removePublicKey, syncKeyInStorage,
     tryPrfEnroll, unlockWithPasskey,

@@ -7,7 +7,6 @@ import { useApp } from '../../context/AppContext';
 import { useCellOps } from '../../hooks/useCellOps';
 import { useKeyOps } from '../../hooks/useKeyOps';
 import type { KeyConflict } from '../../hooks/useKeyOps';
-import { usePresharedKey } from '../../hooks/usePresharedKey';
 import { KeyConflictDialog } from '../key/KeyConflictDialog';
 
 interface CellEditorProps {
@@ -16,18 +15,17 @@ interface CellEditorProps {
 
 export function CellEditor({ selectedRecipients }: CellEditorProps) {
   const {
-    canEncrypt, cellIsEncrypted, keyInStorage, presharedKey,
+    canEncrypt, cellIsEncrypted, keyInStorage,
     ecdhPrivKey, pubKeyCache,
   } = useApp();
   const { plaintext, setPlaintext, decryptError, encryptAndSave, requestUnprotect } = useCellOps();
   const { loadKeyFile } = useKeyOps();
-  const { activatePresharedKey } = usePresharedKey();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [conflict, setConflict] = useState<KeyConflict | null>(null);
 
   const handleLoadKeyFile = async (file: File) => {
-    const c = await loadKeyFile(file, activatePresharedKey);
+    const c = await loadKeyFile(file);
     if (c) setConflict(c);
   };
 
@@ -66,7 +64,7 @@ export function CellEditor({ selectedRecipients }: CellEditorProps) {
   const overlayVisible = !canEncrypt;
   const showEncryptedOverlay = overlayVisible && cellIsEncrypted;
   const showPlaintextOverlay = overlayVisible && !cellIsEncrypted;
-  const noKey = !keyInStorage && !presharedKey;
+  const noKey = !keyInStorage;
 
   return (
     <Box sx={{ position: 'relative', px: 1.5, pt: 1 }}>
@@ -111,7 +109,7 @@ export function CellEditor({ selectedRecipients }: CellEditorProps) {
               ? <LockOpenIcon sx={{ fontSize: 28, mb: 0.5 }} />
               : <KeyIcon sx={{ fontSize: 28, mb: 0.5 }} />
             }
-            text={`${verb} key to encrypt`}
+            text={ keyInStorage ? 'Unlock key to encrypt' : 'Generate a key to encrypt' }
             subtext={noKey ? 'or drop a .ciphersheet-key file' : undefined}
             isDragOver={isDragOver}
             onFileClick={noKey ? () => fileInputRef.current?.click() : undefined}

@@ -55,7 +55,6 @@ interface SetEncryptedCellValueResponse extends OkResponse {
 interface DocumentSettings {
   editWarningEnabled: boolean;
   revertOnEditEnabled: boolean;
-  defaultKeyType: 'ecdh' | 'preshared';
 }
 
 interface CommonTemplateVars {
@@ -109,7 +108,6 @@ const HEARTBEAT_TTL = 4;
 const DEFAULT_SETTINGS: DocumentSettings = {
   editWarningEnabled: false,
   revertOnEditEnabled: false,
-  defaultKeyType: 'ecdh',
 };
 
 const VALID_DECRYPT_INTENTS: ReadonlySet<DecryptIntent> = new Set([
@@ -530,13 +528,9 @@ function setDocumentSettings(settings: Partial<DocumentSettings>): OkResponse {
 function normalizeDocumentSettings(
   settings: Partial<DocumentSettings> | null | undefined
 ): DocumentSettings {
-  const raw = settings?.defaultKeyType;
   return {
-    editWarningEnabled:
-      settings?.editWarningEnabled ?? DEFAULT_SETTINGS.editWarningEnabled,
+    editWarningEnabled: settings?.editWarningEnabled ?? DEFAULT_SETTINGS.editWarningEnabled,
     revertOnEditEnabled: settings?.revertOnEditEnabled ?? DEFAULT_SETTINGS.revertOnEditEnabled,
-    defaultKeyType:
-      raw === 'ecdh' || raw === 'preshared' ? raw : DEFAULT_SETTINGS.defaultKeyType,
   };
 }
 

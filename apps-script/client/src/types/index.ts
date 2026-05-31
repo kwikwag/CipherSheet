@@ -1,5 +1,3 @@
-export type KeyType = 'ecdh' | 'preshared';
-
 export type ToastSeverity = 'success' | 'error' | 'warning' | 'info';
 
 export interface ToastState {
@@ -46,7 +44,6 @@ export interface IdbEcdhEntry {
 export interface DocumentSettings {
   editWarningEnabled?: boolean;
   revertOnEditEnabled?: boolean;
-  defaultKeyType?: KeyType;
 }
 
 export interface InitialPublicKeyEntry {

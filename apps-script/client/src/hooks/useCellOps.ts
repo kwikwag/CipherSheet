@@ -1,9 +1,9 @@
 import { useCallback } from 'react';
 import { useApp } from '../context/AppContext';
 import {
-  decrypt, encryptECDH, encryptPreshared,
+  decrypt, encryptECDH,
   sha256hex, computeGroupId, VAULT_PFX, getPayloadType,
-  TYPE_ECDH, TYPE_PRESHARED,
+  TYPE_ECDH,
 } from '../utils/crypto';
 import { gasRun } from '../utils/gas';
 import type { CellData, CellViewState, PubKeyCacheEntry } from '../types';
@@ -15,7 +15,7 @@ const EMPTY_VIEW: CellViewState = { cell: null, plaintext: '', decrypted: false,
 
 export function useCellOps() {
   const {
-    ecdhPrivKey, presharedKey, ownEmail, cellView, setCellView,
+    ecdhPrivKey, ownEmail, cellView, setCellView,
     pubKeyCache, groupCache, canEncrypt, cellIsEncrypted,
     startLoading, stopLoading, showToast, pollTimerRef,
   } = useApp();
@@ -30,22 +30,20 @@ export function useCellOps() {
       return;
     }
     const type = getPayloadType(raw);
-    const canDec = (type === TYPE_ECDH && ecdhPrivKey !== null) ||
-                   (type === TYPE_PRESHARED && presharedKey !== null);
-    if (canDec) {
+    if (type === TYPE_ECDH && ecdhPrivKey !== null) {
       try {
-        const pt = await decrypt(raw, ecdhPrivKey, presharedKey, ownEmail);
+        const pt = await decrypt(raw, ecdhPrivKey, ownEmail);
         setCellView({ cell: data, plaintext: pt, decrypted: true, decryptError: null });
       } catch (e) {
         setCellView({ cell: data, plaintext: '', decrypted: false, decryptError: classifyDecryptError(e as Error) });
       }
     } else {
-      const decryptError = (type === null && (ecdhPrivKey !== null || presharedKey !== null))
+      const decryptError = (type === null && ecdhPrivKey !== null)
         ? 'This cell appears corrupted or uses an unrecognized format.'
         : null;
       setCellView({ cell: data, plaintext: '', decrypted: false, decryptError });
     }
-  }, [ecdhPrivKey, presharedKey, ownEmail, setCellView]);
+  }, [ecdhPrivKey, ownEmail, setCellView]);
 
   // ── Refresh cell ───────────────────────────────────────────────
   const refreshCell = useCallback(async () => {
@@ -87,22 +85,15 @@ export function useCellOps() {
 
     startLoading('cell');
     try {
-      let ct: string;
-      if (ecdhPrivKey) {
-        if (selectedRecipients.length === 0) {
-          showToast('Select at least one person', 'warning');
-          return;
-        }
-        ct = await encryptECDH(text, selectedRecipients);
-        if (selectedRecipients.length > 1) {
-          const hashes = await Promise.all(
-            selectedRecipients.map(r => sha256hex(r.email.toLowerCase()))
-          );
-          const groupId = await computeGroupId(hashes);
-          gasRun('upsertGroup', groupId, hashes, '').catch(() => { /* fire-and-forget */ });
-        }
-      } else {
-        ct = await encryptPreshared(text, presharedKey!);
+      if (!ecdhPrivKey) { showToast('No key loaded', 'warning'); return; }
+      if (selectedRecipients.length === 0) { showToast('Select at least one person', 'warning'); return; }
+      const ct = await encryptECDH(text, selectedRecipients);
+      if (selectedRecipients.length > 1) {
+        const hashes = await Promise.all(
+          selectedRecipients.map(r => sha256hex(r.email.toLowerCase()))
+        );
+        const groupId = await computeGroupId(hashes);
+        gasRun('upsertGroup', groupId, hashes, '').catch(() => { /* fire-and-forget */ });
       }
 
       await gasRun('setEncryptedCellValue', ct, currentCell.cellRef, currentCell.sheetName);
@@ -117,20 +108,14 @@ export function useCellOps() {
     }
   }, [
     canEncrypt, currentCell, cellIsEncrypted,
-    ecdhPrivKey, presharedKey,
-    setCellView, startLoading, stopLoading, showToast,
+    ecdhPrivKey, setCellView, startLoading, stopLoading, showToast,
   ]);
 
   // ── Unprotect flow ─────────────────────────────────────────────
   const requestUnprotect = useCallback(async () => {
     if (!currentCell || !cellIsEncrypted) return;
     const raw = String(currentCell.value ?? '');
-    let keyLoaded = false;
-    if (raw.startsWith(VAULT_PFX)) {
-      const type = getPayloadType(raw);
-      keyLoaded = (type === TYPE_ECDH && ecdhPrivKey !== null) ||
-                  (type === TYPE_PRESHARED && presharedKey !== null);
-    }
+    const keyLoaded = raw.startsWith(VAULT_PFX) && getPayloadType(raw) === TYPE_ECDH && ecdhPrivKey !== null;
     startLoading('cell');
     try {
       await gasRun('openDecryptConfirm', currentCell.cellRef, currentCell.sheetName, keyLoaded);
@@ -139,7 +124,7 @@ export function useCellOps() {
       showToast('Could not open dialog: ' + (e as Error).message, 'error');
       stopLoading('cell');
     }
-  }, [currentCell, cellIsEncrypted, ecdhPrivKey, presharedKey, startLoading, stopLoading, showToast]);
+  }, [currentCell, cellIsEncrypted, ecdhPrivKey, startLoading, stopLoading, showToast]);
 
   const stopPolling = useCallback(() => {
     if (pollTimerRef.current) {
@@ -176,7 +161,7 @@ export function useCellOps() {
   const doReveal = useCallback(async (cellRef: string, sheetName: string) => {
     try {
       const raw = String(currentCell?.value ?? '');
-      const pt = await decrypt(raw, ecdhPrivKey, presharedKey, ownEmail);
+      const pt = await decrypt(raw, ecdhPrivKey!, ownEmail);
       await gasRun('revealCell', pt, cellRef, sheetName);
       setCellView(prev => ({ ...prev, cell: prev.cell ? { ...prev.cell, value: pt } : null, plaintext: pt, decrypted: false }));
       showToast('Cell revealed', 'warning', true);
@@ -185,7 +170,7 @@ export function useCellOps() {
     } finally {
       stopLoading('cell');
     }
-  }, [currentCell, ecdhPrivKey, presharedKey, ownEmail, setCellView, startLoading, stopLoading, showToast]);
+  }, [currentCell, ecdhPrivKey, ownEmail, setCellView, startLoading, stopLoading, showToast]);
 
   const doClear = useCallback(async (cellRef: string, sheetName: string) => {
     try {

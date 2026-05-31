@@ -4,12 +4,9 @@ import { useCacheOps } from './useCacheOps';
 import { useCellOps } from './useCellOps';
 import { useKeyOps } from './useKeyOps';
 import { gasRun } from '../utils/gas';
-import type { DocumentSettings } from '../types';
 
 export function useInitApp() {
-  const {
-    setOwnEmail, setDefaultKeyType,
-  } = useApp();
+  const { setOwnEmail } = useApp();
   const { seedPubKeyCache, refreshGroupCache } = useCacheOps();
   const { refreshCell } = useCellOps();
   const { syncKeyInStorage, doUnlockWithPassword } = useKeyOps();
@@ -25,10 +22,6 @@ export function useInitApp() {
         .then(email => setOwnEmail(email || ''))
         .catch(() => {});
 
-      // Load settings
-      gasRun<DocumentSettings>('getDocumentSettings')
-        .then(s => { if (s?.defaultKeyType) setDefaultKeyType(s.defaultKeyType); })
-        .catch(() => {});
 
       const entry = await syncKeyInStorage();
       await refreshCell();
