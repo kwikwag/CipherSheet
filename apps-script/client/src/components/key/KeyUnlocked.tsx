@@ -28,7 +28,7 @@ export function KeyUnlocked() {
             bgcolor: 'success.main', flexShrink: 0,
           }} />
           <Typography variant="caption" sx={{ fontWeight: 700, color: 'success.dark', letterSpacing: 0.5 }}>
-            KEYPAIR ACTIVE
+            KEY ACTIVE
           </Typography>
           <Chip
             label="ECDH P-256"

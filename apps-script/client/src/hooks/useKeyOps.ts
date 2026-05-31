@@ -96,7 +96,7 @@ export function useKeyOps() {
 
     if (window.PasswordCredential) {
       try {
-        const cred = new window.PasswordCredential({ id: fp, password, name: 'CipherSheet Keypair' });
+        const cred = new window.PasswordCredential({ id: fp, password, name: 'CipherSheet Key' });
         await navigator.credentials.store(cred);
       } catch { /* ignore */ }
     }
@@ -106,7 +106,7 @@ export function useKeyOps() {
     await cacheUpsertOwn(spki);
 
     setSetupPassword(password);
-    showToast('Keypair generated! Save the unlock password below.', 'warning', true);
+    showToast('Key generated! Save the unlock password below.', 'warning', true);
   }, [setEcdhPrivKey, setEcdhPubKey, setEcdhFp, setUnlockPassword,
       setKeyInStorage, setKeyHasPasskey, setSetupPassword, showToast, triggerPasswordSave, cacheUpsertOwn]);
 
@@ -245,7 +245,7 @@ export function useKeyOps() {
   // ── Unlock with password ───────────────────────────────────────
   const doUnlockWithPassword = useCallback(async (password: string) => {
     const entry = await idbGet<IdbEcdhEntry>(IDB_ECDH_KEY);
-    if (!entry) throw new Error('No stored keypair found');
+    if (!entry) throw new Error('No stored key found');
 
     const jwkBytes = await unwrapData(entry, password);
     const jwk = JSON.parse(new TextDecoder().decode(jwkBytes)) as JsonWebKey;
@@ -281,7 +281,7 @@ export function useKeyOps() {
     setEcdhPrivKey(null);
     setEcdhPubKey(null);
     setUnlockPassword(null);
-    showToast('Keypair locked');
+    showToast('Key locked');
   }, [setEcdhPrivKey, setEcdhPubKey, setUnlockPassword, showToast]);
 
   // ── Forget key ─────────────────────────────────────────────────
@@ -297,19 +297,19 @@ export function useKeyOps() {
       await gasRun('removePublicKey');
       cacheRemoveOwn();
     }
-    showToast('Keypair forgotten');
+    showToast('Key forgotten');
   }, [setKeyInStorage, setKeyHasPasskey, setEcdhPrivKey, setEcdhPubKey, setUnlockPassword, setEcdhFp, cacheRemoveOwn, showToast]);
 
   // ── PRF passkey enroll ─────────────────────────────────────────
   const tryPrfEnroll = useCallback(async () => {
     const passkeyPopupUrl = window.CS_CONFIG?.passkeyPopupUrl;
     if (!passkeyPopupUrl || !ecdhPrivKey) {
-      if (!ecdhPrivKey) showToast('Unlock your keypair first', 'warning');
+      if (!ecdhPrivKey) showToast('Unlock your key first', 'warning');
       return;
     }
     const fp = ecdhFp || '';
     const password = unlockPassword;
-    if (!password) { showToast('Unlock your keypair first', 'warning'); return; }
+    if (!password) { showToast('Unlock your key first', 'warning'); return; }
 
     try {
       const challenge = Array.from(crypto.getRandomValues(new Uint8Array(32)));

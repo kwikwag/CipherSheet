@@ -47,7 +47,7 @@ export function KeyLocked() {
           width: 8, height: 8, borderRadius: '50%',
           bgcolor: 'warning.main', flexShrink: 0,
         }} />
-        <Typography variant="subtitle2" sx={{ color: 'warning.main' }}>Keypair locked</Typography>
+        <Typography variant="subtitle2" sx={{ color: 'warning.main' }}>Key locked</Typography>
         {ecdhFp && (
           <Chip
             icon={<FingerprintIcon sx={{ fontSize: '0.75rem !important' }} />}
@@ -143,7 +143,7 @@ export function KeyLocked() {
           />
           <Box sx={{ display: 'flex', gap: 1 }}>
             <Button size="small" color="error" variant="contained" onClick={handleForget} sx={{ fontSize: '0.6875rem' }}>
-              Forget keypair
+              Forget key
             </Button>
             <Button size="small" onClick={() => { setShowForget(false); setKeepInDoc(false); }} sx={{ fontSize: '0.6875rem' }}>
               Cancel

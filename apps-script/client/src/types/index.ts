@@ -72,6 +72,9 @@ declare global {
     google?: {
       script: {
         run: GasRunner;
+        host: {
+          close(): void;
+        };
       };
     };
   }
