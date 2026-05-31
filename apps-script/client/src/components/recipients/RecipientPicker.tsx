@@ -76,7 +76,7 @@ export function RecipientPicker({ selectedEmails, onSelectionChange }: Recipient
       {/* Recipient list */}
       <Collapse in={open}>
         <Box sx={{ mt: 0.5, maxHeight: 140, overflowY: 'auto' }}>
-          {pubKeyCache.map(({ email, fp }) => (
+          {pubKeyCache.map(({ email }) => (
             <Box
               key={email}
               sx={{
@@ -96,12 +96,6 @@ export function RecipientPicker({ selectedEmails, onSelectionChange }: Recipient
                 }
                 label={email}
               />
-              <Typography
-                variant="caption"
-                sx={{ fontFamily: 'monospace', color: 'text.secondary', fontSize: '0.625rem', ml: 0.5 }}
-              >
-                {fp.slice(0, 9)}…
-              </Typography>
             </Box>
           ))}
         </Box>

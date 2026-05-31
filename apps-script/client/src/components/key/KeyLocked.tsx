@@ -1,16 +1,16 @@
 import { useState } from 'react';
 import {
-  Box, Button, Checkbox, Chip, Collapse, FormControlLabel,
+  Box, Button, Checkbox, Collapse, FormControlLabel,
   IconButton, InputAdornment, TextField, Typography,
 } from '@mui/material';
 import LockOpenIcon from '@mui/icons-material/LockOpen';
-import FingerprintIcon from '@mui/icons-material/Fingerprint';
 import KeyIcon from '@mui/icons-material/Key';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { useApp } from '../../context/AppContext';
 import { useKeyOps } from '../../hooks/useKeyOps';
+import { FingerprintChip } from '../common/FingerprintChip';
 
 export function KeyLocked() {
   const { ecdhFp, keyHasPasskey, showToast } = useApp();
@@ -49,12 +49,7 @@ export function KeyLocked() {
         }} />
         <Typography variant="subtitle2" sx={{ color: 'warning.main' }}>Key locked</Typography>
         {ecdhFp && (
-          <Chip
-            icon={<FingerprintIcon sx={{ fontSize: '0.75rem !important' }} />}
-            label={ecdhFp.slice(0, 9) + '…'}
-            size="small"
-            sx={{ ml: 'auto', fontSize: '0.6875rem', height: 20 }}
-          />
+          <FingerprintChip fp={ecdhFp} sx={{ ml: 'auto' }} />
         )}
       </Box>
 

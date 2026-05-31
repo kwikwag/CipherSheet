@@ -1,15 +1,15 @@
 import { useRef, useState } from 'react';
 import {
-  Box, Button, Chip, Collapse, Typography,
+  Box, Button, Collapse, Typography,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-import FingerprintIcon from '@mui/icons-material/Fingerprint';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { useKeyOps } from '../../hooks/useKeyOps';
 import type { KeyConflict } from '../../hooks/useKeyOps';
 import { useApp } from '../../context/AppContext';
 import { KeyConflictDialog } from './KeyConflictDialog';
+import { FingerprintChip } from '../common/FingerprintChip';
 
 export function KeySetup() {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -57,12 +57,7 @@ export function KeySetup() {
           Encryption key
         </Typography>
         {registeredEntry && (
-          <Chip
-            icon={<FingerprintIcon sx={{ fontSize: '0.75rem !important' }} />}
-            label={registeredEntry.fp.slice(0, 9) + '…'}
-            size="small"
-            sx={{ ml: 'auto', fontSize: '0.6875rem', height: 20 }}
-          />
+          <FingerprintChip fp={registeredEntry.fp} sx={{ ml: 'auto' }} />
         )}
       </Box>
       <Box sx={{ display: 'flex', gap: 1 }}>

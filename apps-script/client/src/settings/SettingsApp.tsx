@@ -4,6 +4,7 @@ import {
   List, ListItem, Stack,
   TextField, Typography,
 } from '@mui/material';
+import { FingerprintChip } from '../components/common/FingerprintChip';
 import type { GroupEntry } from '../types';
 import { gasRun } from '../utils/gas';
 
@@ -73,23 +74,21 @@ export function SettingsApp() {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
-      <Box sx={{ flex: 1, px: 2, pt: 1.5, pb: 1 }}>
+      <Box sx={{ flex: 1, pr: 1, pt: 0, pb: 1.5 }}>
 
         <Typography variant="overline" color="text.secondary" display="block" sx={{ mb: 0.5 }}>
           Registered public keys
         </Typography>
         {pubKeys.length === 0 ? (
-          <Typography variant="caption" color="text.disabled">No registered public keys yet.</Typography>
+          <Typography variant="body2" color="text.disabled">No registered public keys yet.</Typography>
         ) : (
           <List dense disablePadding>
             {pubKeys.map(({ email, fp }) => (
               <ListItem key={email} disablePadding sx={{ py: 0.25 }}>
-                <Typography variant="body2" sx={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <Typography variant="body1" sx={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {email}
                 </Typography>
-                <Typography variant="caption" color="text.disabled" sx={{ fontFamily: 'monospace', ml: 1, flexShrink: 0 }}>
-                  {fp.slice(0, 17)}…
-                </Typography>
+                <FingerprintChip fp={fp} sx={{ ml: 1 }} />
               </ListItem>
             ))}
           </List>
@@ -101,13 +100,13 @@ export function SettingsApp() {
             <Typography variant="overline" color="text.secondary" display="block" sx={{ mb: 0.5 }}>
               Missing public keys
             </Typography>
-            <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.75 }}>
+            <Typography variant="body2" color="text.secondary" display="block" sx={{ mb: 0.75 }}>
               These collaborators have no registered public key — encrypted data cannot be addressed to them until they open CipherSheet and generate one.
             </Typography>
             <List dense disablePadding>
               {noKeyEditors.map(email => (
                 <ListItem key={email} disablePadding sx={{ py: 0.25 }}>
-                  <Typography variant="body2" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <Typography variant="body1" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {email}
                   </Typography>
                 </ListItem>
@@ -122,14 +121,14 @@ export function SettingsApp() {
           Groups
         </Typography>
         {groups.length === 0 ? (
-          <Typography variant="caption" color="text.disabled">
+          <Typography variant="body2" color="text.disabled">
             Groups are automatically created when you protect a cell shared with multiple people.
           </Typography>
         ) : (
           <Stack spacing={1}>
             {groups.map(g => (
               <Box key={g.id} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5, p: 1 }}>
-                <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.5 }}>
+                <Typography variant="body2" color="text.secondary" display="block" sx={{ mb: 0.5 }}>
                   {g.emailHashes.length} member{g.emailHashes.length !== 1 ? 's' : ''}
                 </Typography>
                 <TextField
@@ -148,7 +147,7 @@ export function SettingsApp() {
       </Box>
 
       {/* Footer */}
-      <Box sx={{ px: 2, py: 1, borderTop: '1px solid', borderColor: 'divider' }}>
+      <Box sx={{ pr: 1, pt: 1, borderTop: '1px solid', borderColor: 'divider' }}>
         <Typography variant="caption" color="text.secondary">
           Open-sourced by an independent developer
           {cfg?.appVersion ? ` · v${cfg.appVersion}` : ''}
