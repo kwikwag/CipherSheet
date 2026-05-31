@@ -95,10 +95,10 @@ apps-script/
         main.tsx         # Entry: mounts SettingsApp into #root
       components/
         cell/            # CellMeta (header chip), CellEditor (textarea + overlays)
-        key/             # KeySection, KeySetup, KeyLocked, KeyUnlocked, PresharedKeySection, PasswordSetupBox
+        key/             # KeySection, KeySetup, KeyLocked, KeyUnlocked, KeyConflictDialog, PasswordSetupBox
         recipients/      # RecipientPicker (collapsible checkbox list)
         footer/          # Footer (links + version)
-        common/          # LoadingOverlay, AppSnackbar
+        common/          # AppSnackbar, FingerprintChip, EmailLabel, Shimmer
   dist/                  # Compiled output; pushed to Apps Script via clasp
 docs/
   index.html, privacy.html, terms.html, donate.html, thank-you.html
@@ -161,7 +161,7 @@ Sidebar             Apps Script (server)         decrypt-confirm.html
 
 ### Cell storage format
 
-Every encrypted cell stores a **self-contained payload** as its value, prefixed with `🔐`. The cell displays `🔒 Encrypted` via the custom number format `;;;"🔒 Encrypted"`. Document Properties hold only public key registry and group entries — no per-cell data.
+Every encrypted cell stores a **self-contained payload** inside a dummy formula: `=IF(TRUE,"🔒 Encrypted","🔐<payload>")`. The cell displays `🔒 Encrypted` as the formula result; `getFormula()` retrieves the raw payload. Document Properties hold only public key registry and group entries — no per-cell data.
 
 ```
 🔐<base64(
@@ -205,9 +205,9 @@ Server-side Apps Script. TypeScript compiled to JS; all Apps Script globals (`Sp
 | `showSidebar` / `showOnboarding` / `showSettings` | Open HTML panels; `showSidebar` injects the passkey popup URL |
 | `getPasskeyPopupUrl` | Returns the GitHub Pages top-level WebAuthn PRF popup URL |
 | `getSelectedCellValue()` | Returns `{ value, cellRef, sheetName }` using `cell.getValue()` (not display value) |
-| `setEncryptedCellValue(payload, cellRef, sheetName)` | Writes payload, applies `;;;"🔒 Encrypted"` number format, warning protection, note |
-| `revealCell(plaintext, cellRef, sheetName)` | Writes plaintext, resets number format to `@`, removes protection/note |
-| `clearVaultCell(cellRef, sheetName)` | Clears cell content, resets format, removes protection/note |
+| `setEncryptedCellValue(payload, cellRef, sheetName)` | Writes `=IF(TRUE,"🔒 Encrypted","<payload>")` formula, applies warning protection, note |
+| `revealCell(plaintext, cellRef, sheetName)` | Writes plaintext (replacing formula), removes protection/note |
+| `clearCell(cellRef, sheetName)` | Clears cell content, resets format, removes protection/note |
 | `openDecryptConfirm(cellRef, sheetName, keyLoaded)` | Opens consent modal dialog |
 | `heartbeatModalAlive(cellRef, sheetName)` | Modal keepalive — called every 2 s (TTL 4 s) |
 | `recordDecryptIntent(cellRef, sheetName, intent)` | Modal records `reveal` / `clear` / `cancel` |
@@ -219,14 +219,14 @@ Server-side Apps Script. TypeScript compiled to JS; all Apps Script globals (`Sp
 | `listGroups()` | Returns `{ id, emailHashes, label }[]` from all `grp:` properties |
 | `getDocumentSettings()` / `setDocumentSettings()` | JSON settings in Document Properties (`editWarningEnabled`, `revertOnEditEnabled`, `defaultKeyType`) |
 | `navigateToCell(cellRef, sheetName)` | Activates a cell in the sheet UI |
-| `onEdit(e)` | Auto-reverts direct edits to vault cells (requires `revertOnEditEnabled`) |
+| `onEdit(e)` | Disabled — encrypted formula cells cannot be restored from `e.oldValue` alone; see comment in Code.ts |
 | `removePublicKey()` | Deletes the calling user's `pk:<email>` entry from Document Properties |
 | `listEditorsWithoutKeys()` | Returns `string[]` of editor emails that have no registered `pk:` entry |
-| `resetDocumentMetadata()` | Interactively deletes all CipherSheet Document Properties (settings, public keys, groups); does not touch cell values |
+| `resetDocumentMetadata()` | Interactively deletes all CipherSheet Document Properties (settings, public keys, groups); does not touch cell formulas |
 
 ### [apps-script/server/sidebar.html](apps-script/server/sidebar.html)
 
-Thin shell that injects `CS_CONFIG` (feedback/donate/privacy URLs, app version, initial public keys) and mounts `<div id="root">`, then includes the Vite-built `sidebar-script.html`.
+Thin shell that injects `CS_CONFIG` (feedback/donate/privacy URLs, app version, passkey popup URL, initial public-key cache) and mounts `<div id="root">`, then includes the Vite-built `sidebar-script.html`.
 
 All client-side state and logic lives in the React client ([apps-script/client/src/](apps-script/client/src/)). Key entry points: [AppContext.tsx](apps-script/client/src/context/AppContext.tsx) for global state, [useKeyOps.ts](apps-script/client/src/hooks/useKeyOps.ts) for key operations, [useCellOps.ts](apps-script/client/src/hooks/useCellOps.ts) for cell encrypt/decrypt/unprotect, [crypto.ts](apps-script/client/src/utils/crypto.ts) for all WebCrypto operations.
 

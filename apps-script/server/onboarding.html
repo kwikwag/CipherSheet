@@ -134,10 +134,9 @@
     <div class="slide active" id="slide-0">
       <div class="slide-title">Welcome to CipherSheet</div>
       <div class="slide-text">
-        CipherSheet allows you to encrypt individual cells in Google Sheets. Only people
-        with the correct <code>.vaultkey</code> file can read or update the cell.
+        CipherSheet allows you to encrypt individual cells in Google Sheets. Each user generates a personal keypair — only selected collaborators who have registered their key can decrypt.
         <br><br>
-        To start, generate a new encryption key by clicking <strong>Generate new key</strong> in the sidebar. This will instantly download a key file to your computer.
+        To start, click <strong>Generate key</strong> in the sidebar. Save the unlock password shown, then optionally set up a passkey for easier access.
       </div>
       <div class="slide-img-placeholder">
         <img src="<?!= include('imgs-encoded/step1-generate-key'); ?>" alt="Using the &quot;Generate new key&quot; button">
@@ -148,9 +147,9 @@
     <div class="slide" id="slide-1">
       <div class="slide-title">Protecting a Cell</div>
       <div class="slide-text">
-        With the key loaded into the Add-on, select any empty cell in your sheet.
-        Type the secret text you want to securely save into the CipherSheet text box,
-        and click <strong>Protect</strong>. <br><br>The cell in the spreadsheet will be replaced with unintelligible ciphertext.
+        Once your key is active, select any cell in your sheet.
+        Type the secret text you want to securely store into the CipherSheet text box,
+        choose which collaborators can read it, and click <strong>Protect</strong>. <br><br>The cell will be replaced with ciphertext — only selected recipients can decrypt it.
       </div>
       <div class="slide-img-placeholder">
         <img src="<?!= include('imgs-encoded/step2-protect-cell'); ?>" alt="Clicking the &quot;Protect&quot; button">
@@ -161,10 +160,11 @@
     <div class="slide" id="slide-2">
       <div class="slide-title">Unprotecting a Cell</div>
       <div class="slide-text">
-        Select an encrypted cell, and the sidebar will show <strong>Unprotect</strong>.
-        Click it to reveal the plaintext.
+        Select an encrypted cell — if your key is one of the recipients, the plaintext appears in the sidebar automatically.
+        <br><br>
+        Click <strong>Unprotect</strong> to write the plaintext back to the sheet. A confirmation dialog will appear first.
         <br>
-        <em>Note:</em> Unprotecting a cell will permanently write the plaintext to the sheet's history. To simply clear the cell, you can select "Clear cell" without revealing the contents.
+        <em>Note:</em> Revealing a cell permanently writes the plaintext to the sheet's history. To remove the cell without revealing the contents, click <strong>Unprotect</strong> and choose "Clear" in the confirmation dialog.
       </div>
       <div class="slide-img-placeholder">
         <img src="<?!= include('imgs-encoded/step3-unprotect-cell'); ?>" alt="Clicking the &quot;Unprotect&quot; button">
@@ -175,12 +175,12 @@
     <div class="slide" id="slide-3">
       <div class="slide-title">Keep Your Key Safe</div>
       <div class="slide-text">
-        Because CipherSheet uses a zero-knowledge architecture, <b>if you lose your key file, your encrypted data is practically unrecoverable.</b><br><br>
-        Never upload your key file to public places. Instead, share it directly and securely with your trusted collaborators.
-        The key never leaves your local browser — it is never sent to any servers - not Google nor any other servers.
+        Because CipherSheet uses a zero-knowledge architecture, <b>your private key never leaves your browser</b> — it is never sent to any server, including Google.<br><br>
+        Save your unlock password in a secure password manager. If you lose it, your encrypted data is unrecoverable.<br><br>
+        Each collaborator generates their own key. You don't share key files — you share access by selecting collaborators as recipients when you encrypt.
       </div>
       <div class="slide-img-placeholder">
-        <img src="<?!= include('imgs-encoded/step4-key-loaded'); ?>" alt="The key file gets downloaded upon generating">
+        <img src="<?!= include('imgs-encoded/step4-key-loaded'); ?>" alt="The unlock password shown after generating a key">
       </div>
     </div>
   </div>

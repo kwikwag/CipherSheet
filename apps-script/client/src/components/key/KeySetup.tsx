@@ -83,7 +83,7 @@ export function KeySetup() {
       <input
         ref={fileInputRef}
         type="file"
-        accept=".ciphersheet-key,.vaultkey,.json,.key,.txt"
+        accept=".ciphersheet-key,.json"
         style={{ display: 'none' }}
         onChange={handleFileChange}
       />

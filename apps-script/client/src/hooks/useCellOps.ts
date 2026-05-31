@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import { useApp } from '../context/AppContext';
 import {
   decrypt, encryptECDH,
-  sha256hex, computeGroupId, VAULT_PFX, getPayloadType,
+  sha256hex, computeGroupId, ENCRYPTED_PFX, getPayloadType,
   TYPE_ECDH, parseRecipientHashes,
 } from '../utils/crypto';
 import { gasRun } from '../utils/gas';
@@ -25,8 +25,8 @@ export function useCellOps() {
   const renderCell = useCallback(async (data: CellData | null) => {
     if (!data) { setCellView(EMPTY_VIEW); return; }
     const raw = String(data.value ?? '');
-    if (!raw.startsWith(VAULT_PFX) || raw.length <= VAULT_PFX.length) {
-      setCellView({ cell: data, plaintext: raw, decrypted: false, decryptError: null, recipientHashes: new Set() });
+    if (!raw.startsWith(ENCRYPTED_PFX) || raw.length <= ENCRYPTED_PFX.length) {
+      setCellView({ cell: data, plaintext: '', decrypted: false, decryptError: null, recipientHashes: new Set() });
       return;
     }
     const type = getPayloadType(raw);
@@ -119,7 +119,7 @@ export function useCellOps() {
   const requestUnprotect = useCallback(async () => {
     if (!currentCell || !cellIsEncrypted) return;
     const raw = String(currentCell.value ?? '');
-    const keyLoaded = raw.startsWith(VAULT_PFX) && getPayloadType(raw) === TYPE_ECDH && ecdhPrivKey !== null;
+    const keyLoaded = raw.startsWith(ENCRYPTED_PFX) && getPayloadType(raw) === TYPE_ECDH && ecdhPrivKey !== null;
     startLoading('cell');
     try {
       await gasRun('openDecryptConfirm', currentCell.cellRef, currentCell.sheetName, keyLoaded);
@@ -178,7 +178,7 @@ export function useCellOps() {
 
   const doClear = useCallback(async (cellRef: string, sheetName: string) => {
     try {
-      await gasRun('clearVaultCell', cellRef, sheetName);
+      await gasRun('clearCell', cellRef, sheetName);
       setCellView(prev => ({ ...prev, cell: prev.cell ? { ...prev.cell, value: '' } : null, plaintext: '', decrypted: false }));
       showToast('Cell cleared', 'success');
     } catch (e) {

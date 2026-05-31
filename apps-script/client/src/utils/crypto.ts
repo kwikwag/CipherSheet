@@ -1,7 +1,7 @@
 import { buf2b64, buf2hex, b642buf, buf2b64url } from './encoding';
 
 export { buf2b64url };
-export const VAULT_PFX = '\uD83D\uDD10'; // 🔐
+export const ENCRYPTED_PFX = '\uD83D\uDD10'; // 🔐
 export const TYPE_ECDH = 0x02;
 export const IV_LEN = 12;
 export const PRF_EVAL_INPUT = new TextEncoder().encode('CipherSheet unlock key v1');
@@ -156,14 +156,14 @@ export async function encryptECDH(plaintext: string, recipients: Recipient[]): P
     payload.set(wrappedKey, off); off += 32;
     payload.set(wrapTag, off); off += 16;
   }
-  return VAULT_PFX + buf2b64(payload.buffer);
+  return ENCRYPTED_PFX + buf2b64(payload.buffer);
 }
 
 // ── Parse recipient hashes (no decryption) ──────────────────────
 
 export function parseRecipientHashes(raw: string): Set<string> {
   try {
-    const payload = b642buf(raw.slice(VAULT_PFX.length));
+    const payload = b642buf(raw.slice(ENCRYPTED_PFX.length));
     const bytes = new Uint8Array(payload);
     if (bytes[0] !== TYPE_ECDH) return new Set();
     let off = 1 + IV_LEN;
@@ -253,8 +253,8 @@ export async function decrypt(
   ecdhPrivKey: CryptoKey,
   ownEmail: string
 ): Promise<string> {
-  if (!ciphertextStr.startsWith(VAULT_PFX)) throw new Error('not a vault value');
-  const raw = b642buf(ciphertextStr.slice(VAULT_PFX.length));
+  if (!ciphertextStr.startsWith(ENCRYPTED_PFX)) throw new Error('not an encrypted value');
+  const raw = b642buf(ciphertextStr.slice(ENCRYPTED_PFX.length));
   const type = raw[0];
   if (type === TYPE_ECDH) {
     if (!ownEmail) throw new Error('Own email not available — please refresh');
@@ -267,9 +267,9 @@ export async function decrypt(
 }
 
 export function getPayloadType(ciphertextStr: string): number | null {
-  if (!ciphertextStr.startsWith(VAULT_PFX) || ciphertextStr.length <= VAULT_PFX.length) return null;
+  if (!ciphertextStr.startsWith(ENCRYPTED_PFX) || ciphertextStr.length <= ENCRYPTED_PFX.length) return null;
   try {
-    return b642buf(ciphertextStr.slice(VAULT_PFX.length))[0];
+    return b642buf(ciphertextStr.slice(ENCRYPTED_PFX.length))[0];
   } catch {
     return null;
   }

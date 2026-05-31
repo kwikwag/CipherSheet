@@ -186,7 +186,7 @@
       <div class="features-grid">
         <div class="feature-card">
           <h3>1. Generate a Key</h3>
-          <p>Click "Generate new key" in the add-on sidebar. A <code>.vaultkey</code> file containing your 256-bit encryption key will instantly download to your machine. <strong>Do not lose this file.</strong></p>
+          <p>Click <strong>Generate key</strong> in the add-on sidebar. A personal keypair is created in your browser. Save the unlock password shown — it cannot be recovered. Optionally set up a passkey for easier access.</p>
         </div>
         <div class="feature-card">
           <h3>2. Load & Protect</h3>
@@ -194,7 +194,7 @@
         </div>
         <div class="feature-card">
           <h3>3. Decrypt on Demand</h3>
-          <p>Collaborators who load the correct <code>.vaultkey</code> file into their sidebar will instantly see the decrypted contents of selected cells within the sidebar view.</p>
+          <p>Collaborators who have generated their own key and are listed as recipients will be able to decrypt the cell in their sidebar.</p>
         </div>
         <div class="feature-card">
           <h3>4. Revealing & Clearing</h3>
@@ -209,8 +209,8 @@
         <p>CipherSheet uses a <strong>zero-knowledge architecture for key handling</strong>. This means:</p>
         <ul>
           <li><strong>Client-side encryption:</strong> All encryption and decryption occurs locally in your browser using the <a href="https://developer.mozilla.org/en-US/docs/Web/API/Web_Crypto_API" target="_blank" rel="noopener">Web Crypto API</a>.</li>
-          <li><strong>Keys stay with you:</strong> Your <code>.vaultkey</code> is never transmitted to us or to Google servers. The add-on only sends the resulting, unintelligible ciphertext to the cloud.</li>
-          <li><strong>Data loss warning:</strong> Because we have no access to your keys, we have no way to recover encrypted data if you lose your key file. Keep it in a secure password manager or physical drive.</li>
+          <li><strong>Keys stay with you:</strong> Your private key never leaves your browser. Only your public key is registered in the spreadsheet so collaborators can encrypt for you. The add-on sends only unintelligible ciphertext to Google's servers.</li>
+          <li><strong>Data loss warning:</strong> Because we have no access to your keys, we have no way to recover encrypted data if you lose your unlock password. Keep it in a secure password manager.</li>
         </ul>
       </div>
 
@@ -218,7 +218,7 @@
         <h3>Why We Need Permissions</h3>
         <p>When you install CipherSheet, Google will ask you to authorize specific permissions to your account. We only ask for what is strictly necessary:</p>
         <ul>
-          <li><strong>Read & Write to Spreadsheets (<code>https://www.googleapis.com/auth/spreadsheets.currentonly</code>):</strong> We strictly ask for access to the <em>current spreadsheet only</em>. We require this to read the selected cell's value and inject the AES-256 ciphertext back into the sheet when you click "Protect" or "Unprotect".</li>
+          <li><strong>Read & Write to Spreadsheets (<code>https://www.googleapis.com/auth/spreadsheets.currentonly</code>):</strong> We strictly ask for access to the <em>current spreadsheet only</em>. We require this to read the selected cell's value and write the encrypted payload back into the sheet when you click "Protect", and to store your public key in document properties so collaborators can encrypt for you.</li>
           <li><strong>Display internal add-on UI:</strong> required to create the custom Add-on Sidebar and Menu you see.</li>
         </ul>
       </div>

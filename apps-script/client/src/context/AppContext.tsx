@@ -52,7 +52,7 @@ interface AppContextValue extends AppState {
 
 const AppContext = createContext<AppContextValue | null>(null);
 
-const VAULT_PFX = '\uD83D\uDD10';
+const ENCRYPTED_PFX = '\uD83D\uDD10';
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [ecdhPrivKey, setEcdhPrivKey] = useState<CryptoKey | null>(null);
@@ -95,7 +95,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const canEncrypt = ecdhPrivKey !== null;
   const cellIsEncrypted = cellView.cell
-    ? String(cellView.cell.value ?? '').startsWith(VAULT_PFX)
+    ? String(cellView.cell.value ?? '').startsWith(ENCRYPTED_PFX)
     : false;
 
   const value = useMemo<AppContextValue>(() => ({

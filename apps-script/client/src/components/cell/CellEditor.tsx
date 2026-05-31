@@ -84,10 +84,10 @@ export function CellEditor({ selectedRecipients }: CellEditorProps) {
           onChange={e => setPlaintext(e.target.value)}
           disabled={overlayVisible}
           sx={{
-            '& .MuiOutlinedInput-root': {
-              filter: overlayVisible ? 'blur(3px)' : 'none',
-              transition: 'filter 0.2s',
-            },
+            // '& .MuiOutlinedInput-root': {
+            //   filter: overlayVisible ? 'blur(3px)' : 'none',
+            //   transition: 'filter 0.2s',
+            // },
             '& textarea': { fontSize: '0.8125rem', lineHeight: 1.5 },
           }}
         />
@@ -135,7 +135,7 @@ export function CellEditor({ selectedRecipients }: CellEditorProps) {
       <input
         ref={fileInputRef}
         type="file"
-        accept=".ciphersheet-key,.vaultkey,.json,.key,.txt"
+        accept=".ciphersheet-key,.json"
         style={{ display: 'none' }}
         onChange={handleFileChange}
       />

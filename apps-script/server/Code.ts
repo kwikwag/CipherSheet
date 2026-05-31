@@ -19,11 +19,6 @@ interface AddonOpenEvent {
   authMode?: GoogleAppsScript.Script.AuthMode;
 }
 
-interface OnEditEvent {
-  oldValue?: unknown;
-  range: GoogleAppsScript.Spreadsheet.Range;
-}
-
 interface CellRef {
   cellRef: string;
   sheetName: string;
@@ -88,10 +83,13 @@ interface DecryptConfirmTemplate
   keyLoaded: string;
 }
 
-const VAULT_PFX_TRIGGER = '\uD83D\uDD10'; // 🔐
 const PK_PREFIX  = 'pk:';
 const GRP_PREFIX = 'grp:';
 const PROTECTION_DESC_PREFIX = 'CipherSheet:';
+// Matches the dummy formula used to display "🔒 Encrypted" while hiding the ciphertext
+// as the unreachable second branch. Group 1 captures the raw ciphertext.
+// TODO : can we have one central place this logic is defined everybody uses
+const ENCRYPTED_FORMULA_RE = /^=IF\(TRUE,"🔒 Encrypted","(🔐[^"]*)"\)$/;
 const SETTINGS_KEY = 'CIPHERSHEET_SETTINGS';
 const APP_VERSION = '1.0.0';
 const FEEDBACK_URL =
@@ -151,7 +149,7 @@ function buildAddonMenu(e?: AddonOpenEvent): void {
   } else {
     // The add-on is enabled and authorized.
     menu
-      .addItem('Open Vault', 'showSidebar')
+      .addItem('Open CipherSheet', 'showSidebar')
       .addSeparator()
       .addItem('How to use', 'showOnboarding')
       .addSeparator()
@@ -195,39 +193,16 @@ function showSidebar(): void {
   SpreadsheetApp.getUi().showSidebar(html);
 }
 
-// ── onEdit trigger — vault cell guard ────────────────────────────
+// ── onEdit trigger — encrypted cell guard (DISABLED) ─────────────────
 //
-// Immediately reverts any manual edit to a cell whose previous value
-// started with the vault prefix 🔐. Works for ALL users including
-// the spreadsheet owner (whom range protection cannot block).
-//
-// For full coverage across all collaborators, also install as an
-// installable trigger:
-//   Apps Script editor → Triggers → Add trigger
-//   → Function: onEdit, Event: From spreadsheet → On edit
+// NOTE: onEdit-based reversion is not currently supported. Encrypted cells are stored
+// as =IF(TRUE,"🔒 Encrypted","🔐...") formulas. When a user edits such a cell,
+// e.oldValue is the computed display value ("🔒 Encrypted"), not the formula, so
+// there is no way to restore the original formula from the event alone. Reversion
+// via onEdit would require storing the formula externally, which adds complexity.
+// For this release, revertOnEditEnabled is disabled and onEdit is a no-op.
+// The warning-only protection (editWarningEnabled) remains the primary guard.
 
-function onEdit(e?: OnEditEvent): void {
-  if (!e) return;
-
-  const settings = getDocumentSettings();
-  if (!settings.revertOnEditEnabled) return;
-
-  const oldVal = e.oldValue !== undefined ? String(e.oldValue) : '';
-  if (!oldVal.startsWith(VAULT_PFX_TRIGGER)) return;
-
-  e.range.setValue(oldVal);
-
-  try {
-    SpreadsheetApp.getUi().alert(
-      '🔐 CipherSheet',
-      'This cell contains encrypted data and cannot be edited directly.\n\n' +
-        'Use the CipherSheet sidebar (🔐 CipherSheet → Open Vault) to update its value.',
-      SpreadsheetApp.getUi().ButtonSet.OK
-    );
-  } catch (_) {
-    // UI unavailable in some trigger contexts
-  }
-}
 
 // ── Navigate to a cell ────────────────────────────────────────────
 
@@ -246,10 +221,12 @@ function getSelectedCellValue(): SelectedCellValue {
   const sheet = SpreadsheetApp.getActiveSheet();
   const cell = sheet.getActiveRange().getCell(1, 1);
 
+  // Encrypted cells store the ciphertext in the formula's unreachable second branch.
+  // Extract it from there; fall back to getValue() for plain (non-encrypted) cells.
+  const formula = cell.getFormula();
+  const match = ENCRYPTED_FORMULA_RE.exec(formula);
   return {
-    // Must use getValue(), not getDisplayValue(). getDisplayValue() returns "🔒 Encrypted"
-    // for encrypted cells because of the custom number format applied by setEncryptedCellValue.
-    value: String(cell.getValue()),
+    value: match ? match[1] : String(cell.getValue()),
     cellRef: cell.getA1Notation(),
     sheetName: sheet.getName()
   };
@@ -264,17 +241,14 @@ function setEncryptedCellValue(
 ): SetEncryptedCellValueResponse {
   const sheet = getSheetOrThrow(sheetName);
   const range = sheet.getRange(cellRef);
-  range.setValue(ciphertext);
-  // 4-section number format: positive;negative;zero;text. The cell value is a string,
-  // so the text (4th) section applies and renders the literal "🔒 Encrypted" regardless
-  // of what the raw string contains. getValue() still returns the actual ciphertext.
-  range.setNumberFormat(';;;"🔒 Encrypted"');
+  // Store ciphertext in the unreachable branch of an IF formula so the cell displays
+  // "🔒 Encrypted" without needing a custom number format. getFormula() retrieves the
+  // ciphertext; getDisplayValue() / getValue() never expose the raw payload to the user.
+  range.setFormula(`=IF(TRUE,"🔒 Encrypted","${ciphertext}")`);
 
   const settings = getDocumentSettings();
 
-  // Apply warning-only protection so even the owner sees a warning
-  // before manually editing. Warning-only is the only mode that works
-  // reliably for the owner; the onEdit trigger provides the hard revert.
+  // Apply warning-only protection so even the owner sees a warning before manually editing.
   if (settings.editWarningEnabled) {
     applyWarningProtection_(sheet, range);
   }
@@ -336,8 +310,8 @@ function openDecryptConfirm(
 //
 // Two keys are used per operation, both user-scoped:
 //
-//   VAULT_INTENT:{sheet}:{cell}   — written by modal on action/cancel
-//   VAULT_ALIVE:{sheet}:{cell}    — heartbeat written by modal every 2s (TTL 4s)
+//   CS_INTENT:{sheet}:{cell}   — written by modal on action/cancel
+//   CS_ALIVE:{sheet}:{cell}    — heartbeat written by modal every 2s (TTL 4s)
 //
 // The sidebar polls both. If the ALIVE key disappears without an INTENT
 // key appearing, the modal was closed via the X button → treat as cancel.
@@ -356,7 +330,7 @@ function cacheKey_(
   cellRef: string,
   sheetName: string
 ): string {
-  return `VAULT_${kind}:${sheetName}:${cellRef}`;
+  return `CS_${kind}:${sheetName}:${cellRef}`;
 }
 
 /** Modal calls this on load and every 2 s to signal it is still open. */
@@ -432,31 +406,27 @@ function revealCell(plaintext: string, cellRef: string, sheetName: string): OkRe
 
   removeWarningProtection_(sheet, range);
   range.setValue(plaintext);
-  // Reset to plain-text format (@). Without this the cell would still display "🔒 Encrypted"
-  // because the custom number format from setEncryptedCellValue persists on the range.
-  range.setNumberFormat('@');
-  removeVaultNote_(range);
+  removeCellNote_(range);
 
   return { ok: true };
 }
 
-// ── Clear vault cell without revealing ───────────────────────────
+// ── Clear encrypted cell without revealing ───────────────────────────
 
-function clearVaultCell(cellRef: string, sheetName: string): OkResponse {
+function clearCell(cellRef: string, sheetName: string): OkResponse {
   const sheet = getSheetOrThrow(sheetName);
   const range = sheet.getRange(cellRef);
 
   removeWarningProtection_(sheet, range);
   range.clearContent();
-  range.setNumberFormat('@');
-  removeVaultNote_(range);
+  removeCellNote_(range);
 
   return { ok: true };
 }
 
 // ── Internal helpers ──────────────────────────────────────────────
 
-function removeVaultNote_(range: GoogleAppsScript.Spreadsheet.Range): void {
+function removeCellNote_(range: GoogleAppsScript.Spreadsheet.Range): void {
   const note = range.getNote() || '';
   if (note.includes('[CipherSheet]')) {
     range.setNote(note.replace(/\n?\[CipherSheet\][^\n]*/g, '').trim() || '');
@@ -615,7 +585,7 @@ function listGroups(): GroupEntry[] {
 // ── Reset metadata ────────────────────────────────────────────────
 // Removes all non-sheet-stored data written by the add-on: document settings,
 // registered public keys (pk:*), and group entries (grp:*). Does NOT touch
-// cell values, number formats, or range protections — those are sheet-stored.
+// cell formulas or range protections — those are sheet-stored.
 
 function resetDocumentMetadata(): void {
   const confirmed = showSheetConfirm(
