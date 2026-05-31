@@ -25,7 +25,7 @@
   <h2 class="logo"><a href="index.html" aria-label="CipherSheet Home"><img src="branding/logo.svg" alt="CipherSheet"><span>Cipher<b>Sheet</b></span></a></h2>
 
   <h1>CipherSheet Privacy Policy</h1>
-  <p><strong>Last updated:</strong> March 20, 2026</p>
+  <p><strong>Last updated:</strong> May 31, 2026</p>
 
   <p>This Privacy Policy applies to the CipherSheet Google Sheets add-on and the CipherSheet website. It explains how CipherSheet accesses, uses, stores, and shares Google user data.</p>
 
@@ -52,8 +52,7 @@
   <ul>
     <li>Encrypt plaintext entered by the user and write ciphertext to selected cells.</li>
     <li>Decrypt ciphertext locally in the browser when a valid key is loaded.</li>
-    <li>If you choose <strong>Reveal</strong>, send plaintext to Apps Script only to write it back to the selected cell.</li>
-    <li>Store add-on settings in Apps Script document properties.</li>
+    <li>Store add-on settings and your ECDH public key (used for asymmetric encryption by collaborators) in Apps Script document properties.</li>
   </ul>
 
   <h2>What We Do Not Do With Google User Data</h2>
@@ -77,7 +76,7 @@
   <h2>Storage, Retention, and Deletion</h2>
   <ul>
     <li>CipherSheet does not store spreadsheet content or Google user data on CipherSheet-owned servers.</li>
-    <li>Encryption keys are generated and stored locally by the user's browser. They are not communicated with Google Sheets nor the CipherSheet add-on.</li>
+    <li>Your private encryption key is generated and stored locally by your browser. It is never transmitted to any server. Your ECDH public key is stored in spreadsheet document properties so collaborators can encrypt data for you.</li>
     <li>Temporary cache entries used for confirmation flow are short-lived and expire automatically.</li>
   </ul>
   <p>You can delete data by clearing relevant cells, removing document properties, or deleting the spreadsheet file. Uninstalling the add-on does not automatically delete existing spreadsheet data.</p>
@@ -85,17 +84,17 @@
   <h2>Security Protections</h2>
   <ul>
     <li>Client-side encryption/decryption uses the browser Web Crypto API and AES-256-GCM.</li>
-    <li>Your private key is generated in your browser and never transmitted to any server. It is not recoverable by CipherSheet if your unlock password is lost.</li>
+    <li>Your private key is generated in your browser and never transmitted to any server. Your public key is registered in document properties to enable asymmetric encryption by collaborators. Your private key is not recoverable by CipherSheet if your unlock password is lost.</li>
     <li>OAuth scopes are limited to what is required for user-facing functionality.</li>
   </ul>
 
   <h2>Policy Changes</h2>
   <p>We may update this policy when functionality or data handling changes. We will update the "Last updated" date on this page.</p>
 
-  <p>Summary of changes compared to the previous version (March 13, 2026):</p>
+  <p>Summary of changes compared to the previous version (March 20, 2026):</p>
   <ul>
-    <li>Simplified and clarified some wordings.</li>
-    <li>Added the 'Plain-Language Terms' section.</li>
+    <li>Removed reference to "Reveal" (write-back) feature — the UI entry point for that path has been removed; plaintext is only shown in-sidebar.</li>
+    <li>Clarified that the ECDH public key is stored in document properties for collaborator use, while the private key remains local.</li>
   </ul>
 
   <h2>Contact Us</h2>
