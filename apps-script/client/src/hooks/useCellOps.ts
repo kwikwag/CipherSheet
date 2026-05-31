@@ -16,7 +16,7 @@ const EMPTY_VIEW: CellViewState = { cell: null, plaintext: '', decrypted: false,
 export function useCellOps() {
   const {
     ecdhPrivKey, ownEmail, cellView, setCellView,
-    pubKeyCache, groupCache, canEncrypt, cellIsEncrypted,
+    pubKeyCache, noKeyEditors, groupCache, canEncrypt, cellIsEncrypted,
     startLoading, stopLoading, showToast, pollTimerRef,
   } = useApp();
   const { cell: currentCell, plaintext, decrypted, decryptError } = cellView;
@@ -186,7 +186,7 @@ export function useCellOps() {
 
   // ── Recipient summary ──────────────────────────────────────────
   const getRecipientSummary = useCallback(async (selectedEmails: string[]): Promise<string> => {
-    const total = pubKeyCache.length;
+    const total = pubKeyCache.length + noKeyEditors.length;
     const n = selectedEmails.length;
     if (total === 0) return 'No registered users';
     if (n === total) return `Everyone (${total})`;
@@ -199,7 +199,7 @@ export function useCellOps() {
       return gh.length === sorted.length && gh.every((h, i) => h === sorted[i]);
     });
     return match?.label || `${n} people`;
-  }, [pubKeyCache, groupCache]);
+  }, [pubKeyCache, noKeyEditors, groupCache]);
 
   return {
     plaintext, setPlaintext: (v: string) => setCellView(prev => ({ ...prev, plaintext: v })),

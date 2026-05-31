@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   Box, Checkbox, Chip, Collapse, FormControlLabel,
-  IconButton, Typography,
+  IconButton, Tooltip, Typography,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import GroupIcon from '@mui/icons-material/Group';
@@ -14,8 +14,10 @@ interface RecipientPickerProps {
   onSelectionChange: (emails: string[]) => void;
 }
 
+const NO_KEY_TOOLTIP = "No registered public key — this person can't receive encrypted data until they open CipherSheet and generate a key.";
+
 export function RecipientPicker({ selectedEmails, onSelectionChange }: RecipientPickerProps) {
-  const { ecdhPrivKey, cellIsEncrypted, pubKeyCache } = useApp();
+  const { ecdhPrivKey, cellIsEncrypted, pubKeyCache, noKeyEditors } = useApp();
   const { getRecipientSummary } = useCellOps();
   const { refreshPubKeyCache } = useCacheOps();
   const [open, setOpen] = useState(false);
@@ -95,6 +97,28 @@ export function RecipientPicker({ selectedEmails, onSelectionChange }: Recipient
                   />
                 }
                 label={email}
+              />
+            </Box>
+          ))}
+          {noKeyEditors.map(email => (
+            <Box
+              key={email}
+              sx={{
+                display: 'flex', alignItems: 'center',
+                py: 0.25, borderRadius: 1,
+              }}
+            >
+              <FormControlLabel
+                sx={{ flex: 1, mr: 0, ml: 0, '& .MuiFormControlLabel-label': { fontSize: '0.75rem', ml: 0.5, color: 'text.disabled' } }}
+                control={<Checkbox size="small" disabled />}
+                label={
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                    <Tooltip title={NO_KEY_TOOLTIP} placement="top" arrow>
+                      <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'warning.main', flexShrink: 0, cursor: 'help' }} />
+                    </Tooltip>
+                    {email}
+                  </Box>
+                }
               />
             </Box>
           ))}

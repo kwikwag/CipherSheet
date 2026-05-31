@@ -17,6 +17,7 @@ interface AppState {
   cellView: CellViewState;
   ownEmail: string;
   pubKeyCache: PubKeyCacheEntry[];
+  noKeyEditors: string[];
   groupCache: GroupEntry[];
   setupPassword: string | null;
   loadingSet: Set<LoadingPart>;
@@ -33,6 +34,7 @@ interface AppContextValue extends AppState {
   setCellView: React.Dispatch<React.SetStateAction<CellViewState>>;
   setOwnEmail: (email: string) => void;
   setPubKeyCache: (cache: PubKeyCacheEntry[]) => void;
+  setNoKeyEditors: (emails: string[]) => void;
   setGroupCache: (cache: GroupEntry[]) => void;
   setSetupPassword: (pw: string | null) => void;
   startLoading: (part: LoadingPart) => void;
@@ -66,6 +68,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   });
   const [ownEmail, setOwnEmail] = useState('');
   const [pubKeyCache, setPubKeyCache] = useState<PubKeyCacheEntry[]>([]);
+  const [noKeyEditors, setNoKeyEditors] = useState<string[]>([]);
   const [groupCache, setGroupCache] = useState<GroupEntry[]>([]);
   const [setupPassword, setSetupPassword] = useState<string | null>(null);
   const [loadingSet, setLoadingSet] = useState<Set<LoadingPart>>(new Set());
@@ -108,6 +111,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     cellView, setCellView,
     ownEmail, setOwnEmail,
     pubKeyCache, setPubKeyCache,
+    noKeyEditors, setNoKeyEditors,
     groupCache, setGroupCache,
     setupPassword, setSetupPassword,
     loadingSet, startLoading, stopLoading,
@@ -117,7 +121,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [
     ecdhPrivKey, ecdhPubKey, unlockPassword, ecdhFp, keyInStorage, keyHasPasskey,
-    cellView, ownEmail, pubKeyCache, groupCache,
+    cellView, ownEmail, pubKeyCache, noKeyEditors, groupCache,
     setupPassword, loadingSet, toast, canEncrypt, cellIsEncrypted,
     showToast, dismissToast, startLoading, stopLoading,
   ]);

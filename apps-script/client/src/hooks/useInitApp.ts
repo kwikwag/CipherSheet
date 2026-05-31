@@ -6,7 +6,7 @@ import { useKeyOps } from './useKeyOps';
 import { gasRun } from '../utils/gas';
 
 export function useInitApp() {
-  const { setOwnEmail } = useApp();
+  const { setOwnEmail, setNoKeyEditors } = useApp();
   const { seedPubKeyCache, refreshGroupCache } = useCacheOps();
   const { refreshCell } = useCellOps();
   const { syncKeyInStorage, doUnlockWithPassword } = useKeyOps();
@@ -16,6 +16,8 @@ export function useInitApp() {
       // Seed pub key cache instantly from server-rendered data (no GAS round-trip)
       const initial = window.CS_CONFIG?.initialPublicKeys;
       if (initial?.length) await seedPubKeyCache(initial);
+      const noKey = window.CS_CONFIG?.noKeyEditors;
+      if (noKey?.length) setNoKeyEditors(noKey);
 
       // Load email
       gasRun<string>('getCurrentUserEmail')

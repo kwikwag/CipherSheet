@@ -69,6 +69,7 @@ interface SidebarTemplate
     CommonTemplateVars {
   passkeyPopupUrl: string;
   initialPublicKeys: string; // JSON-serialized PublicKeyEntry[]
+  noKeyEditors: string;      // JSON-serialized string[]
 }
 
 interface OnboardingTemplate
@@ -186,6 +187,7 @@ function showSidebar(): void {
   applyCommonTemplateVars(tpl);
   tpl.passkeyPopupUrl = getPasskeyPopupUrl();
   tpl.initialPublicKeys = JSON.stringify(listPublicKeys());
+  tpl.noKeyEditors = JSON.stringify(listEditorsWithoutKeys());
 
   const html = tpl
     .evaluate()

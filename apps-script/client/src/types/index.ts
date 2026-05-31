@@ -58,6 +58,7 @@ export interface CsConfig {
   passkeyPopupUrl: string;
   appVersion: string;
   initialPublicKeys: InitialPublicKeyEntry[];
+  noKeyEditors: string[];
 }
 
 declare global {
