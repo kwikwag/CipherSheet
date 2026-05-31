@@ -147,10 +147,12 @@ AGENTS.md                # This file
 
 ### Communication flow for "Reveal Cell"
 
+> **Note:** The **Unprotect** button has been removed from the sidebar UI. The server-side infrastructure (`openDecryptConfirm`, `heartbeatModalAlive`, `recordDecryptIntent`, `pollDecryptIntent`, `revealCell`) and `decrypt-confirm.html` remain in place but are not reachable from the current UI. Plaintext is only visible in-sidebar; to write it back to the cell the user must copy and paste manually.
+
 ```
 Sidebar             Apps Script (server)         decrypt-confirm.html
   |                         |                              |
-  |-- requestUnprotect() -->|                              |
+  |-- requestUnprotect() -->|                              |  ← UI entry point removed
   |                         |-- openDecryptConfirm() ----> |
   |                         |<-- heartbeatModalAlive() ----|  (every 2 s, TTL 4 s)
   |<-- pollDecryptIntent() -|                              |
@@ -329,9 +331,8 @@ Minimal scopes: current spreadsheet + container UI only. See [appsscript.json](a
 | Key exfiltration via XSS | ECDH private key non-extractable; pre-shared key non-extractable |
 | Passkey secret exposure | WebAuthn PRF output stays in the GitHub Pages popup/sidebar `postMessage` path and only decrypts the generated ECDH unlock password stored in IndexedDB |
 | Recipient identity leak | Only SHA-256(lowercase(email)) in cell payload — no plaintext emails |
-| Consent spoofing | Modal heartbeat + UserCache polling; sidebar never proceeds without server-confirmed intent |
-| Version History exposure | User warned in consent modal; cannot be prevented by the add-on |
-| "Reveal" path leakage | Plaintext reaches Apps Script on `revealCell()` — this is the only exception and is explicitly warned |
+| Version History exposure | Cannot be prevented by the add-on |
+| "Reveal" path leakage | `revealCell()` server function exists but the UI entry point (Unprotect button) is currently disabled; plaintext only appears in-sidebar |
 | Rogue public key substitution | Key fingerprints shown in recipient picker for optional out-of-band verification |
 | Type confusion (0x01 vs 0x02) | `type[1]` byte is AAD for cell-value AES-GCM — ciphertext is bound to its encryption scheme |
 

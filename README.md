@@ -71,8 +71,7 @@ If you select a cell that is already encrypted and you hold the active key, the 
 
 ### Decrypting / revealing a cell
 
-- **In-sidebar view** — if your key matches a recipient entry in the cell, the plaintext appears in the text area automatically.
-- **Reveal (write back)** — click **Unprotect** → a consent modal opens. Type the cell address to confirm. The sidebar polls for the confirmed intent, then calls `revealCell()` which writes the plaintext back to the spreadsheet. This is the **only path** where plaintext leaves the browser.
+- **In-sidebar view** — if your key matches a recipient entry in the cell, the plaintext appears in the text area automatically. You can copy it from there or edit and re-encrypt with **Update**.
 
 ### Recipients
 
@@ -110,8 +109,7 @@ Open via **🔐 CipherSheet → Settings**:
 | Private key in session | Non-extractable `CryptoKey` after first unlock — resists XSS exfiltration |
 | Recipient privacy | SHA-256(lowercase(email)) stored in payload — no plaintext emails |
 | Passkey unlock | WebAuthn PRF output decrypts a generated unlock password; secret never leaves authenticator |
-| Consent for reveal | Modal heartbeat + UserCache polling; sidebar never proceeds without server-confirmed intent |
-| Version history | User warned in consent modal; Apps Script cannot prevent Google from logging formula history |
+| Version history | Apps Script cannot prevent Google from logging formula history |
 | Type binding | `type[1]` byte is AAD for the cell-value AES-GCM ciphertext — type 0x01 (pre-shared) and 0x02 (ECDH) payloads are cryptographically non-interchangeable |
 
 ### Cell payload format
@@ -154,7 +152,6 @@ See [AGENTS.md](AGENTS.md) for the full architecture reference.
 ## Known Limitations
 
 - **Version History** — Google Sheets records formula history. A user with access to version history and the key can retrieve previously decrypted values.
-- **Reveal writes plaintext** — The "Unprotect / Reveal" flow writes plaintext back to the sheet via Apps Script; this is the one exception to zero-knowledge and is explicitly warned.
 - **Warning-only protection** — Apps Script cannot enforce edit restrictions without making the owner the sole editor. Protection warns but does not cryptographically prevent edits.
 - **Passkey PRF browser support** — WebAuthn PRF is not universally supported; password unlock is always available as a fallback.
 

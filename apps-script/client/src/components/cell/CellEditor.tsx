@@ -19,7 +19,7 @@ export function CellEditor({ selectedRecipients }: CellEditorProps) {
     canEncrypt, cellIsEncrypted, keyInStorage,
     ecdhPrivKey, editors,
   } = useApp();
-  const { plaintext, setPlaintext, decryptError, encryptAndSave, requestUnprotect } = useCellOps();
+  const { plaintext, setPlaintext, decryptError, encryptAndSave } = useCellOps();
   const { loadKeyFile } = useKeyOps();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -148,16 +148,6 @@ export function CellEditor({ selectedRecipients }: CellEditorProps) {
 
       {/* Action buttons */}
       <Box sx={{ display: 'flex', gap: 1, mt: 1, mb: 0.5 }}>
-        {cellIsEncrypted && (
-          <Button
-            variant="outlined"
-            size="small"
-            onClick={requestUnprotect}
-            sx={{ flex: 1 }}
-          >
-            Unprotect
-          </Button>
-        )}
         <Button
           variant="contained"
           size="small"
