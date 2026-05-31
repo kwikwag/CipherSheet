@@ -6,3 +6,6 @@ apps-script/dist/
 /AGENTS.local.md
 /apps-script/dist-client
 /.playwright-mcp
+/.attic
+/.claude
+

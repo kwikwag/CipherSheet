@@ -86,7 +86,6 @@ apps-script/
         AppContext.tsx    # Global React state (keys, cell, caches, toast, loading)
       hooks/
         useKeyOps.ts     # Key generation, import, unlock, lock, PRF/passkey
-        usePresharedKey.ts # Pre-shared key activate/clear
         useCellOps.ts    # Cell refresh, encrypt, decrypt, unprotect polling
         useCacheOps.ts   # Public key cache + group cache refresh
         useInitApp.ts    # App initialization (email, settings, key state, cell)
@@ -95,8 +94,7 @@ apps-script/
         main.tsx         # Entry: mounts SettingsApp into #root
       components/
         cell/            # CellMeta (header chip), CellEditor (textarea + overlays)
-        key/             # KeySection, KeySetup, KeyLocked, KeyUnlocked, KeyConflictDialog, PasswordSetupBox
-                         # KeyOnboarding renders the no-key/plaintext first-run CTA
+        key/             # KeySection, KeySetup, KeyLocked, KeyUnlocked, KeyConflictDialog, PasswordSetupBox, KeyOnboarding
         recipients/      # RecipientPicker (collapsible checkbox list)
         footer/          # Footer (links + version)
         common/          # AppSnackbar, FingerprintChip, EmailLabel, Shimmer
@@ -168,7 +166,7 @@ Every encrypted cell stores a **self-contained payload** inside a dummy formula:
 
 ```
 🔐<base64(
-  type[1]       // 0x01 = pre-shared AES-GCM | 0x02 = ECDH P-256 + HKDF | 0xFF+ = unknown
+  type[1]       // 0x02 = ECDH P-256 + HKDF | 0xFF+ = unknown (displays "please update" error)
   iv[12]        // AES-GCM IV for the cell value
   ct_len[4]     // ciphertext byte length, big-endian uint32
   ct[ct_len]    // AES-GCM ciphertext + 16-byte tag; AAD = type[1]
@@ -190,7 +188,7 @@ Every encrypted cell stores a **self-contained payload** inside a dummy formula:
 
 | Key pattern | Content | Set by |
 |---|---|---|
-| `CIPHERSHEET_SETTINGS` | JSON `DocumentSettings` object (`editWarningEnabled`, `revertOnEditEnabled`, `defaultKeyType`) | `setDocumentSettings()` |
+| `CIPHERSHEET_SETTINGS` | JSON `DocumentSettings` object (`editWarningEnabled`, `revertOnEditEnabled`) | `setDocumentSettings()` |
 | `pk:<email>` | base64-encoded SPKI of user's ECDH P-256 public key | `storePublicKey()` |
 | `grp:<groupId>` | JSON `{ emailHashes: string[], label: string }` where `groupId` = first 16 hex chars of SHA-256(sorted email hashes joined with `\|`) | `upsertGroup()` |
 
@@ -208,7 +206,7 @@ Server-side Apps Script. TypeScript compiled to JS; all Apps Script globals (`Sp
 | `showSidebar` / `showOnboarding` / `showSettings` | Open HTML panels; `showSidebar` injects the passkey popup URL and initial selected-cell snapshot |
 | `getPasskeyPopupUrl` | Returns the GitHub Pages top-level WebAuthn PRF popup URL |
 | `getSelectedCellValue()` | Returns `{ value, cellRef, sheetName }` using `cell.getValue()` (not display value) |
-| `setEncryptedCellValue(payload, cellRef, sheetName)` | Writes `=IF(TRUE,"🔒 Encrypted","<payload>")` formula, applies warning protection, note |
+| `setEncryptedCellValue(payload, cellRef, sheetName)` | Writes `=IF(TRUE,"🔒 Encrypted","<payload>")` formula. Has a warning-protection branch gated on `editWarningEnabled`, but that setting defaults `false` and has no UI toggle, so no protection is applied in practice |
 | `revealCell(plaintext, cellRef, sheetName)` | Writes plaintext (replacing formula), removes protection/note |
 | `clearCell(cellRef, sheetName)` | Clears cell content, resets format, removes protection/note |
 | `openDecryptConfirm(cellRef, sheetName, keyLoaded)` | Opens consent modal dialog |
@@ -217,14 +215,13 @@ Server-side Apps Script. TypeScript compiled to JS; all Apps Script globals (`Sp
 | `pollDecryptIntent(cellRef, sheetName)` | Sidebar polls: returns `{ intent }`, `{ closed: true }`, or `null` |
 | `getCurrentUserEmail()` | Returns `Session.getActiveUser().getEmail()` |
 | `storePublicKey(base64SPKI)` | Derives email server-side, writes `pk:<email>` to Document Properties |
-| `listPublicKeys()` | Returns `{ email, publicKey }[]` from all `pk:` properties |
+| `removePublicKey()` | Deletes the calling user's `pk:<email>` entry from Document Properties |
+| `listEditors()` | Returns `SerializedEditorEntry[]` — union of all spreadsheet editors and all `pk:` key holders, with `publicKeyBase64` where registered. Note: `name?` field in the type is never populated (display names not fetched) |
 | `upsertGroup(groupId, emailHashes, label)` | Writes `grp:<groupId>` → `{ emailHashes, label }`; preserves existing `emailHashes` on update |
 | `listGroups()` | Returns `{ id, emailHashes, label }[]` from all `grp:` properties |
-| `getDocumentSettings()` / `setDocumentSettings()` | JSON settings in Document Properties (`editWarningEnabled`, `revertOnEditEnabled`, `defaultKeyType`) |
+| `getDocumentSettings()` / `setDocumentSettings()` | JSON settings in Document Properties (`editWarningEnabled`, `revertOnEditEnabled`) |
 | `navigateToCell(cellRef, sheetName)` | Activates a cell in the sheet UI |
-| `onEdit(e)` | Disabled — encrypted formula cells cannot be restored from `e.oldValue` alone; see comment in Code.ts |
-| `removePublicKey()` | Deletes the calling user's `pk:<email>` entry from Document Properties |
-| `listEditorsWithoutKeys()` | Returns `string[]` of editor emails that have no registered `pk:` entry |
+| `onEdit(e)` | Not implemented — there is no `onEdit` function; only an explanatory comment block (Code.ts ~220) noting that encrypted formula cells can't be restored from `e.oldValue` alone, so reversion is unsupported this release |
 | `resetDocumentMetadata()` | Interactively deletes all CipherSheet Document Properties (settings, public keys, groups); does not touch cell formulas |
 
 ### [apps-script/server/sidebar.html](apps-script/server/sidebar.html)
@@ -262,7 +259,7 @@ GitHub Pages top-level popup for WebAuthn PRF enrollment and unlock. It waits fo
 
 ### [apps-script/server/settings.html](apps-script/server/settings.html)
 
-Settings toggles (protection, reversion, default key type) + read-only list of registered public keys with fingerprints + implicit group list (auto-populated from encryption activity; user can add labels via inline input saved by `upsertGroup`).
+Lists registered public keys (with fingerprints) and collaborators missing a key, plus an implicit group list (auto-populated from encryption activity; user can add labels via inline input saved by `upsertGroup`). No toggles — settings previously here (protection, reversion) have been removed from the UI.
 
 ### [apps-script/server/onboarding.html](apps-script/server/onboarding.html)
 
@@ -328,7 +325,7 @@ Minimal scopes: current spreadsheet + container UI only. See [appsscript.json](a
 | Threat | Mitigation |
 |---|---|
 | Google reads plaintext | All crypto in browser; only ciphertext stored server-side |
-| Key exfiltration via XSS | ECDH private key non-extractable; pre-shared key non-extractable |
+| Key exfiltration via XSS | ECDH private key non-extractable after first unlock |
 | Passkey secret exposure | WebAuthn PRF output stays in the GitHub Pages popup/sidebar `postMessage` path; it is run through HKDF-SHA256 (domain separation) and only decrypts the generated ECDH unlock password stored in IndexedDB |
 | Revoked recipient retains access to new values | "Update" on an encrypted cell re-encrypts under a fresh random cell key + fresh ephemeral ECDH pair, wrapped only for the remaining recipients. A removed recipient cannot decrypt the new ciphertext, and any previously-cached cell key is useless. (Past Version-History revisions are out of scope — the recipient already saw those values.) |
 | Recipient identity leak | Only SHA-256(lowercase(email)) in cell payload — no plaintext emails |

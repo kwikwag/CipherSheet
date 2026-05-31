@@ -20,7 +20,7 @@ The encrypted payload is stored in a dummy formula `=IF(TRUE,"🔒 Encrypted","�
 1. Open your Google Sheet
 2. Install CipherSheet from the Google Workspace Marketplace
 3. Click **🔐 CipherSheet → Open CipherSheet** — a sidebar panel opens
-4. Click **Generate key** to create your personal ECDH keypair
+4. Click **Generate key** — a keypair is created, a `.ciphersheet-key` backup file downloads automatically
 5. Save the **unlock password** shown (use a password manager — it cannot be recovered)
 6. Optionally set up a **passkey** so you can unlock without typing the password
 
@@ -49,9 +49,9 @@ Each collaborator who needs to read encrypted cells must do the same. Their publ
 | Key locked | Yellow dot — "Key locked" | Unlock with password or passkey |
 | Key active | Green dot — "Key active" | Encrypt / decrypt; Lock; Set up / update passkey |
 
-**Generate key** — Creates a new ECDH P-256 keypair. The private key is encrypted with a generated unlock password (PBKDF2 + AES-GCM) and stored in IndexedDB. The public key is registered in the document so other collaborators can encrypt for you.
+**Generate key** — Creates a new ECDH P-256 keypair. The private key is encrypted with a generated unlock password (PBKDF2 + AES-GCM), stored in IndexedDB, and automatically downloaded as a `.ciphersheet-key` backup file. The public key is registered in the document so other collaborators can encrypt for you.
 
-**Import key** — Load a previously exported `.ciphersheet-key` file (PKCS#8 JSON). If a key already exists, a conflict dialog lets you decide whether to overwrite.
+**Import key** — Load a previously exported `.ciphersheet-key` file (a JSON envelope containing the password-protected private key JWK). If a key already exists, a conflict dialog lets you decide whether to overwrite.
 
 **Lock** — Clears the in-memory private key. The encrypted private key stays in IndexedDB.
 
@@ -65,7 +65,7 @@ Each collaborator who needs to read encrypted cells must do the same. Their publ
 2. Open the sidebar
 3. With an active key, type (or paste) the secret value in the text area
 4. The **Visible to** row shows which collaborators will be able to decrypt; expand it to adjust
-5. Click **Protect** — the cell is encrypted and a warning-only sheet protection is applied
+5. Click **Protect** — the cell is encrypted
 
 If you select a cell that is already encrypted and you hold the active key, the plaintext is decrypted and shown so you can edit it. Click **Update** to re-encrypt.
 
@@ -88,13 +88,11 @@ If your browser supports WebAuthn PRF, you can enroll a passkey so that unlockin
 
 ## Settings Panel
 
-Open via **🔐 CipherSheet → Settings**:
+Open via the gear icon (⚙) in the sidebar header:
 
-- **Protection on encrypt** — automatically applies a warning-only cell protection after encrypting
-- **Revert on direct edit** — auto-reverts any direct edit to an encrypted cell (requires the `onEdit` installable trigger)
-- **Default key type** — choose ECDH (asymmetric, per-recipient) or pre-shared (symmetric, shared secret)
-- **Registered public keys** — read-only list of all collaborators with registered keys, with fingerprints
-- **Groups** — implicit groups auto-populated from encryption activity; you can add labels inline
+- **Registered public keys** — list of all collaborators who have generated a key, with fingerprints for out-of-band verification
+- **Missing public keys** — collaborators who have no registered key yet; encrypted data cannot be addressed to them until they open CipherSheet and generate one
+- **Groups** — automatically created when you protect a cell for multiple people; you can add a label to each group inline
 
 ---
 
@@ -110,13 +108,13 @@ Open via **🔐 CipherSheet → Settings**:
 | Recipient privacy | SHA-256(lowercase(email)) stored in payload — no plaintext emails |
 | Passkey unlock | WebAuthn PRF output → HKDF-SHA256 → AES-256-GCM key that decrypts a generated unlock password; secret never leaves authenticator |
 | Version history | Apps Script cannot prevent Google from logging formula history |
-| Type binding | `type[1]` byte is AAD for the cell-value AES-GCM ciphertext — type 0x01 (pre-shared) and 0x02 (ECDH) payloads are cryptographically non-interchangeable |
+| Type binding | `type[1]` byte is AAD for the cell-value AES-GCM ciphertext — binds the ciphertext to its encryption scheme |
 
 ### Cell payload format
 
 ```
 🔐<base64(
-  type[1]        // 0x01 = pre-shared AES-GCM | 0x02 = ECDH P-256 + HKDF
+  type[1]        // 0x02 = ECDH P-256 + HKDF (unknown values show "please update" error)
   iv[12]         // AES-GCM IV for the cell value ciphertext
   ct_len[4]      // ciphertext byte length, big-endian uint32
   ct[ct_len]     // AES-GCM ciphertext + 16-byte tag; AAD = type[1]
