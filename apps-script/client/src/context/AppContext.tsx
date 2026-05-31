@@ -5,6 +5,8 @@ import type {
   CellViewState, GroupEntry, KeyType, PubKeyCacheEntry, ToastSeverity, ToastState
 } from '../types';
 
+export type LoadingPart = 'cell' | 'key';
+
 interface AppState {
   ecdhPrivKey: CryptoKey | null;
   ecdhPubKey: CryptoKey | null;
@@ -19,7 +21,7 @@ interface AppState {
   pubKeyCache: PubKeyCacheEntry[];
   groupCache: GroupEntry[];
   setupPassword: string | null;
-  loading: boolean;
+  loadingSet: Set<LoadingPart>;
   toast: ToastState | null;
 }
 
@@ -37,7 +39,8 @@ interface AppContextValue extends AppState {
   setPubKeyCache: (cache: PubKeyCacheEntry[]) => void;
   setGroupCache: (cache: GroupEntry[]) => void;
   setSetupPassword: (pw: string | null) => void;
-  setLoading: (v: boolean) => void;
+  startLoading: (part: LoadingPart) => void;
+  stopLoading: (part: LoadingPart) => void;
   showToast: (message: string, severity?: ToastSeverity, persistent?: boolean) => void;
   dismissToast: () => void;
   // Derived
@@ -71,8 +74,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [pubKeyCache, setPubKeyCache] = useState<PubKeyCacheEntry[]>([]);
   const [groupCache, setGroupCache] = useState<GroupEntry[]>([]);
   const [setupPassword, setSetupPassword] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loadingSet, setLoadingSet] = useState<Set<LoadingPart>>(new Set());
   const [toast, setToast] = useState<ToastState | null>(null);
+
+  const startLoading = useCallback((part: LoadingPart) => {
+    setLoadingSet(prev => new Set(prev).add(part));
+  }, []);
+  const stopLoading = useCallback((part: LoadingPart) => {
+    setLoadingSet(prev => { const s = new Set(prev); s.delete(part); return s; });
+  }, []);
 
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pwSaveFormRef = useRef<HTMLFormElement | null>(null);
@@ -108,7 +118,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     pubKeyCache, setPubKeyCache,
     groupCache, setGroupCache,
     setupPassword, setSetupPassword,
-    loading, setLoading,
+    loadingSet, startLoading, stopLoading,
     toast, showToast, dismissToast,
     canEncrypt, cellIsEncrypted,
     pollTimerRef, pwSaveFormRef, pwSaveUsernameRef, pwSaveInputRef,
@@ -116,8 +126,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }), [
     ecdhPrivKey, ecdhPubKey, presharedKey, unlockPassword, ecdhFp, keyInStorage, keyHasPasskey,
     cellView, ownEmail, defaultKeyType, pubKeyCache, groupCache,
-    setupPassword, loading, toast, canEncrypt, cellIsEncrypted,
-    showToast, dismissToast,
+    setupPassword, loadingSet, toast, canEncrypt, cellIsEncrypted,
+    showToast, dismissToast, startLoading, stopLoading,
   ]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

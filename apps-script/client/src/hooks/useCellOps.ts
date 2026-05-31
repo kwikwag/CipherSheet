@@ -17,7 +17,7 @@ export function useCellOps() {
   const {
     ecdhPrivKey, presharedKey, ownEmail, cellView, setCellView,
     pubKeyCache, groupCache, canEncrypt, cellIsEncrypted,
-    setLoading, showToast, pollTimerRef,
+    startLoading, stopLoading, showToast, pollTimerRef,
   } = useApp();
   const { cell: currentCell, plaintext, decrypted, decryptError } = cellView;
 
@@ -50,17 +50,17 @@ export function useCellOps() {
   // ── Refresh cell ───────────────────────────────────────────────
   const refreshCell = useCallback(async () => {
     stopPolling();
-    setLoading(true);
+    startLoading('cell');
     try {
       const data = await gasRun<CellData>('getSelectedCellValue');
       await renderCell(data);
     } catch (e) {
       showToast('Could not read cell: ' + (e as Error).message, 'error');
     } finally {
-      setLoading(false);
+      stopLoading('cell');
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [setLoading, showToast, renderCell]);
+  }, [startLoading, stopLoading, showToast, renderCell]);
 
   // ── Protect (encrypt and save) ─────────────────────────────────
   const encryptAndSave = useCallback(async (
@@ -85,7 +85,7 @@ export function useCellOps() {
       } catch { /* user cancelled dialog */ return; }
     }
 
-    setLoading(true);
+    startLoading('cell');
     try {
       let ct: string;
       if (ecdhPrivKey) {
@@ -113,12 +113,12 @@ export function useCellOps() {
     } catch (e) {
       showToast('Save failed: ' + (e as Error).message, 'error');
     } finally {
-      setLoading(false);
+      stopLoading('cell');
     }
   }, [
     canEncrypt, currentCell, cellIsEncrypted,
     ecdhPrivKey, presharedKey,
-    setCellView, setLoading, showToast,
+    setCellView, startLoading, stopLoading, showToast,
   ]);
 
   // ── Unprotect flow ─────────────────────────────────────────────
@@ -131,15 +131,15 @@ export function useCellOps() {
       keyLoaded = (type === TYPE_ECDH && ecdhPrivKey !== null) ||
                   (type === TYPE_PRESHARED && presharedKey !== null);
     }
-    setLoading(true);
+    startLoading('cell');
     try {
       await gasRun('openDecryptConfirm', currentCell.cellRef, currentCell.sheetName, keyLoaded);
       startPolling(currentCell.cellRef, currentCell.sheetName);
     } catch (e) {
       showToast('Could not open dialog: ' + (e as Error).message, 'error');
-      setLoading(false);
+      stopLoading('cell');
     }
-  }, [currentCell, cellIsEncrypted, ecdhPrivKey, presharedKey, setLoading, showToast]);
+  }, [currentCell, cellIsEncrypted, ecdhPrivKey, presharedKey, startLoading, stopLoading, showToast]);
 
   const stopPolling = useCallback(() => {
     if (pollTimerRef.current) {
@@ -154,7 +154,7 @@ export function useCellOps() {
 
     pollTimerRef.current = setInterval(async () => {
       attempts++;
-      if (attempts > POLL_MAX) { stopPolling(); setLoading(false); return; }
+      if (attempts > POLL_MAX) { stopPolling(); stopLoading('cell'); return; }
       try {
         const result = await gasRun<{ intent?: string; closed?: boolean } | null>(
           'pollDecryptIntent', cellRef, sheetName
@@ -167,11 +167,11 @@ export function useCellOps() {
         const intent = result?.intent ?? (result?.closed ? 'cancel' : null);
         if (intent === 'reveal') await doReveal(cellRef, sheetName);
         else if (intent === 'clear') await doClear(cellRef, sheetName);
-        else setLoading(false);
+        else stopLoading('cell');
       } catch { /* ignore poll errors */ }
     }, POLL_MS);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pollTimerRef, stopPolling, setLoading]);
+  }, [pollTimerRef, stopPolling, stopLoading]);
 
   const doReveal = useCallback(async (cellRef: string, sheetName: string) => {
     try {
@@ -183,9 +183,9 @@ export function useCellOps() {
     } catch (e) {
       showToast('Reveal failed: ' + (e as Error).message, 'error');
     } finally {
-      setLoading(false);
+      stopLoading('cell');
     }
-  }, [currentCell, ecdhPrivKey, presharedKey, ownEmail, setCellView, setLoading, showToast]);
+  }, [currentCell, ecdhPrivKey, presharedKey, ownEmail, setCellView, startLoading, stopLoading, showToast]);
 
   const doClear = useCallback(async (cellRef: string, sheetName: string) => {
     try {
@@ -195,9 +195,9 @@ export function useCellOps() {
     } catch (e) {
       showToast('Clear failed: ' + (e as Error).message, 'error');
     } finally {
-      setLoading(false);
+      stopLoading('cell');
     }
-  }, [setCellView, setLoading, showToast]);
+  }, [setCellView, startLoading, stopLoading, showToast]);
 
   // ── Recipient summary ──────────────────────────────────────────
   const getRecipientSummary = useCallback(async (selectedEmails: string[]): Promise<string> => {

@@ -9,7 +9,7 @@ import { RecipientPicker } from './components/recipients/RecipientPicker';
 import { KeySection } from './components/key/KeySection';
 import { PasswordSetupBox } from './components/key/PasswordSetupBox';
 import { Footer } from './components/footer/Footer';
-import { LoadingOverlay } from './components/common/LoadingOverlay';
+import { Shimmer } from './components/common/Shimmer';
 import { AppSnackbar } from './components/common/AppSnackbar';
 
 function AppInner() {
@@ -27,14 +27,16 @@ function AppInner() {
         fontFamily: 'typography.fontFamily',
       }}
     >
-      <CellMeta />
+      <Shimmer part="cell"><CellMeta /></Shimmer>
       <Box sx={{ flex: 1, overflowY: 'auto', pb: 6 }}>
-        <CellEditor selectedRecipients={selectedEmails} />
+        <Shimmer part="cell">
+          <CellEditor selectedRecipients={selectedEmails} />
+        </Shimmer>
         <RecipientPicker
           selectedEmails={selectedEmails}
           onSelectionChange={setSelectedEmails}
         />
-        <KeySection />
+        <Shimmer part="key"><KeySection /></Shimmer>
         <PasswordSetupBox />
       </Box>
       <Footer />
@@ -42,7 +44,6 @@ function AppInner() {
       {/* Hidden password manager form */}
       <PasswordManagerForm />
 
-      <LoadingOverlay />
       <AppSnackbar />
     </Box>
   );

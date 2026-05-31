@@ -22,7 +22,7 @@ export function useKeyOps() {
     ecdhPrivKey, unlockPassword, ecdhFp,
     ownEmail, defaultKeyType, pubKeyCache,
     setEcdhPrivKey, setEcdhPubKey, setUnlockPassword, setEcdhFp,
-    setKeyInStorage, setKeyHasPasskey, setSetupPassword, setLoading,
+    setKeyInStorage, setKeyHasPasskey, setSetupPassword, startLoading, stopLoading,
     setPubKeyCache, showToast, pwSaveFormRef, pwSaveUsernameRef, pwSaveInputRef,
   } = useApp();
 
@@ -118,7 +118,7 @@ export function useKeyOps() {
 
   // ── Generate new ECDH keypair ──────────────────────────────────
   const setupNewKeypair = useCallback(async (): Promise<KeyConflict | null> => {
-    setLoading(true);
+    startLoading('key');
     try {
       const keyPair = await crypto.subtle.generateKey(
         { name: 'ECDH', namedCurve: 'P-256' }, true, ['deriveBits']
@@ -137,10 +137,10 @@ export function useKeyOps() {
           incomingFp,
           isGenerate: true,
           proceed: async () => {
-            setLoading(true);
+            startLoading('key');
             try { await importEcdhFromJwk(jwk); }
             catch (e) { showToast('Setup failed: ' + (e as Error).message, 'error'); }
-            finally { setLoading(false); }
+            finally { stopLoading('key'); }
           },
         };
       }
@@ -150,13 +150,13 @@ export function useKeyOps() {
       showToast('Setup failed: ' + (e as Error).message, 'error');
       return null;
     } finally {
-      setLoading(false);
+      stopLoading('key');
     }
-  }, [setLoading, importEcdhFromJwk, showToast, getRegisteredFp]);
+  }, [startLoading, stopLoading, importEcdhFromJwk, showToast, getRegisteredFp]);
 
   // ── Generate pre-shared key ────────────────────────────────────
   const generatePresharedKey = useCallback(async () => {
-    setLoading(true);
+    startLoading('key');
     try {
       const keyBytes = crypto.getRandomValues(new Uint8Array(32));
       downloadJson({ type: 'CipherSheet-AES256', version: 1, key: buf2b64(keyBytes.buffer) }, 'ciphersheet.ciphersheet-key');
@@ -167,9 +167,9 @@ export function useKeyOps() {
       showToast('Setup failed: ' + (e as Error).message, 'error');
       return null;
     } finally {
-      setLoading(false);
+      stopLoading('key');
     }
-  }, [setLoading, showToast]);
+  }, [startLoading, stopLoading, showToast]);
 
   const generateKey = useCallback(async (onPresharedBytes?: (b: Uint8Array) => Promise<void>): Promise<KeyConflict | null> => {
     if (defaultKeyType === 'preshared') {
@@ -276,15 +276,15 @@ export function useKeyOps() {
   }, [setEcdhPrivKey, setEcdhPubKey, setEcdhFp, setUnlockPassword, showToast, getRegisteredFp, cacheUpsertOwn]);
 
   const unlockWithPassword = useCallback(async (password: string) => {
-    setLoading(true);
+    startLoading('key');
     try {
       await doUnlockWithPassword(password);
     } catch (e) {
       showToast('Wrong password or corrupted key: ' + (e as Error).message, 'error');
     } finally {
-      setLoading(false);
+      stopLoading('key');
     }
-  }, [setLoading, doUnlockWithPassword, showToast]);
+  }, [startLoading, stopLoading, doUnlockWithPassword, showToast]);
 
   // ── Lock ───────────────────────────────────────────────────────
   const lockEcdh = useCallback(() => {
@@ -358,7 +358,7 @@ export function useKeyOps() {
 
   // ── PRF passkey unlock ─────────────────────────────────────────
   const unlockWithPasskey = useCallback(async () => {
-    setLoading(true);
+    startLoading('key');
     try {
       const entry = await idbGet<IdbEcdhEntry>(IDB_ECDH_KEY);
       if (!entry?.credentialId || !entry?.prfWrappedPassword) throw new Error('No passkey enrolled');
@@ -380,9 +380,9 @@ export function useKeyOps() {
       const msg = (e as Error).message;
       if (msg !== 'Passkey popup was closed') showToast('Passkey unlock failed: ' + msg, 'error');
     } finally {
-      setLoading(false);
+      stopLoading('key');
     }
-  }, [setLoading, doUnlockWithPassword, showToast]);
+  }, [startLoading, stopLoading, doUnlockWithPassword, showToast]);
 
 
   // ── Remove public key from document properties ─────────────────
