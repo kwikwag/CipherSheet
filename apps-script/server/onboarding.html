@@ -158,16 +158,12 @@
 
     <!-- Slide 3 -->
     <div class="slide" id="slide-2">
-      <div class="slide-title">Unprotecting a Cell</div>
+      <div class="slide-title">Reading and changing data</div>
       <div class="slide-text">
-        Select an encrypted cell — if your key is one of the recipients, the plaintext appears in the sidebar automatically.
-        <br><br>
-        Click <strong>Unprotect</strong> to write the plaintext back to the sheet. A confirmation dialog will appear first.
-        <br>
-        <em>Note:</em> Revealing a cell permanently writes the plaintext to the sheet's history. To remove the cell without revealing the contents, click <strong>Unprotect</strong> and choose "Clear" in the confirmation dialog.
+        Open the sidebar or sync from an encrypted cell (using the cell locator <svg style="width: 1em; height: 1em; fill: currentcolor; color: rgb(5, 106, 70);" focusable="false" aria-hidden="true" viewBox="0 0 24 24"><path d="M18 8c0-3.31-2.69-6-6-6S6 4.69 6 8c0 4.5 6 11 6 11s6-6.5 6-11m-8 0c0-1.1.9-2 2-2s2 .9 2 2-.89 2-2 2c-1.1 0-2-.9-2-2M5 20v2h14v-2z"></path></svg>) — if your key is one of the recipients, the plaintext appears in the sidebar automatically and you can edit and update it.
       </div>
       <div class="slide-img-placeholder">
-        <img src="<?!= include('imgs-encoded/step3-unprotect-cell'); ?>" alt="Clicking the &quot;Unprotect&quot; button">
+        <img src="<?!= include('imgs-encoded/step3-update-cell'); ?>" alt="Clicking the &quot;Update&quot; button">
       </div>
     </div>
 
@@ -175,12 +171,11 @@
     <div class="slide" id="slide-3">
       <div class="slide-title">Keep Your Key Safe</div>
       <div class="slide-text">
-        Because CipherSheet uses a zero-knowledge architecture, <b>your private key never leaves your browser</b> — it is never sent to any server, including Google.<br><br>
-        Save your unlock password in a secure password manager. If you lose it, your encrypted data is unrecoverable.<br><br>
-        Each collaborator generates their own key. You don't share key files — you share access by selecting collaborators as recipients when you encrypt.
+        CipherSheet uses a zero-knowledge architecture, <b>your private key never gets to the cloud or Google</b>.<br>
+        Your private key is encrypted with the unlock password. Make sure the password is stored securely! If you lose it, your encrypted data is unrecoverable.<br>
       </div>
       <div class="slide-img-placeholder">
-        <img src="<?!= include('imgs-encoded/step4-key-loaded'); ?>" alt="The unlock password shown after generating a key">
+        <img src="<?!= include('imgs-encoded/step4-key-file'); ?>" alt="The encrypted private key file is saved and the password manager offers to save the password">
       </div>
     </div>
   </div>
