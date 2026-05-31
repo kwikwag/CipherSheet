@@ -82,7 +82,7 @@ The **Visible to** collapsible row lists every editor of the spreadsheet:
 
 ### Passkey (WebAuthn PRF)
 
-If your browser supports WebAuthn PRF, you can enroll a passkey so that unlocking doesn't require typing the password. The PRF output is used to decrypt a generated unlock password stored in IndexedDB; the passkey secret itself never leaves the authenticator. Enrollment and unlock both go through a top-level GitHub Pages popup (`docs/prf-popup.html`) because the Apps Script iframe origin cannot directly call WebAuthn.
+If your browser supports WebAuthn PRF, you can enroll a passkey so that unlocking doesn't require typing the password. The PRF output is run through HKDF-SHA256 (for domain separation) to derive an AES-GCM key, which decrypts a generated unlock password stored in IndexedDB; the passkey secret itself never leaves the authenticator. Enrollment and unlock both go through a top-level GitHub Pages popup (`docs/prf-popup.html`) because the Apps Script iframe origin cannot directly call WebAuthn.
 
 ---
 
@@ -105,10 +105,10 @@ Open via **🔐 CipherSheet → Settings**:
 | Algorithm | ECDH P-256 key agreement → HKDF → AES-256-GCM per recipient |
 | Cell key | Fresh 256-bit random AES-GCM key per encryption |
 | IV | 96-bit random, unique per encryption (per cell + per recipient wrap) |
-| Private key storage | IndexedDB (sidebar iframe origin); encrypted with PBKDF2-SHA256 (310 000 iterations) + AES-GCM |
+| Private key storage | IndexedDB (sidebar iframe origin); encrypted with PBKDF2-SHA256 (600 000 iterations) + AES-GCM. The iteration count is stored alongside the wrapped key so it can be raised in future without breaking existing keys. |
 | Private key in session | Non-extractable `CryptoKey` after first unlock — resists XSS exfiltration |
 | Recipient privacy | SHA-256(lowercase(email)) stored in payload — no plaintext emails |
-| Passkey unlock | WebAuthn PRF output decrypts a generated unlock password; secret never leaves authenticator |
+| Passkey unlock | WebAuthn PRF output → HKDF-SHA256 → AES-256-GCM key that decrypts a generated unlock password; secret never leaves authenticator |
 | Version history | Apps Script cannot prevent Google from logging formula history |
 | Type binding | `type[1]` byte is AAD for the cell-value AES-GCM ciphertext — type 0x01 (pre-shared) and 0x02 (ECDH) payloads are cryptographically non-interchangeable |
 

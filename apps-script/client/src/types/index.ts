@@ -56,6 +56,7 @@ export interface IdbEcdhEntry {
   wrapped: Uint8Array;
   iv: Uint8Array;
   salt: Uint8Array;
+  iters: number;
   publicKeySpki: Uint8Array;
   credentialId?: number[];
   prfWrappedPassword?: Uint8Array;

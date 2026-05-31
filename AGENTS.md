@@ -237,9 +237,9 @@ All client-side state and logic lives in the React client ([apps-script/client/s
 
 | Key | Value shape |
 |---|---|
-| `'ecdh'` | `{ wrapped: Uint8Array, iv: Uint8Array, salt: Uint8Array, publicKeySpki: Uint8Array, credentialId?: number[], prfWrappedPassword?: Uint8Array, prfPasswordIv?: Uint8Array }` |
+| `'ecdh'` | `{ wrapped: Uint8Array, iv: Uint8Array, salt: Uint8Array, iters: number, publicKeySpki: Uint8Array, credentialId?: number[], prfWrappedPassword?: Uint8Array, prfPasswordIv?: Uint8Array }` |
 
-The `wrapped` field is the PBKDF2+AES-GCM encrypted JWK of the ECDH private key. `publicKeySpki` and optional passkey metadata are stored unencrypted so the locked UI can start PRF unlock; `prfWrappedPassword` contains only the generated unlock password encrypted under a PRF-derived AES-GCM key. `publicKeyFp` is no longer persisted — fingerprint is derived on demand via `fingerprint(publicKeySpki)`.
+The `wrapped` field is the PBKDF2+AES-GCM encrypted JWK of the ECDH private key, derived at `iters` PBKDF2-SHA256 iterations (currently 600 000 — `PBKDF2_ITERS` in `crypto.ts`). `iters` is persisted per-entry (and in the exported `.ciphersheet-key` backup) so the count can be raised later without a hardcoded fallback; `unwrapData` always reads the stored value. No backward compat: keys/backups lacking `iters` fail to load and the user re-generates. `publicKeySpki` and optional passkey metadata are stored unencrypted so the locked UI can start PRF unlock; `prfWrappedPassword` contains only the generated unlock password encrypted under an AES-GCM key derived from the WebAuthn PRF output via HKDF-SHA256 (`info = "CipherSheet PRF v1"`, in `prfWrapPassword`/`prfUnwrapPassword`) for domain separation. `publicKeyFp` is no longer persisted — fingerprint is derived on demand via `fingerprint(publicKeySpki)`.
 
 **Extractable key audit:**
 
@@ -329,7 +329,8 @@ Minimal scopes: current spreadsheet + container UI only. See [appsscript.json](a
 |---|---|
 | Google reads plaintext | All crypto in browser; only ciphertext stored server-side |
 | Key exfiltration via XSS | ECDH private key non-extractable; pre-shared key non-extractable |
-| Passkey secret exposure | WebAuthn PRF output stays in the GitHub Pages popup/sidebar `postMessage` path and only decrypts the generated ECDH unlock password stored in IndexedDB |
+| Passkey secret exposure | WebAuthn PRF output stays in the GitHub Pages popup/sidebar `postMessage` path; it is run through HKDF-SHA256 (domain separation) and only decrypts the generated ECDH unlock password stored in IndexedDB |
+| Revoked recipient retains access to new values | "Update" on an encrypted cell re-encrypts under a fresh random cell key + fresh ephemeral ECDH pair, wrapped only for the remaining recipients. A removed recipient cannot decrypt the new ciphertext, and any previously-cached cell key is useless. (Past Version-History revisions are out of scope — the recipient already saw those values.) |
 | Recipient identity leak | Only SHA-256(lowercase(email)) in cell payload — no plaintext emails |
 | Version History exposure | Cannot be prevented by the add-on |
 | "Reveal" path leakage | `revealCell()` server function exists but the UI entry point (Unprotect button) is currently disabled; plaintext only appears in-sidebar |
@@ -342,7 +343,7 @@ Minimal scopes: current spreadsheet + container UI only. See [appsscript.json](a
 
 - **Onboarding slides** — describe the ECDH keypair first-run flow; screenshots may still need refreshing
 - **PRF key rotation** — not yet exposed; would require enrolling a replacement credential and rewrapping the stored unlock password
-- **Add/remove recipient on existing cells** — not yet exposed in UI; re-encryption on remove and cheap add-only re-wrap on add are both described in plan
+- **Cheap add-only recipient re-wrap** — adding a recipient currently re-encrypts the whole cell (via "Update"), which is correct but not the minimal add-only re-wrap described in the design. Removing a recipient (hard revocation) is fully handled by "Update" — see Security Model.
 - **Group membership resolution in picker** — groups appear in summary label but picker doesn't expand groups to individual recipients
 - **X25519 / Curve25519 support** — type `0x03` reserved; pending wider WebCrypto adoption
 - **Threshold / M-of-N decryption**

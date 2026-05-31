@@ -70,9 +70,9 @@ export function useKeyOps() {
     const fp = await fingerprint(spki);
     const password = buf2b64url(crypto.getRandomValues(new Uint8Array(32)).buffer);
     const jwkBytes = new TextEncoder().encode(JSON.stringify(jwk));
-    const { wrapped, iv, salt } = await wrapData(jwkBytes, password);
+    const { wrapped, iv, salt, iters } = await wrapData(jwkBytes, password);
 
-    const entry: IdbEcdhEntry = { wrapped, iv, salt, publicKeySpki: spki };
+    const entry: IdbEcdhEntry = { wrapped, iv, salt, iters, publicKeySpki: spki };
     await idbPut<IdbEcdhEntry>(IDB_ECDH_KEY, entry);
     setKeyInStorage(true);
     setKeyHasPasskey(false);
@@ -87,6 +87,7 @@ export function useKeyOps() {
       wrapped: buf2b64(wrapped.buffer as ArrayBuffer),
       iv: buf2b64(iv.buffer as ArrayBuffer),
       salt: buf2b64(salt.buffer as ArrayBuffer),
+      iters,
       publicKeySpki: buf2b64(spki.buffer as ArrayBuffer),
     }, `ciphersheet-${fpShort}.ciphersheet-key`);
 
@@ -178,13 +179,14 @@ export function useKeyOps() {
 
       if (obj?.type !== 'CipherSheet-ECDH-P256' || obj?.version !== 1)
         throw new Error('Unrecognized key file format — expected .ciphersheet-key');
-      if (!obj.wrapped || !obj.iv || !obj.salt || !obj.publicKeySpki)
+      if (!obj.wrapped || !obj.iv || !obj.salt || !obj.iters || !obj.publicKeySpki)
         throw new Error('Incomplete key file — required fields missing');
 
       const entry: IdbEcdhEntry = {
         wrapped: b642buf(obj.wrapped as string),
         iv: b642buf(obj.iv as string),
         salt: b642buf(obj.salt as string),
+        iters: obj.iters as number,
         publicKeySpki: b642buf(obj.publicKeySpki as string),
       };
       const incomingFp = await fingerprint(new Uint8Array(entry.publicKeySpki));

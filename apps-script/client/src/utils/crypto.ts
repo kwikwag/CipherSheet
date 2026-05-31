@@ -7,7 +7,7 @@ export const IV_LEN = 12;
 export const PRF_EVAL_INPUT = new TextEncoder().encode('CipherSheet unlock key v1');
 
 const HKDF_INFO: Uint8Array<ArrayBuffer> = new TextEncoder().encode('CipherSheet') as Uint8Array<ArrayBuffer>;
-const PBKDF2_ITERS = 310000;
+const PBKDF2_ITERS = 600000;
 
 // Helper to ensure Uint8Array<ArrayBuffer> for WebCrypto APIs
 function u8(b: Uint8Array): Uint8Array<ArrayBuffer> {
@@ -34,12 +34,12 @@ export async function computeGroupId(emailHashes: string[]): Promise<string> {
 
 // ── Key wrapping (PBKDF2 + AES-GCM) ────────────────────────────
 
-async function deriveWrappingKey(password: string, salt: Uint8Array): Promise<CryptoKey> {
+async function deriveWrappingKey(password: string, salt: Uint8Array, iters: number): Promise<CryptoKey> {
   const km = await crypto.subtle.importKey(
     'raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveKey']
   );
   return crypto.subtle.deriveKey(
-    { name: 'PBKDF2', hash: 'SHA-256', salt: u8(salt), iterations: PBKDF2_ITERS },
+    { name: 'PBKDF2', hash: 'SHA-256', salt: u8(salt), iterations: iters },
     km, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']
   );
 }
@@ -48,31 +48,48 @@ export interface WrappedData {
   wrapped: Uint8Array<ArrayBuffer>;
   iv: Uint8Array<ArrayBuffer>;
   salt: Uint8Array<ArrayBuffer>;
+  iters: number;
 }
 
 export async function wrapData(data: Uint8Array, password: string): Promise<WrappedData> {
   const salt = crypto.getRandomValues(new Uint8Array(16));
   const iv = crypto.getRandomValues(new Uint8Array(IV_LEN));
-  const wrapKey = await deriveWrappingKey(password, salt);
+  const wrapKey = await deriveWrappingKey(password, salt, PBKDF2_ITERS);
   const wrapped = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, wrapKey, u8(data));
-  return { wrapped: new Uint8Array(wrapped) as Uint8Array<ArrayBuffer>, iv, salt };
+  return { wrapped: new Uint8Array(wrapped) as Uint8Array<ArrayBuffer>, iv, salt, iters: PBKDF2_ITERS };
 }
 
 export async function unwrapData(
-  entry: { wrapped: Uint8Array; iv: Uint8Array; salt: Uint8Array },
+  entry: { wrapped: Uint8Array; iv: Uint8Array; salt: Uint8Array; iters: number },
   password: string
 ): Promise<ArrayBuffer> {
-  const wrapKey = await deriveWrappingKey(password, entry.salt);
+  const wrapKey = await deriveWrappingKey(password, entry.salt, entry.iters);
   return crypto.subtle.decrypt({ name: 'AES-GCM', iv: u8(entry.iv) }, wrapKey, u8(entry.wrapped));
 }
 
 // ── PRF wrapping ────────────────────────────────────────────────
 
+const PRF_HKDF_INFO: Uint8Array<ArrayBuffer> =
+  new TextEncoder().encode('CipherSheet PRF v1') as Uint8Array<ArrayBuffer>;
+
+// Derive an AES-GCM key from the raw WebAuthn PRF output via HKDF for domain
+// separation, rather than using the PRF bytes directly as a key.
+async function prfAesKey(
+  prfOutput: Uint8Array,
+  usages: KeyUsage[]
+): Promise<CryptoKey> {
+  const hkdfKm = await crypto.subtle.importKey('raw', u8(prfOutput), 'HKDF', false, ['deriveKey']);
+  return crypto.subtle.deriveKey(
+    { name: 'HKDF', hash: 'SHA-256', salt: new Uint8Array(32) as Uint8Array<ArrayBuffer>, info: PRF_HKDF_INFO },
+    hkdfKm, { name: 'AES-GCM', length: 256 }, false, usages
+  );
+}
+
 export async function prfWrapPassword(
   prfOutput: Uint8Array,
   password: string
 ): Promise<{ wrapped: Uint8Array<ArrayBuffer>; iv: Uint8Array<ArrayBuffer> }> {
-  const key = await crypto.subtle.importKey('raw', u8(prfOutput), { name: 'AES-GCM' }, false, ['encrypt']);
+  const key = await prfAesKey(prfOutput, ['encrypt']);
   const iv = crypto.getRandomValues(new Uint8Array(IV_LEN));
   const enc = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, new TextEncoder().encode(password));
   return { wrapped: new Uint8Array(enc) as Uint8Array<ArrayBuffer>, iv };
@@ -83,7 +100,7 @@ export async function prfUnwrapPassword(
   wrapped: Uint8Array,
   iv: Uint8Array
 ): Promise<string> {
-  const key = await crypto.subtle.importKey('raw', u8(prfOutput), { name: 'AES-GCM' }, false, ['decrypt']);
+  const key = await prfAesKey(prfOutput, ['decrypt']);
   const dec = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: u8(iv) }, key, u8(wrapped));
   return new TextDecoder().decode(dec);
 }
