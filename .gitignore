@@ -3,3 +3,5 @@ apps-script/dist/
 .clasp.json
 .npm/
 .DS_Store
+/AGENTS.local.md
+/apps-script/dist-client

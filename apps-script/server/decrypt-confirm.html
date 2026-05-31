@@ -197,12 +197,12 @@
 </div>
 
 <script>
-  const CELL_REF   = '<?= cellRef ?>';
-  const SHEET_NAME = '<?= sheetName ?>';
-  const KEY_LOADED = '<?= keyLoaded ?>' === 'true';
-  const FEEDBACK_URL = '<?= feedbackUrl ?>';
-  const DONATE_URL = '<?= donateUrl ?>';
-  const TARGET     = CELL_REF.trim().toUpperCase();
+  const CELL_REF     = <?!= jsonForScript_(cellRef) ?>;
+  const SHEET_NAME   = <?!= jsonForScript_(sheetName) ?>;
+  const KEY_LOADED   = <?!= jsonForScript_(keyLoaded === 'true') ?>;
+  const FEEDBACK_URL = <?!= jsonForScript_(feedbackUrl) ?>;
+  const DONATE_URL   = <?!= jsonForScript_(donateUrl) ?>;
+  const TARGET       = CELL_REF.trim().toUpperCase();
 
   function openFeedback() {
     window.open(FEEDBACK_URL, '_blank', 'noopener');
@@ -212,12 +212,32 @@
     window.open(DONATE_URL, '_blank', 'noopener');
   }
 
+  function textNode(text) {
+    return document.createTextNode(text);
+  }
+
+  function inlineEl(tag, className, text) {
+    const el = document.createElement(tag);
+    if (className) el.className = className;
+    el.textContent = text;
+    return el;
+  }
+
+  function setSubels(el, subEls) {
+    el.innerHTML = '';
+    subEls.forEach(subEl => el.appendChild(subEls));
+  }
+
   if (KEY_LOADED) {
     // ── Key present: full options ──────────────────────────────
-    document.getElementById('cellInfo').innerHTML =
-      'You are about to unprotect cell ' +
-      '<span class="cell-chip">' + CELL_REF + '</span> ' +
-      'on sheet <strong>' + SHEET_NAME + '</strong>.';
+    const cellInfo = document.getElementById('cellInfo');
+    setSubEls(cellInfo, [
+      textNode('You are about to unprotect cell '),
+      inlineEl('span', 'cell-chip', CELL_REF),
+      textNode(' on sheet '),
+      inlineEl('strong', '', SHEET_NAME),
+      textNode('.'),
+    ]);
     document.getElementById('cellRefLabel').textContent = CELL_REF;
     document.getElementById('confirmInput').placeholder = CELL_REF;
     document.getElementById('clearTitle').textContent   = 'Clear cell instead';
@@ -229,12 +249,16 @@
     document.getElementById('warnBanner').style.display    = 'none';
     document.getElementById('revealSection').style.display = 'none';
     document.getElementById('orRow').style.display         = 'none';
-    document.getElementById('cellInfo').innerHTML =
-      'Cell <span class="cell-chip">' + CELL_REF + '</span> on sheet ' +
-      '<strong>' + SHEET_NAME + '</strong> contains encrypted data ' +
-      'that cannot be deciphered without the correct key. ' +
-      'To reveal the contents, press <strong>Cancel</strong> and ' +
-      'load the correct key via the sidebar.';
+    setCellInfo([
+      textNode('Cell '),
+      inlineEl('span', 'cell-chip', CELL_REF),
+      textNode(' on sheet '),
+      inlineEl('strong', '', SHEET_NAME),
+      textNode(' contains encrypted data that cannot be deciphered without the correct key. '),
+      textNode('To reveal the contents, press '),
+      inlineEl('strong', '', 'Cancel'),
+      textNode(' and load the correct key via the sidebar.'),
+    ]);
     document.getElementById('clearTitle').textContent = 'Clear cell';
     document.getElementById('clearDesc').textContent  =
       'Permanently removes the encrypted value from the cell. This cannot be undone.';

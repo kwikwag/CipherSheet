@@ -64,7 +64,8 @@ interface SidebarTemplate
   extends GoogleAppsScript.HTML.HtmlTemplate,
     CommonTemplateVars {
   passkeyPopupUrl: string;
-  editors: string; // JSON-serialized SerializedEditorEntry[]
+  editors: SerializedEditorEntry[];
+  initialCell: SelectedCellValue | null;
 }
 
 interface OnboardingTemplate
@@ -184,13 +185,36 @@ function showSidebar(): void {
   const tpl = HtmlService.createTemplateFromFile('sidebar') as SidebarTemplate;
   applyCommonTemplateVars(tpl);
   tpl.passkeyPopupUrl = getPasskeyPopupUrl();
-  tpl.editors = JSON.stringify(listEditors());
+  tpl.editors = listEditors();
+  tpl.initialCell = getSelectedCellValueSafe_();
 
   const html = tpl
     .evaluate()
     .setTitle('🔐 CipherSheet')
     .setWidth(300);
   SpreadsheetApp.getUi().showSidebar(html);
+}
+
+function getSelectedCellValueSafe_(): SelectedCellValue | null {
+  try {
+    return getSelectedCellValue();
+  } catch (err) {
+    console.error('Failed to read initial CipherSheet cell:', err);
+    return null;
+  }
+}
+
+function jsonForScript_(value: unknown): string {
+  return JSON.stringify(value).replace(/[<>&\u2028\u2029]/g, ch => {
+    switch (ch) {
+      case '<': return '\\u003c';
+      case '>': return '\\u003e';
+      case '&': return '\\u0026';
+      case '\u2028': return '\\u2028';
+      case '\u2029': return '\\u2029';
+      default: return ch;
+    }
+  });
 }
 
 // ── onEdit trigger — encrypted cell guard (DISABLED) ─────────────────

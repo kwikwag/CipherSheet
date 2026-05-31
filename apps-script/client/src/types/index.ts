@@ -74,6 +74,7 @@ export interface CsConfig {
   passkeyPopupUrl: string;
   appVersion: string;
   editors: SerializedEditorEntry[];
+  initialCell?: CellData | null;
 }
 
 declare global {

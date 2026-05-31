@@ -96,6 +96,7 @@ apps-script/
       components/
         cell/            # CellMeta (header chip), CellEditor (textarea + overlays)
         key/             # KeySection, KeySetup, KeyLocked, KeyUnlocked, KeyConflictDialog, PasswordSetupBox
+                         # KeyOnboarding renders the no-key/plaintext first-run CTA
         recipients/      # RecipientPicker (collapsible checkbox list)
         footer/          # Footer (links + version)
         common/          # AppSnackbar, FingerprintChip, EmailLabel, Shimmer
@@ -202,7 +203,7 @@ Server-side Apps Script. TypeScript compiled to JS; all Apps Script globals (`Sp
 | Function | Purpose |
 |---|---|
 | `onInstall` / `onOpen` | Build add-on menu; resilient to authorization failures |
-| `showSidebar` / `showOnboarding` / `showSettings` | Open HTML panels; `showSidebar` injects the passkey popup URL |
+| `showSidebar` / `showOnboarding` / `showSettings` | Open HTML panels; `showSidebar` injects the passkey popup URL and initial selected-cell snapshot |
 | `getPasskeyPopupUrl` | Returns the GitHub Pages top-level WebAuthn PRF popup URL |
 | `getSelectedCellValue()` | Returns `{ value, cellRef, sheetName }` using `cell.getValue()` (not display value) |
 | `setEncryptedCellValue(payload, cellRef, sheetName)` | Writes `=IF(TRUE,"🔒 Encrypted","<payload>")` formula, applies warning protection, note |
@@ -226,9 +227,9 @@ Server-side Apps Script. TypeScript compiled to JS; all Apps Script globals (`Sp
 
 ### [apps-script/server/sidebar.html](apps-script/server/sidebar.html)
 
-Thin shell that injects `CS_CONFIG` (feedback/donate/privacy URLs, app version, passkey popup URL, initial public-key cache) and mounts `<div id="root">`, then includes the Vite-built `sidebar-script.html`.
+Thin shell that injects `CS_CONFIG` (feedback/donate/privacy URLs, app version, passkey popup URL, editor public-key cache, and one initial selected-cell snapshot) and mounts `<div id="root">`, then includes the Vite-built `sidebar-script.html`.
 
-All client-side state and logic lives in the React client ([apps-script/client/src/](apps-script/client/src/)). Key entry points: [AppContext.tsx](apps-script/client/src/context/AppContext.tsx) for global state, [useKeyOps.ts](apps-script/client/src/hooks/useKeyOps.ts) for key operations, [useCellOps.ts](apps-script/client/src/hooks/useCellOps.ts) for cell encrypt/decrypt/unprotect, [crypto.ts](apps-script/client/src/utils/crypto.ts) for all WebCrypto operations.
+All client-side state and logic lives in the React client ([apps-script/client/src/](apps-script/client/src/)). Key entry points: [AppContext.tsx](apps-script/client/src/context/AppContext.tsx) for global state, [useKeyOps.ts](apps-script/client/src/hooks/useKeyOps.ts) for key operations, [useCellOps.ts](apps-script/client/src/hooks/useCellOps.ts) for cell encrypt/decrypt/unprotect, [KeyOnboarding.tsx](apps-script/client/src/components/key/KeyOnboarding.tsx) for the no-key/plaintext first-run CTA, and [crypto.ts](apps-script/client/src/utils/crypto.ts) for all WebCrypto operations.
 
 **IndexedDB schema** (`CipherSheet` db, `keys` store):
 

@@ -9,6 +9,7 @@ import { CellMeta } from './components/cell/CellMeta';
 import { CellEditor } from './components/cell/CellEditor';
 import { RecipientPicker } from './components/recipients/RecipientPicker';
 import { KeySection } from './components/key/KeySection';
+import { KeyOnboarding } from './components/key/KeyOnboarding';
 import { PasswordSetupBox } from './components/key/PasswordSetupBox';
 import { Footer } from './components/footer/Footer';
 import { Shimmer } from './components/common/Shimmer';
@@ -16,10 +17,11 @@ import { AppSnackbar } from './components/common/AppSnackbar';
 
 function AppInner() {
   useInitApp();
-  const { cellView, editors, ecdhPrivKey } = useApp();
+  const { cellView, editors, ecdhPrivKey, keyInStorage, cellIsEncrypted } = useApp();
   const { renderCell } = useCellOps();
   const [selectedEmails, setSelectedEmails] = useState<string[]>([]);
   const [unknownRecipientCount, setUnknownRecipientCount] = useState(0);
+  const showKeyOnboarding = cellView.cell !== null && !keyInStorage && !cellIsEncrypted;
 
   // Re-render the current cell whenever the key changes (lock/unlock/forget/load).
   // renderCell handles the null-key case by clearing plaintext and decryptError.
@@ -51,24 +53,39 @@ function AppInner() {
       sx={{
         display: 'flex',
         flexDirection: 'column',
-        minHeight: '100vh',
+        height: '100vh',
         position: 'relative',
         bgcolor: 'background.default',
         fontFamily: 'typography.fontFamily',
       }}
     >
       <Shimmer part="cell"><CellMeta /></Shimmer>
-      <Box sx={{ flex: 1, overflowY: 'auto', pb: 6 }}>
-        <Shimmer part="cell">
-          <CellEditor selectedRecipients={selectedEmails} />
-        </Shimmer>
-        <RecipientPicker
-          selectedEmails={selectedEmails}
-          onSelectionChange={setSelectedEmails}
-          unknownRecipientCount={unknownRecipientCount}
-        />
-        <Shimmer part="key"><KeySection /></Shimmer>
-        <PasswordSetupBox />
+      <Box
+        sx={{
+          flex: 1,
+          minHeight: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          overflowY: showKeyOnboarding ? 'hidden' : 'auto',
+          pb: showKeyOnboarding ? 0 : 6,
+        }}
+      >
+        {showKeyOnboarding ? (
+          <KeyOnboarding />
+        ) : (
+          <>
+            <Shimmer part="cell">
+              <CellEditor selectedRecipients={selectedEmails} />
+            </Shimmer>
+            <RecipientPicker
+              selectedEmails={selectedEmails}
+              onSelectionChange={setSelectedEmails}
+              unknownRecipientCount={unknownRecipientCount}
+            />
+            <Shimmer part="key"><KeySection /></Shimmer>
+            <PasswordSetupBox />
+          </>
+        )}
       </Box>
       <Footer />
 

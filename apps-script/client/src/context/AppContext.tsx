@@ -61,9 +61,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [ecdhFp, setEcdhFp] = useState<string | null>(null);
   const [keyInStorage, setKeyInStorage] = useState(false);
   const [keyHasPasskey, setKeyHasPasskey] = useState(false);
-  const [cellView, setCellView] = useState<CellViewState>({
-    cell: null, plaintext: '', decrypted: false, decryptError: null, recipientHashes: new Set(),
-  });
+  const [cellView, setCellView] = useState<CellViewState>(() => ({
+    cell: window.CS_CONFIG?.initialCell ?? null,
+    plaintext: '',
+    decrypted: false,
+    decryptError: null,
+    recipientHashes: new Set(),
+  }));
   const [ownEmail, setOwnEmail] = useState('');
   const [editors, setEditors] = useState<EditorEntry[]>([]);
   const [groupCache, setGroupCache] = useState<GroupEntry[]>([]);

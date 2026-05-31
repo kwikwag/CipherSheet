@@ -30,7 +30,7 @@ export function useInitApp() {
 
 
       const entry = await syncKeyInStorage();
-      await refreshCell();
+      if (!window.CS_CONFIG?.initialCell) await refreshCell();
       refreshGroupCache();
 
       // Try silent PasswordCredential autofill

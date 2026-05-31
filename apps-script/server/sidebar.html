@@ -9,12 +9,13 @@
 <body>
 <script>
 window.CS_CONFIG = {
-  feedbackUrl:       <?!= JSON.stringify(feedbackUrl) ?>,
-  donateUrl:         <?!= JSON.stringify(donateUrl) ?>,
-  privacyUrl:        <?!= JSON.stringify(privacyUrl) ?>,
-  passkeyPopupUrl:   <?!= JSON.stringify(passkeyPopupUrl) ?>,
-  appVersion:        <?!= JSON.stringify(appVersion) ?>,
-  editors:           <?!= editors ?>,
+  feedbackUrl:       <?!= jsonForScript_(feedbackUrl) ?>,
+  donateUrl:         <?!= jsonForScript_(donateUrl) ?>,
+  privacyUrl:        <?!= jsonForScript_(privacyUrl) ?>,
+  passkeyPopupUrl:   <?!= jsonForScript_(passkeyPopupUrl) ?>,
+  appVersion:        <?!= jsonForScript_(appVersion) ?>,
+  editors:           <?!= jsonForScript_(editors) ?>,
+  initialCell:       <?!= jsonForScript_(initialCell) ?>,
 };
 </script>
 <div id="root"></div>
