@@ -67,7 +67,7 @@ export function KeyUnlocked() {
         </Button>
         {passkeyUrl && (
           <Button variant="outlined" size="small" startIcon={<KeyIcon />} onClick={tryPrfEnroll} sx={{ flex: 1, fontSize: '0.6875rem' }}>
-            {keyHasPasskey ? 'Re-enroll passkey' : 'Enable passkey'}
+            {keyHasPasskey ? 'Update passkey' : 'Set up passkey'}
           </Button>
         )}
       </Box>

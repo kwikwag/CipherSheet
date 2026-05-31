@@ -262,8 +262,18 @@ export function useKeyOps() {
     setEcdhPubKey(pubKey);
     setEcdhFp(await fingerprint(spki));
     setUnlockPassword(password);
+
+    // Register public key in this document if not already present (e.g. key was
+    // created in a different spreadsheet but shares the same IndexedDB origin).
+    if (!getRegisteredFp()) {
+      try {
+        await gasRun('storePublicKey', buf2b64(spki.buffer as ArrayBuffer));
+        await cacheUpsertOwn(spki);
+      } catch { /* non-fatal */ }
+    }
+
     showToast('Key unlocked', 'success');
-  }, [setEcdhPrivKey, setEcdhPubKey, setEcdhFp, setUnlockPassword, showToast]);
+  }, [setEcdhPrivKey, setEcdhPubKey, setEcdhFp, setUnlockPassword, showToast, getRegisteredFp, cacheUpsertOwn]);
 
   const unlockWithPassword = useCallback(async (password: string) => {
     setLoading(true);
@@ -410,7 +420,7 @@ function prfPopupHandshake(action: string, extraData: Record<string, unknown>): 
       '?action=' + encodeURIComponent(action) +
       '&channel=' + encodeURIComponent(channel) +
       '&returnOrigin=' + encodeURIComponent(window.location.origin);
-    const popup = window.open(url, 'ciphersheet-prf', 'width=480,height=280,toolbar=no,menubar=no');
+    const popup = window.open(url, 'ciphersheet-prf', 'width=480,height=480,toolbar=no,menubar=no');
     if (!popup) { reject(new Error('Popup was blocked — allow popups for this site')); return; }
 
     const timeout = setTimeout(() => { cleanup(); reject(new Error('Passkey timed out')); }, 90000);
