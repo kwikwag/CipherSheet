@@ -1,4 +1,3 @@
-import { Divider } from '@mui/material';
 import { useApp } from '../../context/AppContext';
 import { KeySetup } from './KeySetup';
 import { KeyLocked } from './KeyLocked';
@@ -9,7 +8,6 @@ export function KeySection() {
 
   return (
     <>
-      <Divider />
       {!keyInStorage && <KeySetup />}
       {keyInStorage && !ecdhPrivKey && <KeyLocked />}
       {ecdhPrivKey !== null && <KeyUnlocked />}
