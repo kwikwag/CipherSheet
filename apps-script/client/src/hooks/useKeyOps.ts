@@ -293,12 +293,13 @@ export function useKeyOps() {
     setEcdhPubKey(null);
     setUnlockPassword(null);
     setEcdhFp(null);
+    setSetupPassword(null);
     if (alsoRemoveFromDoc) {
       await gasRun('removePublicKey');
       cacheRemoveOwn();
     }
     showToast('Key forgotten');
-  }, [setKeyInStorage, setKeyHasPasskey, setEcdhPrivKey, setEcdhPubKey, setUnlockPassword, setEcdhFp, cacheRemoveOwn, showToast]);
+  }, [setKeyInStorage, setKeyHasPasskey, setEcdhPrivKey, setEcdhPubKey, setUnlockPassword, setEcdhFp, setSetupPassword, cacheRemoveOwn, showToast]);
 
   // ── PRF passkey enroll ─────────────────────────────────────────
   const tryPrfEnroll = useCallback(async () => {
