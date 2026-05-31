@@ -66,7 +66,6 @@ export function CellEditor({ selectedRecipients }: CellEditorProps) {
   const overlayVisible = !canEncrypt;
   const showEncryptedOverlay = overlayVisible && cellIsEncrypted;
   const showPlaintextOverlay = overlayVisible && !cellIsEncrypted;
-  const verb = keyInStorage ? 'Unlock' : 'Generate';
   const noKey = !keyInStorage && !presharedKey;
 
   return (
@@ -98,7 +97,7 @@ export function CellEditor({ selectedRecipients }: CellEditorProps) {
         {showEncryptedOverlay && (
           <FieldOverlay
             icon={<LockIcon sx={{ fontSize: 28, mb: 0.5 }} />}
-            text={`${verb} key to decrypt`}
+            text={ keyInStorage ? 'Unlock key to decrypt' : 'Generate a key' }
             subtext={noKey ? 'or drop a .ciphersheet-key file' : undefined}
             isDragOver={isDragOver}
             onFileClick={noKey ? () => fileInputRef.current?.click() : undefined}
