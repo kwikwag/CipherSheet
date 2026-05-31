@@ -605,6 +605,18 @@ function listGroups(): GroupEntry[] {
   return result;
 }
 
+function listEditorsWithoutKeys(): string[] {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const editors = ss.getEditors().map(u => u.getEmail()).filter(Boolean);
+  const props = PropertiesService.getDocumentProperties().getProperties();
+  const withKeys = new Set(
+    Object.keys(props)
+      .filter(k => k.startsWith(PK_PREFIX))
+      .map(k => k.slice(PK_PREFIX.length))
+  );
+  return editors.filter(e => !withKeys.has(e));
+}
+
 // ── Reset metadata ────────────────────────────────────────────────
 // Removes all non-sheet-stored data written by the add-on: document settings,
 // registered public keys (pk:*), and group entries (grp:*). Does NOT touch

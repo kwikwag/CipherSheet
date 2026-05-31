@@ -221,6 +221,7 @@ Server-side Apps Script. TypeScript compiled to JS; all Apps Script globals (`Sp
 | `navigateToCell(cellRef, sheetName)` | Activates a cell in the sheet UI |
 | `onEdit(e)` | Auto-reverts direct edits to vault cells (requires `revertOnEditEnabled`) |
 | `removePublicKey()` | Deletes the calling user's `pk:<email>` entry from Document Properties |
+| `listEditorsWithoutKeys()` | Returns `string[]` of editor emails that have no registered `pk:` entry |
 | `resetDocumentMetadata()` | Interactively deletes all CipherSheet Document Properties (settings, public keys, groups); does not touch cell values |
 
 ### [apps-script/server/sidebar.html](apps-script/server/sidebar.html)

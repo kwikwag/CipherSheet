@@ -28,6 +28,7 @@ export function SettingsApp() {
 
   const [pubKeys, setPubKeys] = useState<{ email: string; fp: string }[]>([]);
   const [groups,  setGroups]  = useState<GroupEntry[]>([]);
+  const [noKeyEditors, setNoKeyEditors] = useState<string[]>([]);
 
   useEffect(() => {
     gasRun('getDocumentSettings').then(() => {
@@ -49,6 +50,8 @@ export function SettingsApp() {
     gasRun<RawGroup[]>('listGroups').then(gs => {
       setGroups(gs.map(g => ({ id: g.id, emailHashes: g.emailHashes, label: g.label ?? '' })));
     }).catch(() => {});
+
+    gasRun<string[]>('listEditorsWithoutKeys').then(setNoKeyEditors).catch(() => {});
   }, []);
 
   function saveGroupLabel(id: string, emailHashes: string[], label: string) {
@@ -72,8 +75,6 @@ export function SettingsApp() {
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
       <Box sx={{ flex: 1, px: 2, pt: 1.5, pb: 1 }}>
 
-        <Divider sx={{ mb: 1.5 }} />
-
         <Typography variant="overline" color="text.secondary" display="block" sx={{ mb: 0.5 }}>
           Registered public keys
         </Typography>
@@ -92,6 +93,27 @@ export function SettingsApp() {
               </ListItem>
             ))}
           </List>
+        )}
+
+        {noKeyEditors.length > 0 && (
+          <>
+            <Divider sx={{ my: 1.5 }} />
+            <Typography variant="overline" color="text.secondary" display="block" sx={{ mb: 0.5 }}>
+              Missing public keys
+            </Typography>
+            <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.75 }}>
+              These collaborators have no registered public key — encrypted data cannot be addressed to them until they open CipherSheet and generate one.
+            </Typography>
+            <List dense disablePadding>
+              {noKeyEditors.map(email => (
+                <ListItem key={email} disablePadding sx={{ py: 0.25 }}>
+                  <Typography variant="body2" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {email}
+                  </Typography>
+                </ListItem>
+              ))}
+            </List>
+          </>
         )}
 
         <Divider sx={{ my: 1.5 }} />
