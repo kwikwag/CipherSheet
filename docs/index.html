@@ -5,11 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CipherSheet | Client-Side Encryption for Google Sheets</title>
   <meta property="og:title" content="CipherSheet | Client-Side Encryption for Google Sheets">
-  <meta property="og:description" content="Encrypt individual cells in Google Sheets with AES-256-GCM. Your key never leaves your browser — the cloud only ever sees ciphertext. Share secrets with your team, zero-knowledge.">
+  <meta property="og:description" content="Encrypt individual cells in Google Sheets with AES-256-GCM. Your key never leaves your device — the cloud only ever sees ciphertext. Share secrets with your team, zero-knowledge.">
   <meta property="og:image" content="https://kwikwag.github.io/CipherSheet/branding/store-tile.png">
   <meta property="og:url" content="https://kwikwag.github.io/CipherSheet/">
   <meta property="og:type" content="website">
-  <meta name="description" content="Encrypt individual cells in Google Sheets with AES-256-GCM. Your key never leaves your browser — the cloud only ever sees ciphertext. Share secrets with your team, zero-knowledge.">
+  <meta name="description" content="Encrypt individual cells in Google Sheets with AES-256-GCM. Your key never leaves your device — the cloud only ever sees ciphertext. Share secrets with your team, zero-knowledge.">
   <meta name="twitter:card" content="summary_large_image">
   <link rel="icon" type="image/svg+xml" href="branding/logo.svg">
   <link rel="icon" type="image/png" sizes="32x32" href="branding/logo-32.png">
@@ -220,7 +220,38 @@
       margin-top: 2rem; font-size: 0.95rem;
       color: rgba(232,245,238,0.7);
     }
-    
+
+    /* ── Technical security details ── */
+    .tech-detail {
+      margin-top: 3.5rem;
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 2.5rem; text-align: left; align-items: start;
+    }
+    @media (max-width: 820px) {
+      .tech-detail { grid-template-columns: 1fr; gap: 2rem; }
+    }
+    .tech-detail h3 { color: #fff; font-size: 1.3rem; margin-bottom: 1rem; }
+    .tech-detail p { font-size: 0.98rem; color: rgba(232,245,238,0.82); margin-bottom: 1rem; }
+    .tech-detail code {
+      background: rgba(255,255,255,0.1); border-radius: 4px;
+      padding: 0.1em 0.4em; font-size: 0.88em; color: #9defc4;
+    }
+    .tech-table {
+      width: 100%; border-collapse: collapse; font-size: 0.92rem;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; overflow: hidden;
+    }
+    .tech-table th, .tech-table td {
+      padding: 0.7rem 1rem; text-align: left;
+      border-bottom: 1px solid rgba(255,255,255,0.09); vertical-align: top;
+    }
+    .tech-table thead th {
+      background: rgba(255,255,255,0.08); color: #fff; font-weight: 600;
+    }
+    .tech-table tbody tr:last-child td { border-bottom: none; }
+    .tech-table td:first-child { color: rgba(232,245,238,0.85); white-space: nowrap; }
+    .tech-table td:last-child { color: #9defc4; font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+
     footer {
       text-align: center; padding: 3rem 2rem; background: #fff;
       border-top: 1px solid var(--border-color); color: var(--text-light); font-size: 0.9rem;
@@ -264,7 +295,7 @@
   <main>
     <section class="hero">
       <img class="hero-store-tile" src="branding/store-tile-transparent.svg" alt="CipherSheet marketplace tile">
-      <p>Encrypt individual cells with strong, standards-based AES-256-GCM encryption. Your key never leaves your browser — the cloud only ever sees ciphertext.</p>
+      <p>Encrypt individual cells with strong, standards-based AES-256-GCM encryption. Your key never leaves your device — the cloud only ever sees ciphertext.</p>
       <a href="https://workspace.google.com/marketplace/app/ciphersheet/1069746286788" target="_blank" class="install-btn">Install from Google Workspace Marketplace</a>
     </section>
 
@@ -276,7 +307,7 @@
             <svg viewBox="0 0 375.184 375.184"><path d="M285.344 97.751c0-53.9-43.852-97.751-97.752-97.751S89.84 43.851 89.84 97.751c0 46.506 32.648 85.527 76.227 95.358v160.549c0 11.869 9.656 21.525 21.525 21.525s21.525-9.656 21.525-21.525v-6.908h28.975c8.271 0 15-6.383 15-14.228 0-7.846-6.729-14.229-15-14.229h-.58c-2.757 0-5-2.243-5-5v-7.96c0-2.757 2.243-5 5-5h.58c8.271 0 15-6.383 15-14.229s-6.729-14.229-15-14.229h-28.975V193.11c43.579-9.832 76.227-48.852 76.227-95.359m-97.752 55.021c-30.387 0-55.021-24.634-55.021-55.021s24.634-55.021 55.021-55.021 55.021 24.634 55.021 55.021-24.634 55.021-55.021 55.021"/></svg>
           </div>
           <h3><span class="step-num">1.</span> Generate a Key</h3>
-          <p>Click <strong>Generate key</strong> in the sidebar. A personal keypair is created right in your browser — your public key is registered so teammates can encrypt for you, while your private key never leaves your device.</p>
+          <p>Click <strong>Generate key</strong> in the sidebar. A personal keypair is created right in your device — your public key is registered so teammates can encrypt for you, while your private key never leaves your device.</p>
         </div>
         <div class="feature-card">
           <div class="feature-icon" aria-hidden="true">
@@ -303,7 +334,7 @@
     <section class="privacy-band" id="security">
       <div class="inner">
         <h2>How Your Data Stays Private</h2>
-        <p class="lede">CipherSheet is built on a <strong>zero-knowledge architecture</strong>: your secrets are sealed in your browser and never reach the cloud.</p>
+        <p class="lede">CipherSheet is built on a <strong>zero-knowledge architecture</strong>: your secrets are sealed in your device and never reach the cloud.</p>
         <div class="privacy-grid">
           <div class="privacy-pillar">
             <div class="p-icon" aria-hidden="true">
@@ -328,6 +359,38 @@
           </div>
         </div>
         <p class="privacy-warn">⚠️ If you lose your unlock password and passkey, it's effectively impossible to recover your data. Keep your password secure.</p>
+
+        <div class="tech-detail">
+          <div>
+            <h3>Under the hood</h3>
+            <p>Every cryptographic operation runs in your browser through the standard <a href="https://developer.mozilla.org/en-US/docs/Web/API/Web_Crypto_API" target="_blank" rel="noopener">Web Crypto API</a> (<code>crypto.subtle</code>); the server only stores and relays ciphertext and public keys.</p>
+            <p><strong>Your keypair.</strong> When you generate a key, an <code>ECDH</code> keypair on the <code>P-256</code> curve is created locally. The public key is registered so others can encrypt for you; the private key stays on your device, wrapped under a key derived from your unlock password via <code>PBKDF2</code> (600,000 iterations, SHA-256) and sealed with <code>AES-256-GCM</code>.</p>
+            <p><strong>Protecting a cell.</strong> A fresh random <code>AES-256-GCM</code> cell key encrypts the value. For each recipient, an ephemeral P-256 keypair performs an ECDH key agreement with their public key; the shared secret is run through <code>HKDF</code> (SHA-256) to derive a wrapping key that seals the cell key just for them. Recipients are identified only by the SHA-256 hash of their email, so the payload reveals no addresses.</p>
+            <p><strong>Passkey unlock.</strong> If you enroll a passkey, the WebAuthn <code>PRF</code> extension output is passed through HKDF to derive an AES-256-GCM key that wraps your unlock password — so the password itself never leaves your device either.</p>
+          </div>
+          <div>
+            <h3>Security parameters</h3>
+            <table class="tech-table">
+              <thead>
+                <tr><th>Parameter</th><th>Value</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>Crypto runtime</td><td>Web Crypto (crypto.subtle)</td></tr>
+                <tr><td>Recipient keypair</td><td>ECDH P-256</td></tr>
+                <tr><td>Per-message keypair</td><td>Ephemeral ECDH P-256</td></tr>
+                <tr><td>Shared-secret KDF</td><td>HKDF-SHA-256</td></tr>
+                <tr><td>Password KDF</td><td>PBKDF2-SHA-256</td></tr>
+                <tr><td>PBKDF2 iterations</td><td>600,000</td></tr>
+                <tr><td>Cell / wrapping cipher</td><td>AES-256-GCM</td></tr>
+                <tr><td>GCM IV length</td><td>96 bits (12 B)</td></tr>
+                <tr><td>GCM auth tag</td><td>128 bits</td></tr>
+                <tr><td>Key-wrap salt</td><td>128-bit random</td></tr>
+                <tr><td>Recipient identifier</td><td>SHA-256(email)</td></tr>
+                <tr><td>Passkey unlock</td><td>WebAuthn PRF → HKDF-SHA-256</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </section>
 
