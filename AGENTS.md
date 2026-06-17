@@ -5,7 +5,7 @@ CipherSheet is a Google Sheets Add-on that provides **client-side, zero-knowledg
 - **License:** AGPL-3.0-only
 - **Marketplace:** `https://workspace.google.com/marketplace/app/ciphersheet/1069746286788`
 - **GitHub:** `kwikwag/CipherSheet`
-- **Docs/Site:** `https://kwikwag.github.io/CipherSheet/`
+- **Docs/Site:** `https://www.yuvalsadan.com/CipherSheet/`
 
 ---
 
@@ -101,9 +101,14 @@ apps-script/
   dist/                  # Compiled output; pushed to Apps Script via clasp
 docs/
   index.html, privacy.html, terms.html, donate.html, thank-you.html
-  prf-popup.html         # GitHub Pages top-level WebAuthn PRF popup for passkey unlock
+  prf-popup.html         # WebAuthn PRF popup source; deployed to S3/CloudFront via infra/ (not GitHub Pages)
+  cipher-animation-canvas.js  # Hero animated canvas for docs/index.html
+  cipher-animation-css.js     # CSS-based cipher animation variant
   asymmetric-design.md   # Original design doc (superseded by implementation)
   branding/              # SVG/PNG logos
+infra/                   # Pulumi IaC (TypeScript) — passkey popup hosting
+  index.ts               # S3 + CloudFront + OAC + CSP; serves prf-popup.html at ciphersheet-passkey.yuvalsadan.com
+  Pulumi.yaml            # Stack: ciphersheet-infra, nodejs runtime, us-east-1
 scripts/
   build-apps-script.mjs  # Build orchestrator (clean → tsc → copy assets → wrap sidebar-script)
   init-clasp.sh          # First-time clasp setup
@@ -255,7 +260,7 @@ Consent modal. Displays risk warnings. Requires user to type the cell address to
 
 ### [docs/prf-popup.html](docs/prf-popup.html)
 
-GitHub Pages top-level popup for WebAuthn PRF enrollment and unlock. It waits for `prf-start` over `postMessage`, validates `returnOrigin` and the random channel token, ignores duplicate starts, calls `navigator.credentials.create()` / `navigator.credentials.get()` with PRF eval input, returns `credentialId` and PRF output to the sidebar, then closes.
+Top-level popup for WebAuthn PRF enrollment and unlock. Source lives in `docs/`; deployed to `https://ciphersheet-passkey.yuvalsadan.com/prf-popup.html` via the Pulumi stack in `infra/` (S3 + CloudFront, not GitHub Pages). It waits for `prf-start` over `postMessage`, validates `returnOrigin` and the random channel token, ignores duplicate starts, calls `navigator.credentials.create()` / `navigator.credentials.get()` with PRF eval input, returns `credentialId` and PRF output to the sidebar, then closes. CloudFront serves it with a strict CSP (inline script allowed by hash only, `frame-ancestors 'none'`).
 
 ### [apps-script/server/settings.html](apps-script/server/settings.html)
 
@@ -304,7 +309,7 @@ GAS calls (`google.script.run`) reject with an error in dev mode.
 - `Uint8Array` generic issue (TS 5.8+): WebCrypto APIs require `Uint8Array<ArrayBuffer>`. Use the `u8()` cast helper in `utils/crypto.ts` when passing slice results to crypto APIs.
 
 ### CI/CD
-- **`deploy-pages.yml`** — triggers on `main` branch changes to `docs/**`; deploys GitHub Pages
+- **`deploy-pages.yml`** — triggers on `main` branch changes to `docs/**`; deploys GitHub Pages (site only — `prf-popup.html` is deployed separately via the `infra/` Pulumi stack)
 - **`deploy-addon.yml`** — triggers on `dist` branch; requires secrets `CLASP_CLIENT_ID`, `CLASP_CLIENT_SECRET`, `CLASP_REFRESH_TOKEN`, `CLASP_SCRIPT_ID`, `CLASP_DEPLOYMENT_ID`
 
 ### Image pipeline

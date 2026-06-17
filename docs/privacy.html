@@ -25,14 +25,14 @@
   <h2 class="logo"><a href="index.html" aria-label="CipherSheet Home"><img src="branding/logo.svg" alt="CipherSheet"><span>Cipher<b>Sheet</b></span></a></h2>
 
   <h1>CipherSheet Privacy Policy</h1>
-  <p><strong>Last updated:</strong> May 31, 2026</p>
+  <p><strong>Last updated:</strong> June 17, 2026</p>
 
   <p>This Privacy Policy applies to the CipherSheet Google Sheets add-on and the CipherSheet website. It explains how CipherSheet accesses, uses, stores, and shares Google user data.</p>
 
   <p>CipherSheet's use and transfer of information received from Google APIs adheres to the <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener">Google API Services User Data Policy</a>, including the <a href="https://developers.google.com/terms/api-services-user-data-policy#limited-use" target="_blank" rel="noopener">Limited Use</a> requirements.</p>
 
   <h2>Who We Are</h2>
-  <p>CipherSheet is an independent open-source project. Project homepage: <a href="https://kwikwag.github.io/CipherSheet/" target="_blank" rel="noopener">https://kwikwag.github.io/CipherSheet/</a>.</p>
+  <p>CipherSheet is an independent open-source project. Project homepage: <a href="https://www.yuvalsadan.com/CipherSheet/" target="_blank" rel="noopener">https://www.yuvalsadan.com/CipherSheet/</a>.</p>
 
   <h2>Plain-Language Terms</h2>
   <ul>
@@ -82,7 +82,8 @@
     <li>CipherSheet does not store spreadsheet content or Google user data on CipherSheet-owned servers.</li>
     <li>Your private encryption key is generated and stored locally by your browser. It is never transmitted to any server. Your ECDH public key is stored in spreadsheet document properties so collaborators can encrypt data for you.</li>
     <li>Temporary cache entries used for confirmation flow are short-lived and expire automatically.</li>
-    <li>Passkey (WebAuthn PRF) unlock runs in a popup served from CipherSheet's own GitHub Pages site (<code>kwikwag.github.io/CipherSheet</code>). This popup exchanges only the data needed to unlock your local key and never receives your spreadsheet content or any Google user data.</li>
+    <li>Your private key is stored in your browser's <strong>IndexedDB</strong> (in the sidebar's <code>googleusercontent.com</code> origin) in encrypted form, protected by your unlock password via PBKDF2-SHA256 (600 000 iterations). If you enroll a passkey for unlock, a passkey credential ID and an encrypted copy of your unlock password (protected by the WebAuthn PRF output via HKDF-SHA256) are also stored in IndexedDB. Clearing your browser's site data for that origin will delete these stored key entries.</li>
+    <li>Passkey (WebAuthn PRF) unlock runs in a popup served from CipherSheet's own GitHub Pages site (<code>www.yuvalsadan.com/CipherSheet</code>). This popup exchanges only the data needed to unlock your local key and never receives your spreadsheet content or any Google user data.</li>
   </ul>
   <p>You can delete data by clearing relevant cells, removing document properties, or deleting the spreadsheet file. Uninstalling the add-on does not automatically delete existing spreadsheet data.</p>
 
@@ -93,16 +94,16 @@
     <li>OAuth scopes are limited to what is required for user-facing functionality.</li>
   </ul>
 
+  <h2>Cell Payload and Recipient Privacy</h2>
+  <p>Each encrypted cell formula embeds a <strong>SHA-256 hash</strong> of each recipient's email address (lowercase) rather than the plaintext email. This keeps addresses out of the raw formula, but SHA-256 hashes of email addresses may be reversible by enumeration for a known address space (e.g. a corporate domain or small team). Anyone with read access to a cell's raw formula — including users with view-only sheet access — can see the recipient hash list for that cell, even if they cannot decrypt its content.</p>
+
   <h2>Policy Changes</h2>
   <p>We may update this policy when functionality or data handling changes. We will update the "Last updated" date on this page.</p>
 
-  <p>Summary of changes compared to the previous version (March 20, 2026):</p>
+  <p>Summary of changes compared to the previous version (May 31, 2026):</p>
   <ul>
-    <li>Removed reference to "Reveal" (write-back) feature — the UI entry point for that path has been removed; plaintext is only shown in-sidebar.</li>
-    <li>Clarified that the ECDH public key is stored in document properties for collaborator use, while the private key remains local.</li>
-    <li>Added an explicit commitment to the Google API Services User Data Policy, including the Limited Use requirements.</li>
-    <li>Added an explicit statement on the limited circumstances under which humans may access Google user data.</li>
-    <li>Clarified that passkey unlock runs in a popup on CipherSheet's own site and handles no Google user data.</li>
+    <li>Added disclosure that private key material is stored in the browser's <strong>IndexedDB</strong> (sidebar's <code>googleusercontent.com</code> origin), including passkey credential ID and PRF-wrapped unlock password when a passkey is enrolled; clearing site data for that origin deletes these entries.</li>
+    <li>Added new "Cell Payload and Recipient Privacy" section disclosing that each encrypted cell embeds a SHA-256 hash of each recipient's email address, that this hash may be reversible by enumeration, and that anyone with read access to the raw formula can see the recipient hash list.</li>
   </ul>
 
   <h2>Contact Us</h2>

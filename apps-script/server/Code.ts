@@ -93,12 +93,11 @@ const PROTECTION_DESC_PREFIX = 'CipherSheet:';
 const ENCRYPTED_FORMULA_RE = /^=IF\(TRUE,"🔒 Encrypted","(🔐[^"]*)"\)$/;
 const SETTINGS_KEY = 'CIPHERSHEET_SETTINGS';
 const APP_VERSION = '1.0.0';
+const HOST_PREFIX = 'https://www.yuvalsadan.com/CipherSheet';
 const FEEDBACK_URL =
   'https://docs.google.com/forms/d/e/1FAIpQLScRT2LRVGqDcpENJ2fYaqIOr0fE9XUsEk9tJLZUtSa4i4dleQ/viewform';
-const DONATE_URL =
-  'https://kwikwag.github.io/CipherSheet/donate';
-const PRIVACY_URL =
-  'https://kwikwag.github.io/CipherSheet/privacy';
+const DONATE_URL = HOST_PREFIX + '/donate';
+const PRIVACY_URL = HOST_PREFIX + '/privacy';
 
 const CACHE_TTL = 60; // intent key TTL (seconds)
 // HEARTBEAT_TTL must be strictly greater than the modal's heartbeat interval (2 s).
@@ -175,7 +174,7 @@ function showOnboarding(): void {
 }
 
 const PASSKEY_POPUP_URL =
-  'https://www.yuvalsadan.com/CipherSheet/prf-popup.html';
+  'https://ciphersheet-passkey.yuvalsadan.com/';
 
 function getPasskeyPopupUrl(): string {
   return PASSKEY_POPUP_URL;

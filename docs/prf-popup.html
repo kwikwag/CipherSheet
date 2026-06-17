@@ -7,7 +7,7 @@
   <style>
     * { box-sizing: border-box; }
     body {
-      font-family: Arial, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       font-size: 13px;
       color: #202124;
       display: flex;
@@ -17,21 +17,29 @@
       margin: 0;
       padding: 24px;
       background: #fff;
+      border-top: 3px solid #056a46;
     }
     .card { max-width: 340px; width: 100%; text-align: center; }
-    .icon { font-size: 36px; margin-bottom: 14px; }
-    .title { font-size: 15px; font-weight: 600; margin-bottom: 8px; }
+    .logo { display: block; margin: 0 auto 12px; width: 52px; height: 52px; }
+    .title { font-size: 15px; font-weight: 600; margin-bottom: 8px; color: #082c2e; }
     .status { font-size: 12px; color: #5f6368; line-height: 1.5; }
     .status.err { color: #c5221f; }
   </style>
 </head>
 <body>
 <div class="card">
-  <div class="icon" id="icon">Key</div>
+  <svg class="logo" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 18.2 18.2" aria-hidden="true"><defs><linearGradient xlink:href="#a" id="c" x1="381" x2="760" y1="134" y2="628" gradientTransform="translate(98.511 60.112)scale(.0256)" gradientUnits="userSpaceOnUse"/><linearGradient id="a" x1="381" x2="760" y1="134" y2="628" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#056a46"/><stop offset=".55" stop-color="#098a52"/><stop offset="1" stop-color="#19b457"/></linearGradient><linearGradient xlink:href="#b" id="g" x1="390" x2="593" y1="314" y2="571" gradientTransform="translate(31.462 -18.705)" gradientUnits="userSpaceOnUse"/><linearGradient id="b" x1="390" x2="593" y1="314" y2="571" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#032c36"/><stop offset="1" stop-color="#072f39"/></linearGradient><clipPath id="d" clipPathUnits="userSpaceOnUse"><path d="M112.32 63.386v5.89h6.318v-1.568h-.726l-3.597-3.66v-.662z" style="opacity:1;fill:#000;stroke-width:.0255748"/></clipPath><filter id="e" width="1.484" height="1.484" x="-.283" y="-.2" style="color-interpolation-filters:sRGB"><feFlood flood-color="#000" flood-opacity=".389" result="flood"/><feComposite in="flood" in2="SourceGraphic" operator="in" result="composite1"/><feGaussianBlur in="composite1" result="blur" stdDeviation=".3"/><feOffset dx="-.3" dy=".3" result="offset"/><feComposite in="SourceGraphic" in2="offset" result="composite2"/></filter></defs><path fill="url(#a)" d="M-349.616 128h121.361a38.77 38.77 22.27 0 1 27.19 11.135l149.113 146.73a37.9 37.9 67.27 0 1 11.316 27.01v259.25c0 8.768.206 23.122-2.025 31.576-5.39 20.421-21.062 36.593-41.29 42.186-8.425 2.33-22.793 2.113-31.56 2.113h-234.086z" class="UnoptimicedTransforms" style="fill:#4fbf73;fill-opacity:1" transform="translate(17.103 -.823)scale(.0256)"/><path fill="#04563f" d="M109.494 73.64h2.148v3.045h-2.148z" opacity=".72" style="opacity:1;stroke-width:.0152009" transform="translate(-102.575 -60.935)"/><path d="M107.233 65.319v2.087a.2.2 45.003 0 0 .2.2h.494a.2.2 135.003 0 0 .2-.2v-1.862a1.29 1.29 135.003 0 1 1.289-1.288h.03a1.29 1.29 44.991 0 1 1.288 1.288l.003 8.573h.529v2.568h5.785a1.59 1.59 135 0 0 1.588-1.588v-7.056a.333.333 45 0 0-.334-.333h-2.402a1.59 1.59 45 0 1-1.587-1.587v-2.402a.333.333 45 0 0-.333-.333h-4.817a1.933 1.933 135.003 0 0-1.933 1.933" style="opacity:1;fill:url(#c);stroke-width:.0255748" transform="translate(-102.575 -60.935)"/><path d="M117.776 67.708h-1.873a1.59 1.59 45 0 1-1.587-1.587v-1.873a.138.138 157.499 0 1 .235-.097l3.322 3.321a.138.138 112.499 0 1-.097.236" clip-path="url(#d)" style="mix-blend-mode:darken;fill:#eff;fill-opacity:1;stroke:none;stroke-width:.0255748;filter:url(#e)" transform="translate(-102.575 -60.935)"/><g fill="#fbfbfb" transform="translate(-102.575 -60.935)"><rect width="2.378" height="1.381" x="114.905" y="69.728" rx=".256" style="opacity:1;fill:#f6f7f7;fill-opacity:1;stroke-width:.0255748"/><rect width="2.378" height="1.381" x="114.905" y="73.36" rx=".256" style="fill:#f6f7f7;fill-opacity:1;stroke-width:.0255748"/><rect width="2.378" height="1.381" x="114.905" y="71.544" rx=".256" style="fill:#f6f7f7;fill-opacity:1;stroke-width:.0255748"/><rect width="2.378" height="1.381" x="111.99" y="73.36" rx=".256" style="fill:#f6f7f7;fill-opacity:1;stroke-width:.0255748"/><rect width="2.378" height="1.381" x="111.99" y="71.544" rx=".256" style="fill:#f6f7f7;fill-opacity:1;stroke-width:.0255748"/><rect width="2.378" height="1.381" x="111.99" y="69.728" rx=".256" style="fill:#f6f7f7;fill-opacity:1;stroke-width:.0255748"/></g><g transform="translate(-102.575 -60.935)"><path d="M108.517 68.066h4.252a1.19 1.19 45 0 1 1.19 1.19v4.14a1.19 1.19 135 0 1-1.19 1.192h-4.253a.11.11 45 0 1-.108-.109v-6.304a.11.11 135 0 1 .108-.109" style="opacity:1;fill:url(#g);stroke-width:.0255748"/><path fill="#fbfbfb" d="M111.606 69.728c.537 0 .972.41.972.947 0 .434-.181.792-.539.946l.36 1.688c.051.128-.051.256-.179.256h-1.227c-.128 0-.23-.128-.18-.256l.361-1.688c-.358-.154-.54-.512-.54-.946 0-.537.435-.947.972-.947" style="opacity:1;stroke-width:.0255748"/><path d="M107.323 73.648v.808a.13.13 45 0 0 .132.132h.953v.939a.13.13 45 0 0 .133.132h1.905a.13.13 135 0 0 .132-.132v-.807a.13.13 45 0 0-.132-.132h-.953v-.94a.13.13 45 0 0-.132-.132h-1.906a.13.13 135 0 0-.132.132" style="fill:#38b266;fill-opacity:1;stroke-width:1.07089;stop-color:#000"/><path d="M75.789 90.169h2.315a.13.13 45 0 1 .132.132v.807a.13.13 135 0 1-.132.132h-2.315a.13.13 45 0 1-.132-.132v-.807a.13.13 135 0 1 .132-.132" style="opacity:1;fill:#14834b;fill-opacity:1;stroke-width:1.16752;stop-color:#000" transform="translate(31.462 -18.655)"/><path d="M75.789 90.169h1.158v1.071h-1.158a.13.13 45 0 1-.132-.132v-.807a.13.13 135 0 1 .132-.132" style="opacity:1;fill:#062c2e;fill-opacity:1;stroke-width:.825703;stop-color:#000" transform="translate(31.462 -18.655)"/><path d="M108.408 74.588h1.085v1.07h-.952a.13.13 45 0 1-.133-.131z" style="opacity:1;fill:#06292c;fill-opacity:1;stroke-width:.757258;stop-color:#000"/><path d="M107.455 73.516h1.906a.13.13 45 0 1 .132.132v.94h-2.038a.13.13 45 0 1-.132-.133v-.807a.13.13 135 0 1 .132-.132" style="opacity:1;fill:#fefefe;fill-opacity:1;stroke-width:1.07092;stop-color:#000"/><path d="M107.455 73.516h.953v1.072h-.953a.13.13 45 0 1-.132-.133v-.807a.13.13 135 0 1 .132-.132" style="opacity:1;fill:#16804c;fill-opacity:1;stroke-width:.757278;stop-color:#000"/><path d="M76.33 90.169h1.235a.13.13 45 0 1 .132.132v.807a.13.13 135 0 1-.132.132h-1.236a.13.13 45 0 1-.132-.132v-.807a.13.13 135 0 1 .132-.132" style="opacity:1;fill:#3db46a;fill-opacity:1;stroke-width:.825703;stop-color:#000" transform="translate(31.462 -20.657)"/><path d="M76.33 90.169h.617v1.071h-.618a.13.13 45 0 1-.132-.132v-.807a.13.13 135 0 1 .132-.132" style="opacity:1;fill:#062a2c;fill-opacity:1;stroke-width:.825703;stop-color:#000" transform="translate(31.462 -20.657)"/><rect width=".677" height=".677" x="105.608" y="69.07" ry=".192" style="opacity:1;fill:#082c2e;fill-opacity:1;stroke:none;stroke-width:1.0223;stop-color:#000"/><rect width=".677" height=".677" x="104.711" y="71.128" ry=".192" style="opacity:1;fill:#0f9d51;fill-opacity:1;stroke:none;stroke-width:1.0223;stop-color:#000"/><rect width=".677" height=".677" x="105.986" y="74.229" ry=".192" style="opacity:1;fill:#26ae5e;fill-opacity:1;stroke:none;stroke-width:1.0223;stop-color:#000"/><rect width=".562" height=".562" x="107.27" y="75.418" ry=".159" style="opacity:1;fill:#032a2c;fill-opacity:1;stroke:none;stroke-width:.847895;stop-color:#000"/><rect width=".951" height=".951" x="105.529" y="72.348" ry=".269" style="opacity:1;fill:#117946;fill-opacity:1;stroke:none;stroke-width:1.43598;stop-color:#000"/><rect width=".951" height=".951" x="106.129" y="70.296" ry=".269" style="opacity:1;fill:#48bb73;fill-opacity:1;stroke:none;stroke-width:1.43598;stop-color:#000"/><rect width=".951" height=".951" x="106.936" y="68.172" ry=".269" style="opacity:1;fill:#46ba70;fill-opacity:1;stroke:none;stroke-width:1.43598;stop-color:#000"/></g></svg>
   <div class="title" id="title">CipherSheet Passkey</div>
   <div class="status" id="status">Connecting...</div>
 </div>
 <script>
+  // Refuse to run if not served at the root path — guards against misconfigured
+  // deployments where headers (frame-ancestors, CSP) may be absent.
+  if (location.pathname !== '/') {
+    document.body.innerHTML = '';
+    throw new Error('prf-popup must be served at the root path');
+  }
+
   const params = new URLSearchParams(location.search);
   const action = params.get('action') || '';
   const channel = params.get('channel') || '';
@@ -44,20 +52,21 @@
 
   console.log('[prf-popup] loaded. action:', action, 'origin:', location.origin, 'opener:', window.opener);
 
-  function ui(title, status, icon, isErr) {
+  function ui(title, status, _icon, isErr) {
     if (title) document.getElementById('title').textContent = title;
     if (status) document.getElementById('status').textContent = status;
-    if (icon) document.getElementById('icon').textContent = icon;
     document.getElementById('status').classList.toggle('err', !!isErr);
   }
 
+  // This popup only ever talks back to the CipherSheet add-on's Apps Script
+  // origin. Pinning to an allowlist (instead of trusting any https returnOrigin)
+  // stops a malicious site from opening the popup and using it as a PRF oracle.
+  const ALLOWED_RETURN_ORIGINS = [
+    'https://n-ffe6ohuksps7ptkjodp4qjbggyzlz2jendekrhq-0lu-script.googleusercontent.com',
+  ];
+
   function isValidReturnOrigin(origin) {
-    try {
-      const url = new URL(origin);
-      return url.origin === origin && url.protocol === 'https:';
-    } catch (_) {
-      return false;
-    }
+    return ALLOWED_RETURN_ORIGINS.includes(origin);
   }
 
   function send(msg) {
@@ -75,7 +84,10 @@
     console.log('[prf-popup] got message:', evt.data?.type);
     if (evt.data?.type !== 'prf-start') return;
     if (evt.data?.channel !== channel) return;
-    if (!isValidReturnOrigin(returnOrigin) || evt.origin !== returnOrigin) return;
+    if (!isValidReturnOrigin(returnOrigin) || evt.origin !== returnOrigin) {
+      console.warn('[prf-popup] rejected returnOrigin/sender:', returnOrigin, evt.origin);
+      return;
+    }
     if (started) return;
     started = true;
     replyWindow = evt.source;

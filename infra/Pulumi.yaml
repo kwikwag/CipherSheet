@@ -1,0 +1,9 @@
+name: ciphersheet-infra
+description: CipherSheet passkey popup hosting (ciphersheet-passkey.<your-domain>)
+runtime:
+  name: nodejs
+  options:
+    typescript: true
+    packagemanager: pnpm
+config:
+  aws:region: us-east-1

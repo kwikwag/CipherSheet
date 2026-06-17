@@ -1,0 +1,13 @@
+{
+  "name": "ciphersheet-infra",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "packageManager": "pnpm@10.33.2",
+  "devDependencies": {
+    "@types/node": "^22"
+  },
+  "dependencies": {
+    "@pulumi/aws": "^7.34.0",
+    "@pulumi/pulumi": "^3.246.0"
+  }
+}

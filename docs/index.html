@@ -6,8 +6,8 @@
   <title>CipherSheet | Client-Side Encryption for Google Sheets</title>
   <meta property="og:title" content="CipherSheet | Client-Side Encryption for Google Sheets">
   <meta property="og:description" content="Encrypt individual cells in Google Sheets with AES-256-GCM. Your key never leaves your device — the cloud only ever sees ciphertext. Share secrets with your team, zero-knowledge.">
-  <meta property="og:image" content="https://kwikwag.github.io/CipherSheet/branding/store-tile.png">
-  <meta property="og:url" content="https://kwikwag.github.io/CipherSheet/">
+  <meta property="og:image" content="https://www.yuvalsadan.com/CipherSheet/branding/store-tile.png">
+  <meta property="og:url" content="https://www.yuvalsadan.com/CipherSheet/">
   <meta property="og:type" content="website">
   <meta name="description" content="Encrypt individual cells in Google Sheets with AES-256-GCM. Your key never leaves your device — the cloud only ever sees ciphertext. Share secrets with your team, zero-knowledge.">
   <meta name="twitter:card" content="summary_large_image">
@@ -115,8 +115,11 @@
 
     .hero {
       text-align: center; padding: 2rem 2rem 5rem; background: #fff;
+      position: relative; overflow: hidden; isolation: isolate;
+      min-height: 420px;
     }
     .hero-store-tile { margin-top: 0; }
+    .hero > * { position: relative; z-index: 1; }
     
     .hero h1 { font-size: 3rem; margin-bottom: 1rem; color: var(--text-main); }
     .hero p { font-size: 1.25rem; color: var(--text-light); max-width: 600px; margin: 0 auto 2.5rem; }
@@ -416,6 +419,11 @@
       <a href="https://docs.google.com/forms/d/e/1FAIpQLScRT2LRVGqDcpENJ2fYaqIOr0fE9XUsEk9tJLZUtSa4i4dleQ/viewform" target="_blank">Contact Us</a>
     </div>
   </footer>
+
+  <script type="module">
+    import { mountCipherAnimation } from './cipher-animation-canvas.js';
+    mountCipherAnimation(document.querySelector('.hero'));
+  </script>
 
   <script>
     (function () {
