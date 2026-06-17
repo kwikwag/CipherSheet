@@ -2,7 +2,7 @@
 
 A client-side encrypted cell manager with a zero-knowledge architecture. Store secrets in a shared Google Sheet without exposing raw values — all cryptographic operations happen in your browser via the WebCrypto API. No plaintext or key material ever reaches Google's servers.
 
-Website: https://kwikwag.github.io/CipherSheet/
+Website: https://www.yuvalsadan.com/CipherSheet/
 Marketplace: https://workspace.google.com/marketplace/app/ciphersheet/1069746286788
 
 ---
