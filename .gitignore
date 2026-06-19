@@ -8,4 +8,4 @@ apps-script/dist/
 /.playwright-mcp
 /.attic
 /.claude
-
+/.ignore

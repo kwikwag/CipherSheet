@@ -20,12 +20,27 @@
     .logo b { font-family: 'Google Sans', Arial, Helvetica, sans-serif; color: #189a54; font-weight: bold; }
 
 </style>
+  <!-- Google tag (gtag.js) -->
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('consent', 'default', { analytics_storage: 'denied' });
+  </script>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-5JL1GXTR38"></script>
+  <script>
+    gtag('js', new Date());
+    gtag('config', 'G-5JL1GXTR38');
+    (function() {
+      var m = document.cookie.match(/(?:^|; )cs_analytics=([^;]+)/);
+      if (m && m[1] === 'granted') gtag('consent', 'update', { analytics_storage: 'granted' });
+    })();
+  </script>
 </head>
 <body>
   <h2 class="logo"><a href="index.html" aria-label="CipherSheet Home"><img src="branding/logo.svg" alt="CipherSheet"><span>Cipher<b>Sheet</b></span></a></h2>
 
   <h1>CipherSheet Privacy Policy</h1>
-  <p><strong>Last updated:</strong> June 17, 2026</p>
+  <p><strong>Last updated:</strong> June 19, 2026</p>
 
   <p>This Privacy Policy applies to the CipherSheet Google Sheets™™ add-on and the CipherSheet website. It explains how CipherSheet accesses, uses, stores, and shares Google user data.</p>
 
@@ -87,6 +102,16 @@
   </ul>
   <p>You can delete data by clearing relevant cells, removing document properties, or deleting the spreadsheet file. Uninstalling the add-on does not automatically delete existing spreadsheet data.</p>
 
+  <h2 id="analytics">Website Analytics</h2>
+  <p>The CipherSheet website (<code>www.yuvalsadan.com/CipherSheet</code>) uses <strong>Google Analytics 4</strong> to collect anonymous usage statistics — for example, which pages are visited and how visitors find the site. This analytics applies to the public website only; it does not apply to the CipherSheet add-on sidebar.</p>
+  <ul>
+    <li>Google Analytics uses cookies and similar technologies to collect information such as your approximate location, browser type, pages visited, and time spent on pages.</li>
+    <li>This data is sent to and stored by Google. For information on how Google uses it, see <a href="https://policies.google.com/technologies/partner-sites" target="_blank" rel="noopener">How Google uses information from sites or apps that use our services</a>.</li>
+    <li>No personally identifiable information (name, email address, or similar) is sent to Google Analytics.</li>
+    <li>On your first visit, a cookie consent banner lets you accept or opt out of analytics. You can change your preference at any time via the "Cookie settings" link in the footer of any page on this site.</li>
+    <li>You can also opt out of Google Analytics tracking globally by installing the <a href="https://tools.google.com/dlpage/gaoptout" target="_blank" rel="noopener">Google Analytics Opt-out Browser Add-on</a>.</li>
+  </ul>
+
   <h2>Security Protections</h2>
   <ul>
     <li>Client-side encryption/decryption uses the browser Web Crypto API and AES-256-GCM.</li>
@@ -100,7 +125,12 @@
   <h2>Policy Changes</h2>
   <p>We may update this policy when functionality or data handling changes. We will update the "Last updated" date on this page.</p>
 
-  <p>Summary of changes compared to the previous version (May 31, 2026):</p>
+  <p>Summary of changes between the June 17, 2026 and the June 19, 2026 versions:</p>
+  <ul>
+    <li>Added new "Website Analytics" section disclosing use of Google Analytics 4 on the CipherSheet website, what data it collects, and how to opt out.</li>
+  </ul>
+
+  <p>Summary of changes between the May 31, 2026 and the June 17, 2026 versions:</p>
   <ul>
     <li>Added disclosure that private key material is stored in the browser's <strong>IndexedDB</strong> (sidebar's <code>googleusercontent.com</code> origin), including passkey credential ID and PRF-wrapped unlock password when a passkey is enrolled; clearing site data for that origin deletes these entries.</li>
     <li>Added new "Cell Payload and Recipient Privacy" section disclosing that each encrypted cell embeds a SHA-256 hash of each recipient's email address, that this hash may be reversible by enumeration, and that anyone with read access to the raw formula can see the recipient hash list.</li>
@@ -115,7 +145,27 @@
     <a href="terms.html">Terms of Service</a> | 
     <!-- <a href="privacy.html">Privacy Policy</a> |  -->
     <a href="donate.html">Donate</a> | 
-    <a href="https://docs.google.com/forms/d/e/1FAIpQLScRT2LRVGqDcpENJ2fYaqIOr0fE9XUsEk9tJLZUtSa4i4dleQ/viewform" target="_blank">Contact Us</a>
+    <a href="https://docs.google.com/forms/d/e/1FAIpQLScRT2LRVGqDcpENJ2fYaqIOr0fE9XUsEk9tJLZUtSa4i4dleQ/viewform" target="_blank">Contact Us</a> |
+    <a href="#" onclick="csShowBanner();return false;">Cookie settings</a>
   </p>
+  <div id="cs-cookie-banner" style="position:fixed;bottom:0;left:0;right:0;background:#f5f7fb;border-top:1px solid #ddd;padding:0.75rem 1.5rem;display:flex;align-items:center;gap:1rem;font-size:0.875rem;z-index:999;">
+    <span style="flex:1">This site uses Google Analytics for anonymous usage statistics. <a href="#analytics" style="color:#056a46">Privacy policy</a></span>
+    <button onclick="csSetConsent('granted')" style="background:#056a46;color:#fff;border:none;padding:0.4rem 1rem;border-radius:4px;cursor:pointer">OK</button>
+    <button onclick="csSetConsent('denied')" style="background:none;border:1px solid #aaa;padding:0.4rem 1rem;border-radius:4px;cursor:pointer">Opt out</button>
+  </div>
+  <script>
+    (function() {
+      if (document.cookie.match(/(?:^|; )cs_analytics=/))
+        document.getElementById('cs-cookie-banner').style.display = 'none';
+    })();
+    function csSetConsent(choice) {
+      document.cookie = 'cs_analytics=' + choice + '; max-age=31536000; path=/; SameSite=Lax';
+      document.getElementById('cs-cookie-banner').style.display = 'none';
+      if (choice === 'granted') gtag('consent', 'update', { analytics_storage: 'granted' });
+    }
+    function csShowBanner() {
+      document.getElementById('cs-cookie-banner').style.display = 'flex';
+    }
+  </script>
 </body>
 </html>

@@ -100,6 +100,21 @@
     .logo b { font-family: 'Google Sans', Arial, Helvetica, sans-serif; color: #189a54ff; font-weight: bold; }
 
 </style>
+  <!-- Google tag (gtag.js) -->
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('consent', 'default', { analytics_storage: 'denied' });
+  </script>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-5JL1GXTR38"></script>
+  <script>
+    gtag('js', new Date());
+    gtag('config', 'G-5JL1GXTR38');
+    (function() {
+      var m = document.cookie.match(/(?:^|; )cs_analytics=([^;]+)/);
+      if (m && m[1] === 'granted') gtag('consent', 'update', { analytics_storage: 'granted' });
+    })();
+  </script>
 </head>
 <body>
   <main class="card">
@@ -116,6 +131,26 @@
 
     <br>
     <a class="back" href="index.html">&larr; Back to Home</a>
+    <br><a class="back" href="#" onclick="csShowBanner();return false;">Cookie settings</a>
   </main>
+  <div id="cs-cookie-banner" style="position:fixed;bottom:0;left:0;right:0;background:#f5f7fb;border-top:1px solid #ddd;padding:0.75rem 1.5rem;display:flex;align-items:center;gap:1rem;font-size:0.875rem;z-index:999;">
+    <span style="flex:1">This site uses Google Analytics for anonymous usage statistics. <a href="privacy.html#analytics" style="color:#056a46">Privacy policy</a></span>
+    <button onclick="csSetConsent('granted')" style="background:#056a46;color:#fff;border:none;padding:0.4rem 1rem;border-radius:4px;cursor:pointer">OK</button>
+    <button onclick="csSetConsent('denied')" style="background:none;border:1px solid #aaa;padding:0.4rem 1rem;border-radius:4px;cursor:pointer">Opt out</button>
+  </div>
+  <script>
+    (function() {
+      if (document.cookie.match(/(?:^|; )cs_analytics=/))
+        document.getElementById('cs-cookie-banner').style.display = 'none';
+    })();
+    function csSetConsent(choice) {
+      document.cookie = 'cs_analytics=' + choice + '; max-age=31536000; path=/; SameSite=Lax';
+      document.getElementById('cs-cookie-banner').style.display = 'none';
+      if (choice === 'granted') gtag('consent', 'update', { analytics_storage: 'granted' });
+    }
+    function csShowBanner() {
+      document.getElementById('cs-cookie-banner').style.display = 'flex';
+    }
+  </script>
 </body>
 </html>
